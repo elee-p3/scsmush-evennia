@@ -6,6 +6,7 @@ Commands describe the input the account can do to the game.
 """
 
 from evennia.commands.command import Command as BaseCommand
+COMMAND_DEFAULT_CLASS = utils.class_from_module(settings.COMMAND_DEFAULT_CLASS)
 
 # from evennia import default_cmds
 
@@ -42,8 +43,6 @@ class CmdOOC(COMMAND_DEFAULT_CLASS):
     Talk to those in your current location.
     """
 
-    COMMAND_DEFAULT_CLASS = utils.class_from_module(settings.COMMAND_DEFAULT_CLASS)
-
     key = "ooc"
     aliases = ["+ooc"]
     locks = "cmd:all()"
@@ -76,8 +75,6 @@ class CmdZog(COMMAND_DEFAULT_CLASS):
       zog <message>
     Talk to those in your current location.
     """
-
-    COMMAND_DEFAULT_CLASS = utils.class_from_module(settings.COMMAND_DEFAULT_CLASS)
 
     key = "zog"
     aliases = ["ziggy"]
