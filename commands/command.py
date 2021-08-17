@@ -10,7 +10,7 @@ from evennia.commands.command import Command as BaseCommand
 from evennia import default_cmds
 
 
-class CmdSpoof(BaseCommand):
+class CmdSpoof(default_cmds.MuxCommand):
     """
     Actual posing functionality
 
@@ -39,8 +39,6 @@ class CmdSpoof(BaseCommand):
 
         # Call the at_after_say hook on the character
         caller.at_say(speech)
-
-
 
     pass
 
