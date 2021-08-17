@@ -35,6 +35,35 @@ class CmdEmit(default_cmds.MuxCommand):
     perm_for_switches = "Builders"
     arg_regex = None
 
+    def sub_old_ansi(self, text):
+        """Replacing old ansi with newer evennia markup strings"""
+        if not text:
+            return ""
+        text = text.replace("%r", "|/")
+        text = text.replace("%R", "|/")
+        text = text.replace("%t", "|-")
+        text = text.replace("%T", "|-")
+        text = text.replace("%b", "|_")
+        text = text.replace("%cr", "|r")
+        text = text.replace("%cR", "|[R")
+        text = text.replace("%cg", "|g")
+        text = text.replace("%cG", "|[G")
+        text = text.replace("%cy", "|!Y")
+        text = text.replace("%cY", "|[Y")
+        text = text.replace("%cb", "|!B")
+        text = text.replace("%cB", "|[B")
+        text = text.replace("%cm", "|!M")
+        text = text.replace("%cM", "|[M")
+        text = text.replace("%cc", "|!C")
+        text = text.replace("%cC", "|[C")
+        text = text.replace("%cw", "|!W")
+        text = text.replace("%cW", "|[W")
+        text = text.replace("%cx", "|!X")
+        text = text.replace("%cX", "|[X")
+        text = text.replace("%ch", "|h")
+        text = text.replace("%cn", "|n")
+        return text
+
     def get_help(self, caller, cmdset):
         """Returns custom help file based on caller"""
         if caller.check_permstring(self.perm_for_switches):
@@ -91,12 +120,14 @@ class CmdEmit(default_cmds.MuxCommand):
 
         if not self.rhs or not caller.check_permstring(perm):
             message = args
+            message = self.sub_old_ansi(message)
             normal_emit = True
             objnames = []
             do_global = False
         else:
             do_global = True
             message = self.rhs
+            message = self.sub_old_ansi(message)
             if caller.check_permstring(perm):
                 objnames = self.lhslist
             else:
