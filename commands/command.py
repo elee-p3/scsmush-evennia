@@ -155,7 +155,7 @@ class CmdEmit(default_cmds.MuxCommand):
                 from_obj=caller,
                 options={"is_pose": True},
                 )
-                # ob.msg(gm_msg, from_obj=caller, options={"is_pose": True})
+                ob.msg(message, from_obj=caller, options={"is_pose": True})
             return
         # send to all objects
         for objname in objnames:
