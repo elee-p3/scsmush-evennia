@@ -136,27 +136,26 @@ class CmdEmit(default_cmds.MuxCommand):
             do_global = caller.check_permstring(perm)
         # normal emits by players are just sent to the room
         if normal_emit:
-            gms = [
-                ob for ob in caller.location.contents if ob.check_permstring("builders")
-            ]
+            # gms = [
+            #     ob for ob in caller.location.contents if ob.check_permstring("builders")
+            # ]
             non_gms = [
                 ob
                 for ob in caller.location.contents
                 if "emit_label" in ob.tags.all() and ob.player
             ]
             # gm_msg = "{w({c%s{w){n %s" % (caller.name, message)
-            gm_msg = message
-            caller.location.msg_contents(
-                gm_msg, from_obj=caller, options={"is_pose": True}, gm_msg=True
-            )
+            # caller.location.msg_contents(
+            #     gm_msg, from_obj=caller, options={"is_pose": True}, gm_msg=True
+            # )
             for ob in non_gms:
-                ob.msg(gm_msg, from_obj=caller, options={"is_pose": True})
-            caller.location.msg_contents(
+                caller.location.msg_contents(
                 message,
-                exclude=gms + non_gms,
+                # exclude=gms + non_gms,
                 from_obj=caller,
                 options={"is_pose": True},
-            )
+                )
+                # ob.msg(gm_msg, from_obj=caller, options={"is_pose": True})
             return
         # send to all objects
         for objname in objnames:
