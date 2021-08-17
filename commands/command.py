@@ -7,7 +7,7 @@ Commands describe the input the account can do to the game.
 
 from evennia.commands.command import Command as BaseCommand
 
-# from evennia import default_cmds
+from evennia import default_cmds
 
 
 class CmdSpoof(BaseCommand):
@@ -44,6 +44,72 @@ class CmdSpoof(BaseCommand):
 
     pass
 
+
+class CmdOOC(default_cmds.MuxCommand):
+    """
+    speak out-of-character
+    Usage:
+      ooc <message>
+    Talk to those in your current location.
+    """
+
+    key = "ooc"
+    aliases = ["+ooc"]
+    locks = "cmd:all()"
+
+    def func(self):
+        """Run the OOC command"""
+
+        caller = self.caller
+
+        if not self.args:
+            caller.msg("Say what OOC?")
+            return
+
+        speech = self.args
+
+        # Calling the at_before_say hook on the character
+        speech = caller.at_before_say(speech)
+
+        # If speech is empty, stop here
+        if not speech:
+            return
+
+        # Call the at_after_say hook on the character
+        caller.at_say(speech, msg_self=True)
+
+# class CmdZog(default_cmds.MuxCommand):
+#     """
+#     speak but with zog
+#     Usage:
+#       zog <message>
+#     Talk to those in your current location.
+#     """
+#
+#     key = "zog"
+#     aliases = ["ziggy"]
+#     locks = "cmd:all()"
+#
+#     def func(self):
+#         """Run the zog command"""
+#
+#         caller = self.caller
+#
+#         if not self.args:
+#             caller.msg("Zog what?")
+#             return
+#
+#         speech = self.args
+#
+#         # Calling the at_before_say hook on the character
+#         speech = caller.at_before_say(speech)
+#
+#         # If speech is empty, stop here
+#         if not speech:
+#             return
+#
+#         # Call the at_after_say hook on the character
+#         caller.at_say(speech, msg_self=True)
 
 # -------------------------------------------------------------
 #
