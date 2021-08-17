@@ -6,9 +6,8 @@ Commands describe the input the account can do to the game.
 """
 
 from evennia.commands.command import Command as BaseCommand
-COMMAND_DEFAULT_CLASS = utils.class_from_module(settings.COMMAND_DEFAULT_CLASS)
 
-# from evennia import default_cmds
+from evennia import default_cmds
 
 
 class Command(BaseCommand):
@@ -35,40 +34,40 @@ class Command(BaseCommand):
     pass
 
 
-class CmdOOC(COMMAND_DEFAULT_CLASS):
-    """
-    speak out-of-character
-    Usage:
-      ooc <message>
-    Talk to those in your current location.
-    """
+# class CmdOOC(COMMAND_DEFAULT_CLASS):
+#     """
+#     speak out-of-character
+#     Usage:
+#       ooc <message>
+#     Talk to those in your current location.
+#     """
+#
+#     key = "ooc"
+#     aliases = ["+ooc"]
+#     locks = "cmd:all()"
+#
+#     def func(self):
+#         """Run the OOC command"""
+#
+#         caller = self.caller
+#
+#         if not self.args:
+#             caller.msg("Say what OOC?")
+#             return
+#
+#         speech = self.args
+#
+#         # Calling the at_before_say hook on the character
+#         speech = caller.at_before_say(speech)
+#
+#         # If speech is empty, stop here
+#         if not speech:
+#             return
+#
+#         # Call the at_after_say hook on the character
+#         caller.at_say(speech, msg_self=True)
 
-    key = "ooc"
-    aliases = ["+ooc"]
-    locks = "cmd:all()"
-
-    def func(self):
-        """Run the OOC command"""
-
-        caller = self.caller
-
-        if not self.args:
-            caller.msg("Say what OOC?")
-            return
-
-        speech = self.args
-
-        # Calling the at_before_say hook on the character
-        speech = caller.at_before_say(speech)
-
-        # If speech is empty, stop here
-        if not speech:
-            return
-
-        # Call the at_after_say hook on the character
-        caller.at_say(speech, msg_self=True)
-
-class CmdZog(COMMAND_DEFAULT_CLASS):
+class CmdZog(default_cmds.MuxCommand):
     """
     speak but with zog
     Usage:
