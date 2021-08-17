@@ -69,6 +69,40 @@ class CmdOOC(COMMAND_DEFAULT_CLASS):
         # Call the at_after_say hook on the character
         caller.at_say(speech, msg_self=True)
 
+class CmdZog(COMMAND_DEFAULT_CLASS):
+    """
+    speak but with zog
+    Usage:
+      zog <message>
+    Talk to those in your current location.
+    """
+
+    COMMAND_DEFAULT_CLASS = utils.class_from_module(settings.COMMAND_DEFAULT_CLASS)
+
+    key = "zog"
+    aliases = ["ziggy"]
+    locks = "cmd:all()"
+
+    def func(self):
+        """Run the zog command"""
+
+        caller = self.caller
+
+        if not self.args:
+            caller.msg("Zog what?")
+            return
+
+        speech = self.args
+
+        # Calling the at_before_say hook on the character
+        speech = caller.at_before_say(speech)
+
+        # If speech is empty, stop here
+        if not speech:
+            return
+
+        # Call the at_after_say hook on the character
+        caller.at_say(speech, msg_self=True)
 
 # -------------------------------------------------------------
 #
