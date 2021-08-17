@@ -78,7 +78,7 @@ class CmdEmit(default_cmds.MuxCommand):
         ) and not caller.check_permstring(perm):
             caller.msg("Those options are restricted to GMs only.")
             return
-        self.caller.posecount += 1
+        # self.caller.posecount += 1
         if self.cmdstring == "@remit":
             rooms_only = True
             send_to_contents = True
