@@ -56,6 +56,40 @@ class AccountCmdSet(default_cmds.AccountCmdSet):
         #
 
 
+class CmdOOC(COMMAND_DEFAULT_CLASS):
+    """
+    speak out-of-character
+    Usage:
+      ooc <message>
+    Talk to those in your current location.
+    """
+
+    key = "ooc"
+    aliases = ["+ooc"]
+    locks = "cmd:all()"
+
+    def func(self):
+        """Run the OOC command"""
+
+        caller = self.caller
+
+        if not self.args:
+            caller.msg("Say what OOC?")
+            return
+
+        speech = self.args
+
+        # Calling the at_before_say hook on the character
+        speech = caller.at_before_say(speech)
+
+        # If speech is empty, stop here
+        if not speech:
+            return
+
+        # Call the at_after_say hook on the character
+        caller.at_say(speech, msg_self=True)
+
+
 class UnloggedinCmdSet(default_cmds.UnloggedinCmdSet):
     """
     Command set available to the Session before being logged in.  This
