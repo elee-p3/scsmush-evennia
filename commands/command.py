@@ -27,7 +27,7 @@ class CmdSpoof(BaseCommand):
 
         caller = self.caller
 
-        if not self.args
+        if not self.args:
             caller.msg("Say what?")
             return
 
