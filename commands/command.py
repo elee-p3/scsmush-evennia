@@ -225,7 +225,11 @@ class CmdOOC(default_cmds.MuxCommand):
             return
 
         # Call the at_after_say hook on the character
-        caller.at_say(speech, msg_self=True)
+        # caller.at_say(speech, msg_self=True)
+        message = ("|y<OOC>|n {0} says, \"{1}\"").format(self.caller.name, message)
+        caller.location.msg_contents(
+            message, from_obj=caller, options={"is_pose": True}
+        )
 
 # class CmdZog(default_cmds.MuxCommand):
 #     """
