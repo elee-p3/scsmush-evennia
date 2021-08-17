@@ -148,14 +148,17 @@ class CmdEmit(default_cmds.MuxCommand):
             # caller.location.msg_contents(
             #     gm_msg, from_obj=caller, options={"is_pose": True}, gm_msg=True
             # )
-            for ob in non_gms:
-                caller.location.msg_contents(
-                message,
-                # exclude=gms + non_gms,
-                from_obj=caller,
-                options={"is_pose": True},
-                )
-                ob.msg(message, from_obj=caller, options={"is_pose": True})
+            caller.location.msg_contents(
+                message, from_obj=caller, options={"is_pose": True}
+            )
+            # for ob in non_gms:
+            #     caller.location.msg_contents(
+            #     message,
+            #     # exclude=gms + non_gms,
+            #     from_obj=caller,
+            #     options={"is_pose": True},
+            #     )
+            #     ob.msg(message, from_obj=caller, options={"is_pose": True})
             return
         # send to all objects
         for objname in objnames:
