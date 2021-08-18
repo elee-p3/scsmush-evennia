@@ -58,10 +58,10 @@ MMMMMMMMMMMMMKdllloOk;,,,,,,,,,,''.. .'d0XWd'.   ..,c:;,;kWMMMMMMNdcxkOOOOOkOKol
 MMMMMMMMMMMMMMNxllodl,,,,,,,,,,'... .;OWMMNl''.....cddol;lXMMMMMWOoooxk00OOkKWXo
 MMMMMMMMMMMMMMMWOll:,,,,,,,,,,,'... ..oNWMXc,;.....;cc:;;cKMMMMWOdOklcldxkxkKKOd
 MMMMMMMMMMMMMMWN0c'....'',,,'..........:ldd;;c'.. .,cccc:;xNMMWOdOK0xlcclox0OdoO
-MMMMMMMMMMMMWk:;'......'''...STAR....  .....,l;....cddddocl0MWOdOKKKklclox0kllOW
-MMMMMMMMMMMMWO;.............CHASER.'...  ....:;...'oxooololOWOdkKKK0xlldkOdco0WM
-MMMMMMMMMWKxc,...............STORY.''.........;'...:dlllldlxOook0KKkdodkklcdXMMM
-MMMMMMMMWk,. .. .............MUSH......''.....,'....:lccld:;llloxxdddxko:lOWMMMM
+MMMMMMMMMMMMWk:;'......'''...|ySTAR|n....  .....,l;....cddddocl0MWOdOKKKklclox0kllOW
+MMMMMMMMMMMMWO;.............|yCHASER|n.'...  ....:;...'oxooololOWOdkKKK0xlldkOdco0WM
+MMMMMMMMMWKxc,...............|ySTORY|n.''.........;'...:dlllldlxOook0KKkdodkklcdXMMM
+MMMMMMMMWk,. .. .............|rMUSH|n......''.....,'....:lccld:;llloxxdddxko:lOWMMMM
 MMMMMMMMXc. ... .............  ...............'......;:::c,'clccllodxoccxXMMMMMM
 MMMMMMMMWd.....  ..'.....  .....  ....'..........  ...,,;;c:;:llooooccdKMMMMMMMM
 MMMMMMMMM0;.....  ..............  ....''''''. ..  .'coollc:;'';:cc:cxKWMMMMMMMMM
