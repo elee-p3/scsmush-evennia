@@ -52,4 +52,9 @@ class Character(DefaultCharacter):
         self.db.parry = 100
         self.db.barrier = 100
         self.db.speed = 100
+
+    def get_abilities(self):
+        return self.db.sex, self.db.race, self.db.occupation, self.db.group, self.db.domain, self.db.element, \
+               self.db.quote, self.db.profile, self.db.lf, self.db.maxlf, self.db.ap, self.db.maxap, self.db.ex, self.db.maxex, self.db.power, self.db.knowledge, self.db.parry, self.db.barrier, self.db.speed
+
     pass

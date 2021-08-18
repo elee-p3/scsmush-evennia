@@ -231,6 +231,26 @@ class CmdOOC(default_cmds.MuxCommand):
             speech, from_obj=caller, options={"is_pose": True}
         )
 
+class CmdSheet(default_cmds.MuxCommand)
+        """
+        List attributes
+
+        Usage:
+          sheet, score
+
+        Displays a list of your current ability values.
+        """
+        key = "sheet"
+        aliases = ["score"]
+        lock = "cmd:all()"
+        help_category = "General"
+
+        def func(self):
+            "implements the actual functionality"
+
+             sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, EX, maxex, power, knowledge, parry, barrier, speed = self.caller.get_abilities()
+             string = "LF: %s, Max LF: %s, AP: %s, Max AP: %s" % (lf, maxlf, ap, maxap)
+             self.caller.msg(string)
 # class CmdZog(default_cmds.MuxCommand):
 #     """
 #     speak but with zog
