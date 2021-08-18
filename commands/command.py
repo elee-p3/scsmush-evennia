@@ -267,18 +267,37 @@ class CmdSheet(default_cmds.MuxCommand):
             sheetMsg = "| LF"
             sheetMsg += (22 - (len(str(lf)) + len(str(maxlf)) + 1 + len(sheetMsg))) * " "
             sheetMsg += "{0}/{1}".format(lf, maxlf)
-            sheetMsg += (38 - len(sheetMsg)) * " "
+            sheetMsg += self.padToSecondLabel(sheetMsg)
             sheetMsg += "Power"
-            sheetMsg += (63 - len(sheetMsg)) * " "
+            sheetMsg += self.padToLastValue(sheetMsg)
             sheetMsg += "{0}".format(power)
-            sheetMsg = self.pad(sheetMsg)
+            sheetMsg += self.padToEnd(sheetMsg)
             sheetMsg += "\n"
-            sheetMsg += "hohoho I'm a new line"
+            sheetMsg += "| ["
+            sheetMsg += (21 - len(sheetMsg)) * " "
+            sheetMsg += "]"
+            sheetMsg += self.padToSecondLabel(sheetMsg)
+            sheetMsg += "Knowledge"
+            sheetMsg += self.padToLastValue(sheetMsg)
+            sheetMsg += "{0}".format(knowledge)
+            sheetMsg += self.padToEnd()
+            sheetMsg += "\n"
+            sheetMsg += "more testing"
 
             self.caller.msg(sheetMsg)
 
 
-        def pad(self, inString):
+        def padToSecondLabel(self, inString):
+            outString = inString + (38 - len(sheetMsg)) * " "
+            return outString
+
+
+        def padToLastValue(self, inString):
+            outString = inString + (63 - len(sheetMsg)) * " "
+            return outString
+
+
+        def padToEnd(self, inString):
             """Pad out to the end of the sheet row"""
             outString = inString + (77 - len(inString))*" "
             outString += "|"
