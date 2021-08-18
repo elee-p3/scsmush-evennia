@@ -267,20 +267,20 @@ class CmdSheet(default_cmds.MuxCommand):
             sheetMsg = "| LF"
             sheetMsg += (22 - (len(str(lf)) + len(str(maxlf)) + 1 + len(sheetMsg))) * " "
             sheetMsg += "{0}/{1}".format(lf, maxlf)
-            sheetMsg += self.padToSecondLabel(sheetMsg)
+            sheetMsg = self.padToSecondLabel(sheetMsg)
             sheetMsg += "Power"
-            sheetMsg += self.padToLastValue(sheetMsg)
+            sheetMsg = self.padToLastValue(sheetMsg)
             sheetMsg += "{0}".format(power)
-            sheetMsg += self.padToEnd(sheetMsg)
+            sheetMsg = self.padToEnd(sheetMsg)
             sheetMsg += "\n"
             sheetMsg += "| ["
             sheetMsg += (21 - len(sheetMsg)) * " "
             sheetMsg += "]"
-            sheetMsg += self.padToSecondLabel(sheetMsg)
+            sheetMsg = self.padToSecondLabel(sheetMsg)
             sheetMsg += "Knowledge"
-            sheetMsg += self.padToLastValue(sheetMsg)
+            sheetMsg = self.padToLastValue(sheetMsg)
             sheetMsg += "{0}".format(knowledge)
-            sheetMsg += self.padToEnd(sheetMsg)
+            sheetMsg = self.padToEnd(sheetMsg)
             sheetMsg += "\n"
             sheetMsg += "more testing"
 
