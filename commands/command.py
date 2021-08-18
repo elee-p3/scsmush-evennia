@@ -248,31 +248,27 @@ class CmdSheet(default_cmds.MuxCommand):
         def func(self):
             "implements the actual functionality"
 
-            name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, power, knowledge, parry, barrier, speed = self.caller.get_abilities()
-            # string = """
-            # /\_______________________________________________________________________/\
-            # \/                               %s                                      \/
-            # | Life Force: %s/%s                 Aether Points: %s/%s
-            # |
-            # | EX: %s/%s
-            # | Domain: %s
-            # | Element: %s
-            # | Power: %s
-            # | Knowledge: %s
-            # | Parry: %s
-            # | Barrier: %s                                                           |
-            # | Speed: %s
-            # """ % (name, lf, maxlf, ap, maxap, ex, maxex, domain, element, power, knowledge, parry, barrier, speed)
+            name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
+            power, knowledge, parry, barrier, speed = self.caller.get_abilities()
+            sheetMsg = ""
 
-            sheetMsg = "| LF"
-            sheetMsg += (22 - (len(str(lf)) + len(str(maxlf)) + 1 + len(sheetMsg))) * " "
-            sheetMsg += "{0}/{1}".format(lf, maxlf)
-            sheetMsg = self.padToSecondLabel(sheetMsg)
-            sheetMsg += "Power"
-            sheetMsg = self.padToLastValue(sheetMsg)
-            sheetMsg += "{0}".format(power)
-            sheetMsg = self.padToEnd(sheetMsg)
-            sheetMsg += "\n"
+
+            sheetMsg += "/\\" + (37 - floor(len(name))) * " "
+            sheetMsg += name
+            sheetMsg += (77 - len(inString))*" " + "/\\"
+            sheetMsg += "|/" + 76 * "¯" + "\|"
+
+            # first row
+            firstRow = "| LF"
+            firstRow += (22 - (len(str(lf)) + len(str(maxlf)) + 1 + len(firstRow))) * " "
+            firstRow += "{0}/{1}".format(lf, maxlf)
+            firstRow = self.padToSecondLabel(firstRow)
+            firstRow += "Power"
+            firstRow = self.padToLastValue(firstRow)
+            firstRow += "{0}".format(power)
+            firstRow = self.padToEnd(firstRow)
+            firstRow += "\n"
+            sheetMsg += firstRow
 
             # second row
             secondRow = "| ["
