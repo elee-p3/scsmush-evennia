@@ -265,7 +265,7 @@ class CmdSheet(default_cmds.MuxCommand):
             # """ % (name, lf, maxlf, ap, maxap, ex, maxex, domain, element, power, knowledge, parry, barrier, speed)
 
             sheetMsg = "| LF"
-            sheetMsg += (23-(len(lf) + len(maxlf) + 1)) * " "
+            sheetMsg += (23-(len(str(lf)) + len(str(maxlf)) + 1)) * " "
             sheetMsg += "{0}/{1}".format(lf, maxlf)
             sheetMsg += (38 - len(sheetMsg)) * " "
             sheetMsg += "Power"
