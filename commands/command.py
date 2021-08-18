@@ -249,21 +249,58 @@ class CmdSheet(default_cmds.MuxCommand):
             "implements the actual functionality"
 
             name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, power, knowledge, parry, barrier, speed = self.caller.get_abilities()
-            string = """
-            /\_______________________________________________________________________/\
-            \/                               %s                                      \/
-            | Life Force: %s/%s
-            | Aether Points: %s/%s
-            | EX: %s/%s
-            | Domain: %s
-            | Element: %s
-            | Power: %s
-            | Knowledge: %s
-            | Parry: %s
-            | Barrier: %s
-            | Speed: %s
-            """ % (name, lf, maxlf, ap, maxap, ex, maxex, domain, element, power, knowledge, parry, barrier, speed)
+            # string = """
+            # /\_______________________________________________________________________/\
+            # \/                               %s                                      \/
+            # | Life Force: %s/%s                 Aether Points: %s/%s
+            # |
+            # | EX: %s/%s
+            # | Domain: %s
+            # | Element: %s
+            # | Power: %s
+            # | Knowledge: %s
+            # | Parry: %s
+            # | Barrier: %s                                                           |
+            # | Speed: %s
+            # """ % (name, lf, maxlf, ap, maxap, ex, maxex, domain, element, power, knowledge, parry, barrier, speed)
+
+            sheetMsg = "| Life Force  {0}/{1}".format(lf, maxlf)
+            sheetMsg += (50 - size(sheetMsg))*" "
+            sheetMsg += "Power"
+            sheetMsg += (65 - size(sheetMsg))*" "
+            sheetMsg += "{0}".format(power)
+            sheetMsg = self.pad(sheetMsg)
+
             self.caller.msg(string)
+
+
+            def pad(self, inString):
+                """Pad out to the end of the sheet row"""
+                outString = inString + (79 - size(inString))*" "
+                outString += "|"
+                return outString
+
+        # def sheetRow(self, firstLabel, firstValue, secondLabel, secondValue):
+        #     """Format a row of the sheet, providing the sheet the two values that you want to print"""
+        #
+        #     # 80 characters total per row
+        #     rowString = "|"
+        #     rowString += 10 * " "
+        #     rowString += firstLabel + ": "
+        #     rowString += firstValue
+        #     rowString += (50-size(rowString)) * " " # pad out to second column
+        #
+        #     # if we want a second value (i.e. if there are an even number of values in the sheet)
+        #     if secondColumn:
+        #         rowString += secondLabel+": "
+        #         rowString += secondValue
+        #
+        #     # remember to leave room for the right border
+        #     rowString += 79 - size(rowString) * " "
+        #     rowString += "|"
+        #
+        #     return rowString
+
 # class CmdZog(default_cmds.MuxCommand):
 #     """
 #     speak but with zog
