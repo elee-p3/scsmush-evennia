@@ -231,7 +231,7 @@ class CmdOOC(default_cmds.MuxCommand):
             speech, from_obj=caller, options={"is_pose": True}
         )
 
-class CmdSheet(default_cmds.MuxCommand)
+class CmdSheet(default_cmds.MuxCommand):
         """
         List attributes
 
