@@ -299,7 +299,37 @@ class CmdSheet(default_cmds.MuxCommand):
             sheetMsg += thirdRow
 
             # fourth row
-            sheetMsg += "some more testing"
+            fourthRow = "| ["
+            fourthRow += (21 - len(fourthRow)) * " "
+            fourthRow += "]"
+            fourthRow = self.padToSecondLabel(fourthRow)
+            fourthRow += "Barrier"
+            fourthRow = self.padToLastValue(fourthRow)
+            fourthRow += "{0}".format(barrier)
+            fourthRow = self.padToEnd(fourthRow)
+            fourthRow += "\n"
+            sheetMsg += fourthRow
+
+            # fifth row
+            fifthRow = "| EX"
+            fifthRow += (20 - (len(str(ex)) + len(str(maxex)) + 1 + len(fifthRow))) * " "
+            fifthRow += "{0}%/{1}%".format(ex, maxex)
+            fifthRow = self.padToSecondLabel(fifthRow)
+            fifthRow += "Speed"
+            fifthRow = self.padToLastValue(fifthRow)
+            fifthRow += "{0}".format(speed)
+            fifthRow = self.padToEnd(fifthRow)
+            fifthRow += "\n"
+            sheetMsg += fifthRow
+
+            # sixth row
+            sixthRow = "| ["
+            sixthRow += (21 - len(sixthRow)) * " "
+            sixthRow += "]"
+            sixthRow = self.padToEnd(sixthRow)
+            sixthRow += "\n"
+            sheetMsg += sixthRow
+
 
 
             self.caller.msg(sheetMsg)
