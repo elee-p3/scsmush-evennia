@@ -248,9 +248,9 @@ class CmdSheet(default_cmds.MuxCommand):
         def func(self):
             "implements the actual functionality"
 
-             sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, EX, maxex, power, knowledge, parry, barrier, speed = self.caller.get_abilities()
-             string = "LF: %s, Max LF: %s, AP: %s, Max AP: %s" % (lf, maxlf, ap, maxap)
-             self.caller.msg(string)
+            sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, EX, maxex, power, knowledge, parry, barrier, speed = self.caller.get_abilities()
+            string = "LF: %s, Max LF: %s, AP: %s, Max AP: %s" % (lf, maxlf, ap, maxap)
+            self.caller.msg(string)
 # class CmdZog(default_cmds.MuxCommand):
 #     """
 #     speak but with zog
