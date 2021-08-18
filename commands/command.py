@@ -280,7 +280,7 @@ class CmdSheet(default_cmds.MuxCommand):
             sheetMsg += "Knowledge"
             sheetMsg += self.padToLastValue(sheetMsg)
             sheetMsg += "{0}".format(knowledge)
-            sheetMsg += self.padToEnd()
+            sheetMsg += self.padToEnd(sheetMsg)
             sheetMsg += "\n"
             sheetMsg += "more testing"
 
