@@ -253,10 +253,11 @@ class CmdSheet(default_cmds.MuxCommand):
             sheetMsg = ""
 
 
-            sheetMsg += "/\\" + (37 - floor(len(name))) * " "
-            sheetMsg += name
-            sheetMsg += (77 - len(inString))*" " + "/\\"
-            sheetMsg += "|/" + 76 * "¯" + "\|"
+            nameBorder += "/\\" + (37 - floor(len(name))) * " "
+            nameBorder += name
+            nameBorder += (76 - len(nameBorder))*" " + "/\\"
+            sheetMsg += nameBorder + "\n"
+            sheetMsg += "|/" + 74 * "¯" + "\|" + "\n"
 
             # first row
             firstRow = "| LF"
