@@ -264,12 +264,16 @@ class CmdSheet(default_cmds.MuxCommand):
             # | Speed: %s
             # """ % (name, lf, maxlf, ap, maxap, ex, maxex, domain, element, power, knowledge, parry, barrier, speed)
 
-            sheetMsg = "| Life Force  {0}/{1}".format(lf, maxlf)
-            sheetMsg += (50 - len(sheetMsg))*" "
+            sheetMsg = "| LF"
+            sheetMsg += (23-(len(lf) + len(maxlf) + 1)) * " "
+            sheetMsg += "{0}/{1}".format(lf, maxlf)
+            sheetMsg += (38 - len(sheetMsg)) * " "
             sheetMsg += "Power"
-            sheetMsg += (65 - len(sheetMsg))*" "
+            sheetMsg += (63 - len(sheetMsg)) * " "
             sheetMsg += "{0}".format(power)
             sheetMsg = self.pad(sheetMsg)
+            sheetMsg += "%r"
+            sheetMsg += "hohoho I'm a new line"
 
             self.caller.msg(sheetMsg)
 
