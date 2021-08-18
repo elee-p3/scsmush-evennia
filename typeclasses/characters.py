@@ -31,4 +31,25 @@ class Character(DefaultCharacter):
 
     """
 
+    def at_object_creation(self):
+        "This is called when object is first created, only."
+        self.db.sex = "Unknown"
+        self.db.race = "Unknown"
+        self.db.occupation = "Unknown"
+        self.db.group = "Unknown"
+        self.db.domain = "Unknown"
+        self.db.element = "Unknown"
+        self.db.quote = '"..."'
+        self.db.profile = "This character is shrouded in mystery."
+        self.db.lf = 1000
+        self.db.maxlf = 1000
+        self.db.ap = 100
+        self.db.maxap = 100
+        self.db.ex = 0
+        self.db.maxex = 100
+        self.db.power = 100
+        self.db.knowledge = 100
+        self.db.parry = 100
+        self.db.barrier = 100
+        self.db.speed = 100
     pass
