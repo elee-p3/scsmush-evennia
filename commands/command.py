@@ -250,18 +250,18 @@ class CmdSheet(default_cmds.MuxCommand):
 
             name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, power, knowledge, parry, barrier, speed = self.caller.get_abilities()
             string = """
-            /\____________________________________________________________________________/\
-            \/                                    %s                                      \/
-            Life Force: %s/%s
-            Aether Points: %s/%s
-            EX: %s/%s
-            Domain: %s
-            Element: %s
-            Power: %s
-            Knowledge: %s
-            Parry: %s
-            Barrier: %s
-            Speed: %s
+            /\_______________________________________________________________________/\
+            \/                               %s                                      \/
+            | Life Force: %s/%s
+            | Aether Points: %s/%s
+            | EX: %s/%s
+            | Domain: %s
+            | Element: %s
+            | Power: %s
+            | Knowledge: %s
+            | Parry: %s
+            | Barrier: %s
+            | Speed: %s
             """ % (name, lf, maxlf, ap, maxap, ex, maxex, domain, element, power, knowledge, parry, barrier, speed)
             self.caller.msg(string)
 # class CmdZog(default_cmds.MuxCommand):
