@@ -253,7 +253,7 @@ class CmdSheet(default_cmds.MuxCommand):
             sheetMsg = ""
 
             sheetMsg += "/\\" + 74 * "_" + "/\\" + "\n"
-            nameBorder = "\\/" + (37 - floor(len(name + " - " + occupation))) * " "
+            nameBorder = "\\/" + (37 - floor(len(name + " - " + occupation)/2.0)) * " "
             nameBorder += name + " - " + occupation
             nameBorder += (76 - len(nameBorder))*" " + "\\/"
             sheetMsg += nameBorder + "\n"
