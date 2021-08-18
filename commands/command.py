@@ -274,11 +274,11 @@ class CmdSheet(default_cmds.MuxCommand):
             self.caller.msg(string)
 
 
-            def pad(self, inString):
-                """Pad out to the end of the sheet row"""
-                outString = inString + (79 - len(inString))*" "
-                outString += "|"
-                return outString
+        def pad(self, inString):
+            """Pad out to the end of the sheet row"""
+            outString = inString + (79 - len(inString))*" "
+            outString += "|"
+            return outString
 
         # def sheetRow(self, firstLabel, firstValue, secondLabel, secondValue):
         #     """Format a row of the sheet, providing the sheet the two values that you want to print"""
