@@ -257,7 +257,7 @@ class CmdSheet(default_cmds.MuxCommand):
             nameBorder += name
             nameBorder += (76 - len(nameBorder))*" " + "/\\"
             sheetMsg += nameBorder + "\n"
-            sheetMsg += "|-" + 74 * "-" + "-|" + "\n"
+            sheetMsg += "\|/" + 74 * "-" + "\|" + "\n"
 
             # first row
             firstRow = "| LF"
