@@ -273,16 +273,34 @@ class CmdSheet(default_cmds.MuxCommand):
             sheetMsg += "{0}".format(power)
             sheetMsg = self.padToEnd(sheetMsg)
             sheetMsg += "\n"
-            sheetMsg += "| ["
-            sheetMsg += (21 - len(sheetMsg)) * " "
-            sheetMsg += "]"
-            sheetMsg = self.padToSecondLabel(sheetMsg)
-            sheetMsg += "Knowledge"
-            sheetMsg = self.padToLastValue(sheetMsg)
-            sheetMsg += "{0}".format(knowledge)
-            sheetMsg = self.padToEnd(sheetMsg)
-            sheetMsg += "\n"
-            sheetMsg += "more testing"
+
+            # second row
+            secondRow = "| ["
+            secondRow += (21 - len(secondRow)) * " "
+            secondRow += "]"
+            secondRow = self.padToSecondLabel(secondRow)
+            secondRow += "Knowledge"
+            secondRow = self.padToLastValue(secondRow)
+            secondRow += "{0}".format(knowledge)
+            secondRow = self.padToEnd(secondRow)
+            secondRow += "\n"
+            sheetMsg += secondRow
+
+            # third row
+            thirdRow = "| AP"
+            thirdRow += (22 - (len(str(ap)) + len(str(maxap)) + 1 + len(thirdRow))) * " "
+            thirdRow += "{0}/{1}".format(ap, maxap)
+            thirdRow = self.padToSecondLabel(thirdRow)
+            thirdRow += "Parry"
+            thirdRow = self.padToLastValue(thirdRow)
+            thirdRow += "{0}".format(parry)
+            thirdRow = self.padToEnd(thirdRow)
+            thirdRow += "\n"
+            sheetMsg += thirdRow
+
+            # fourth row
+            sheetMsg += "some more testing"
+
 
             self.caller.msg(sheetMsg)
 
