@@ -288,12 +288,12 @@ class CmdSheet(default_cmds.MuxCommand):
 
 
         def padToSecondLabel(self, inString):
-            outString = inString + (38 - len(sheetMsg)) * " "
+            outString = inString + (38 - len(inString)) * " "
             return outString
 
 
         def padToLastValue(self, inString):
-            outString = inString + (63 - len(sheetMsg)) * " "
+            outString = inString + (63 - len(inString)) * " "
             return outString
 
 
