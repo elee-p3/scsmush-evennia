@@ -25,7 +25,71 @@ from evennia import utils
 
 CONNECTION_SCREEN = """
 |b==============================================================|n
- Welcome to |g{}|n, version {}!
+MMMMMMMMMMMMMWXko:'..  ...';coOXMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMWN0koc,.. ....;dKWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMNKkl;'....,xNMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMWXkl'...lXMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWXx;..cKMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMNx,.cKMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWN0c.lXMWNXKXNWMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMWXko:;:,..;c:,'',:lONMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMWOl,.......  .........:kNMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMNKxc......................'l0WMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMWKd:...........................'cxXMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMWKo'.   .......................... .:OWMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMXd'..   ..  .......................  .,dXMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMKxkx;....  ....... .';;;,,,;.....  .  .'cOWMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMM0:..    ..  . .'cddlc;..;oc....   . .',;dNMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMM0;...      .'..,x000OOkl;:c;....   .';',;,l0WMMMMMMMMMMMMMMMM
+WMMMMMMMMMMMMMMMMMKc,cd;     .cxocdO00000000Oo'.      .cK0l:ol:kNMMMMMMMMMMMMMMM
+lkXMMMMMMMMMMMMMMMNKXW0c.    .o00OkOOOOkkkxxx:...     .dWMXllkxcoKMMMMMMMMMMMMMM
+o;:xXMMMMMMMMMMMMMMMMMWXx,'..,cdxdllxxxxxxddc'.,:,.,c,cXMMMKlo0OllOWMMMMMMMMMMMM
+Nx;,:xXMMMMMMMMMMMMMMMMN0xocdkxxxdoodoolccc:,;cclc:c00KMMMMWOlx0kocxNMMMMMMMMMMM
+MWOc;;ckXMMMMMMMMMMWXKXxcoclkkkxxdlcc:::::::ldddol;:0MMMMMMMWkoxdxxloKWMMMMMMMMM
+MMW0occ;ckNMMMMMMMWklol;,clloddoolccccloodddxxddool:oKWMMMMMMNdoddkxolOWMMMMMMMM
+MMMMXdclc:lkNMMMMMMKdddccoolcloddddddxkkOkxoc;,'..,col0MMMMMMMKooxdoxdlxXMMMMMMM
+MMMMMNxlllccoONMMMMMOlc,':c;,;okO0000Oxlc:,.      .;loKMMMMMMMWklxdloxxodKMMMMMM
+MMMMMMWOlllooloONMMMXdll,'..,cok0Okdc;''....      .,cOMMMMMMMMMNdodlclkkoo0WMMMM
+MMMMMMMWKollldoldONMWkll,,cc:,;ll:,''','...       ..cONMMMMMMMMM0lllclx0OddkNMMM
+MMMMMMMMMXxllloddod0NNd,':ol;..''',,,,..   .'.     ..':kNMMMMMMMWd;cclxKKkxdkXMM
+MMMMMMMMMMNkllllodoldkc.,cl,..',,,,,'..  .lo;.       ..,kWMMMMMMM0c:coOXX0xxkxXM
+MMMMMMMMMMMW0olllldxo;',,''..',,,,'......oNx,.    ......cXMMMMMMMNo:oxO0OOkdkddK
+MMMMMMMMMMMMMKdllloOk;,,,,,,,,,,''.. .'d0XWd'.   ..,c:;,;kWMMMMMMNdcxkOOOOOkOKol
+MMMMMMMMMMMMMMNxllodl,,,,,,,,,,'... .;OWMMNl''.....cddol;lXMMMMMWOoooxk00OOkKWXo
+MMMMMMMMMMMMMMMWOll:,,,,,,,,,,,'... ..oNWMXc,;.....;cc:;;cKMMMMWOdOklcldxkxkKKOd
+MMMMMMMMMMMMMMWN0c'....'',,,'..........:ldd;;c'.. .,cccc:;xNMMWOdOK0xlcclox0OdoO
+MMMMMMMMMMMMWk:;'......'''...STAR....  .....,l;....cddddocl0MWOdOKKKklclox0kllOW
+MMMMMMMMMMMMWO;.............CHASER.'...  ....:;...'oxooololOWOdkKKK0xlldkOdco0WM
+MMMMMMMMMWKxc,...............STORY.''.........;'...:dlllldlxOook0KKkdodkklcdXMMM
+MMMMMMMMWk,. .. .............MUSH......''.....,'....:lccld:;llloxxdddxko:lOWMMMM
+MMMMMMMMXc. ... .............  ...............'......;:::c,'clccllodxoccxXMMMMMM
+MMMMMMMMWd.....  ..'.....  .....  ....'..........  ...,,;;c:;:llooooccdKMMMMMMMM
+MMMMMMMMM0;.....  ..............  ....''''''. ..  .'coollc:;'';:cc:cxKWMMMMMMMMM
+MMMMMMMMMWXo'.'..................  ..........   ....:oc;;,.....'''lXMMMMMMMMMMMM
+MMMMMMMMMMMNo......................  ...... ... ......'...'...'',c0MMMMMMMMMMMMM
+MMMMMMMMMMMMXc......'.      ...................  ......'..'',dKXXNMMMMMMMMMMMMMM
+MMMMMMMMMMMMMXo,'........... ..'................,cl;.....,::dNMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMWX0Oo'..........................;lolc,....;0WNWMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMWd........................;llc,....';;:0MMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMX:....................';::,........:::xNMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMk'...................''..........lxl:l0MMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMNl............ ............... .cO0dc:kWMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMM0:.........................   .;k0Oo;oNMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMWXx:'.........   .,c:......... 'd00d:cOMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMWX0x;.....  ...oXN0c........'oO0xc:dNMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMXo'........:OXMNl.''...':ok0klcl0MMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMWk:'......dNWMNo,cl;,coccodollcxWMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMN0ko,'cldOXMXl,coc,:olcccccollKMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWOo:'.:o:':do,';;'......';clolkMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMWNX0Okkd,........... .'.  ..... .'ldlOMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMWKxdlclodxl.....    .. ...   ....  .;oONMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMWNK0Okxollc::::;.. ...    .   ..   ...    ;KMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMWNXKOxxddoollloool:'....    . .       ..   ... .  .oNMMMMMMMMMMMMMMMMMMM
+MMMMMMMWklllccloooollcccc:..   ..   ........  ..           .lXMMMMMMMMMMMMMMMMMM
+MMMMMMMMN0OOOkkkkkkkkOOOkd'   .............  .,,          ..'kMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMW0c.         ....,:lxOc     .......;0MMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMW0dlc:;;:cok0KXNWMMMKc.        .'kWMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMWWWWMMMMMMMMMMMMXo.    ..;lOWMMMMMMMMMMMMMMMMMMM
 
  If you have an existing account, connect to it by typing:
       |wconnect <username> <password>|n
