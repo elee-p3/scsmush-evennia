@@ -271,7 +271,7 @@ class CmdSheet(default_cmds.MuxCommand):
             sheetMsg += "{0}".format(power)
             sheetMsg = self.pad(sheetMsg)
 
-            self.caller.msg(string)
+            self.caller.msg(sheetMsg)
 
 
         def pad(self, inString):
