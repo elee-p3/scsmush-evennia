@@ -252,12 +252,12 @@ class CmdSheet(default_cmds.MuxCommand):
             power, knowledge, parry, barrier, speed = self.caller.get_abilities()
             sheetMsg = ""
 
-
-            nameBorder = "/\\" + (37 - floor(len(name))) * " "
+            sheetMsg += "/\\" + 74 * "_" + "/\\" + "\n"
+            nameBorder = "/\\" + (37 - floor(len(name + " - " + occupation))) * " "
             nameBorder += name
             nameBorder += (76 - len(nameBorder))*" " + "/\\"
             sheetMsg += nameBorder + "\n"
-            sheetMsg += "\|/" + 74 * "-" + "\|" + "\n"
+            sheetMsg += "--" + 74 * "-" + "--" + "\n"
 
             # first row
             firstRow = "| LF"
