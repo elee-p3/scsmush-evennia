@@ -328,7 +328,7 @@ class CmdSheet(default_cmds.MuxCommand):
             sheetMsg += sixthRow
 
             # ARTTSSSSS
-            sheetMsg += "|===================================ARTS=====================================|"
+            sheetMsg += "|===================================ARTS=====================================|\n"
             sheetMsg += "/\\" + 74 * "_" + "/\\" + "\n"
             sheetMsg += "\\/" + 74 * " " + "\\/" + "\n"
 
