@@ -265,9 +265,9 @@ class CmdSheet(default_cmds.MuxCommand):
             # """ % (name, lf, maxlf, ap, maxap, ex, maxex, domain, element, power, knowledge, parry, barrier, speed)
 
             sheetMsg = "| Life Force  {0}/{1}".format(lf, maxlf)
-            sheetMsg += (50 - size(sheetMsg))*" "
+            sheetMsg += (50 - len(sheetMsg))*" "
             sheetMsg += "Power"
-            sheetMsg += (65 - size(sheetMsg))*" "
+            sheetMsg += (65 - len(sheetMsg))*" "
             sheetMsg += "{0}".format(power)
             sheetMsg = self.pad(sheetMsg)
 
@@ -276,7 +276,7 @@ class CmdSheet(default_cmds.MuxCommand):
 
             def pad(self, inString):
                 """Pad out to the end of the sheet row"""
-                outString = inString + (79 - size(inString))*" "
+                outString = inString + (79 - len(inString))*" "
                 outString += "|"
                 return outString
 
