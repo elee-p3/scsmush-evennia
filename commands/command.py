@@ -387,7 +387,7 @@ class CmdSetDesc(default_cmds.MuxCommand):
     """
 
     key = "setdesc"
-    alias = "@desc"
+    aliases = ["@desc"]
     locks = "cmd:all()"
     arg_regex = r"\s|$"
 
