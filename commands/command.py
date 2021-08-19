@@ -374,7 +374,7 @@ class CmdSheet(default_cmds.MuxCommand):
 
 # Here I overwrite "setdesc" from the Evennia master so it has an alias, "@desc."
 
-class CmdSetDesc(COMMAND_DEFAULT_CLASS):
+class CmdSetDesc(default_cmds.MuxCommand):
     """
     describe yourself
 
