@@ -372,6 +372,35 @@ class CmdSheet(default_cmds.MuxCommand):
         #
         #     return rowString
 
+# Here I overwrite "setdesc" from the Evennia master so it has an alias, "@desc."
+
+class CmdSetDesc(COMMAND_DEFAULT_CLASS):
+    """
+    describe yourself
+
+    Usage:
+      setdesc <description>
+
+    Add a description to yourself. This
+    will be visible to people when they
+    look at you.
+    """
+
+    key = "setdesc"
+    alias = "@desc"
+    locks = "cmd:all()"
+    arg_regex = r"\s|$"
+
+    def func(self):
+        """add the description"""
+
+        if not self.args:
+            self.caller.msg("You must add a description.")
+            return
+
+        self.caller.db.desc = self.args.strip()
+        self.caller.msg("You set your description.")
+
 # class CmdZog(default_cmds.MuxCommand):
 #     """
 #     speak but with zog
