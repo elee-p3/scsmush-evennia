@@ -1,0 +1,103 @@
+{% extends "website/base.html" %}
+
+{% block titleblock %}Home{% endblock %}
+
+{% block header_ext %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col">
+    <div class="card">
+      <div class="card-body">
+        <h1 class="card-title">Welcome to Star Chaser Story MUSH!</h1>
+
+        <hr />
+
+        <p class="lead">
+          Star Chaser Story MUSH is an invite-only fantasy role-playing game that follows the adventures of Reize Seatlan and his friends, rivals, and/or love interests throughout his canonical home of <a href="https://i.imgur.com/6TYMbVp.jpg">Rithera, the Sundered Lands</a>.
+        </p>
+        <p>
+          Set after the events of <i>Star Chaser Story: First Flight</i>, an action-RPG currently in development by <a href="https://twitter.com/sacredstarteam">Sacred Star Team</a>, and inspired by the themes of <i>Illusion of Gaia</i> and <i>Ys</i>, SCSMUSH focuses on exploration, travel, and the effects of a small party's wanderings upon the political and cosmic forces of a complex persistent world.
+        </p>
+        <p>
+          Our primary goals at SCSMUSH are to enjoy free-wheeling fantasy-themed text-based RP and, in the process, to develop the setting and plot of Star Chaser Story. The events of SCSMUSH will be taken as inspiration for future game development in the Star Chaser Story canon.
+        </p>
+        <p>
+          Because the development team is unavailable to staff a MUSH full-time, SCSMUSH must remain invite-only. Its theme documentation is currently being edited and its combat system is in early development.
+        </p>
+          {% if webclient_enabled %}
+        <p>
+          You can connect to the game directly from your browser using Evennia's built-in
+          <a href="{% url 'webclient:index' %}">online client</a>.<br>
+        </p>
+          {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr />
+
+<div class="row">
+  <div class="col-12 col-md-4 mb-3">
+    <div class="card">
+      <h4 class="card-header text-center">Accounts</h4>
+
+      <div class="card-body">
+        <p>
+          There's currently <strong>{{num_accounts_connected}}</strong> connected out of a total of <strong>{{num_accounts_registered}}</strong> account{{num_accounts_registered|pluralize}} registered.
+        </p>
+        <p>
+          Of these, <strong>{{num_accounts_registered_recent}}</strong> were created this week, and <strong>{{num_accounts_connected_recent}}</strong> have connected within the last seven days.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-4 mb-3">
+    <div class="card">
+      <h4 class="card-header text-center">Recently Connected</h4>
+
+      <div class="card-body px-0 py-0">
+        <ul class="list-group">
+          {% for account in accounts_connected_recent %}
+            <li class="list-group-item">{{account.username}}&mdash;<em>{{account.last_login|timesince}} ago</em></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-4 mb-3">
+    <div class="card">
+      <h4 class="card-header text-center">Database Stats</h4>
+
+      <div class="card-body py-0 px-0">
+        <ul class="list-group">
+          <li class="list-group-item">{{num_accounts_registered}} account{{num_accounts_registered|pluralize}} (+ {{num_characters}} character{{num_characters|pluralize}})</li>
+          <li class="list-group-item">{{num_rooms}} room{{num_rooms|pluralize}} (+ {{num_exits}} exits)</li>
+          <li class="list-group-item">{{num_others}} other objects</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col">
+    <div class="card">
+      <h4 class="card-header text-center">Evennia</h4>
+
+      <div class="card-body">
+        <p><a href="http://evennia.com">Evennia</a> is an open-source MUD server built in
+        <a href="http://python.org">Python</a>, on top of the
+        <a href="http://twistedmatrix.com">Twisted</a> and
+        <a href="http://djangoproject.com">Django</a> frameworks. This
+        combination of technologies allows for the quick and easy creation
+        of the game of your dreams - as simple or as complex as you like.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
