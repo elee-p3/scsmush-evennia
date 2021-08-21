@@ -34,7 +34,7 @@ from evennia.settings_default import *
 # This is the name of your game. Make it catchy!
 SERVERNAME = "Star Chaser Story MUSH"
 GAME_SLOGAN = '"Until the star we follow brings us back to you."'
-WEBSERVER_PORTS = [(80, 4001, 4005)]
+WEBSERVER_PORTS = [(80, 4005)]
 
 ######################################################################
 # Settings given in secret_settings.py override those in this file.
