@@ -20,9 +20,9 @@ class CmdFinger(default_cmds.MuxCommand):
         charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-", border_bottom_char=" ")
         charInfoTable.add_column()
         charInfoTable.add_column()
-        charInfoTable.add_row("Name: {0}".format(name), "Sex: {0}".format(sex))
-        # charInfoTable.add_row()
-        # charInfoTable.add_row()
+        charInfoTable.add_row("Sex: {0}".format(sex), "Group: {0}".format(group))
+        charInfoTable.add_row("Race: {0}".format(race), "Domain {0}".format(domain))
+        charInfoTable.add_row("Occupation: {0}".format(occupation), "Element: {0}".format(element))
 
 
         # charDescTable = evtable(border_left_char="|", border_right_char="|", border_top_char=" ", border_bottom_char="_")
