@@ -26,8 +26,8 @@ class CmdFinger(default_cmds.MuxCommand):
         charInfoTable.add_row("Occupation: {0}".format(occupation), "Element: {0}".format(element))
 
 
-        charDescTable = evtable(border_left_char="|", border_right_char="|", border_top_char=" ", border_bottom_char="_")
-        charDescTable.add_column()
+        # charDescTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char=" ", border_bottom_char="_")
+        # charDescTable.add_column()
 
         fingerMsg = ""
         fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
