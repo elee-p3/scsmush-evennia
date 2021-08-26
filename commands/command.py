@@ -17,7 +17,8 @@ class CmdFinger(default_cmds.MuxCommand):
         name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
         power, knowledge, parry, barrier, speed = self.caller.get_abilities()
 
-        charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-", border_bottom_char=" ")
+        charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
+                                        border_bottom_char=" ", width=78)
         charInfoTable.add_column()
         charInfoTable.add_column()
         charInfoTable.add_row("Sex: {0}".format(sex), "Group: {0}".format(group))
