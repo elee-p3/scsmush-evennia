@@ -6,8 +6,30 @@ Commands describe the input the account can do to the game.
 """
 from math import floor
 from evennia.commands.command import Command as BaseCommand
-
+from evennia.utils import evtable
 from evennia import default_cmds
+
+class CmdFinger(default_cmds.MuxCommand):
+    key = '+finger'
+    locks = "cmd:all()"
+
+    def func(self):
+        name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
+        power, knowledge, parry, barrier, speed = self.caller.get_abilities()
+
+        charInfoTable = evtable(border_left_char="|", border_right_char="|", border_top_char="-", border_bottom_char=" ")
+        charInfoTable.add_column()
+        charInfoTable.add_column()
+        charInfoTable.add_row("Name: {0}".format(name), "Sex: {0}".format(sex))
+        # charInfoTable.add_row()
+        # charInfoTable.add_row()
+
+
+        charDescTable = evtable(border_left_char="|", border_right_char="|", border_top_char=" ", border_bottom_char="_")
+        charDescTable.add_column()
+
+        self.caller.msg(charInfoTable.__str__)
+
 
 
 class CmdEmit(default_cmds.MuxCommand):
