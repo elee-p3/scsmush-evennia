@@ -28,7 +28,7 @@ class CmdFinger(default_cmds.MuxCommand):
         # charDescTable = evtable(border_left_char="|", border_right_char="|", border_top_char=" ", border_bottom_char="_")
         # charDescTable.add_column()
 
-        self.caller.msg(charInfoTable.__str__)
+        self.caller.msg(charInfoTable.__str__())
 
 
 
