@@ -31,10 +31,13 @@ class CmdFinger(default_cmds.MuxCommand):
 
         fingerMsg = ""
         fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
+
+        # TODO: we want if-else logic to add an alias if they have it, and just spit out their name if they don't
         nameBorder = "\\/" + (37 - floor(len(name + " - " + occupation) / 2.0)) * " "
         nameBorder += name + " - " + occupation
         nameBorder += (76 - len(nameBorder)) * " " + "\\/"
         fingerMsg += nameBorder + "\n"
+
         # fingerMsg = charInfoTable.__str__() + "\n" + charDescTable.__str__()
         fingerMsg += charInfoTable.__str__() + "\n"
         fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
