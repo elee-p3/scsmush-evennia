@@ -26,10 +26,21 @@ class CmdFinger(default_cmds.MuxCommand):
         charInfoTable.add_row("Occupation: {0}".format(occupation), "Element: {0}".format(element))
 
 
-        # charDescTable = evtable(border_left_char="|", border_right_char="|", border_top_char=" ", border_bottom_char="_")
-        # charDescTable.add_column()
+        charDescTable = evtable(border_left_char="|", border_right_char="|", border_top_char=" ", border_bottom_char="_")
+        charDescTable.add_column()
 
-        self.caller.msg(charInfoTable.__str__())
+        fingerMsg = ""
+        fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
+        nameBorder = "\\/" + (37 - floor(len(name + " - " + occupation) / 2.0)) * " "
+        nameBorder += name + " - " + occupation
+        nameBorder += (76 - len(nameBorder)) * " " + "\\/"
+        fingerMsg += nameBorder + "\n"
+        # fingerMsg = charInfoTable.__str__() + "\n" + charDescTable.__str__()
+        fingerMsg += charInfoTable.__str__() + "\n"
+        fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
+        fingerMsg += "\\/" + 74 * " " + "\\/" + "\n"
+
+        self.caller.msg(fingerMsg)
 
 
 
@@ -358,6 +369,9 @@ class CmdSheet(default_cmds.MuxCommand):
 
             # ARTTSSSSS
             sheetMsg += "|===================================ARTS=====================================|\n"
+
+
+            # Bottom border
             sheetMsg += "/\\" + 74 * "_" + "/\\" + "\n"
             sheetMsg += "\\/" + 74 * " " + "\\/" + "\n"
 
