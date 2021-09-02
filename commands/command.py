@@ -476,6 +476,95 @@ class CmdSetDesc(default_cmds.MuxCommand):
         self.caller.db.desc = self.args.strip()
         self.caller.msg("You set your description.")
 
+class CmdWho(COMMAND_DEFAULT_CLASS):
+    """
+    list who is currently online
+
+    Usage:
+      who
+      doing
+      where
+
+    Shows who is currently online. Doing is an alias that limits info
+    also for those with all permissions. Modified to allow players to see
+    the locations of other players and add a "where" alias.
+    """
+
+    key = "who"
+    aliases = ["doing", "where"]
+    locks = "cmd:all()"
+
+    # this is used by the parent
+    account_caller = True
+
+    def func(self):
+        """
+        Get all connected accounts by polling session.
+        """
+
+        account = self.account
+        session_list = SESSIONS.get_sessions()
+
+        session_list = sorted(session_list, key=lambda o: o.account.key)
+
+        if self.cmdstring == "doing":
+            show_session_data = False
+        else:
+            show_session_data = account.check_permstring("Developer") or account.check_permstring(
+                "Admins"
+            )
+
+        naccounts = SESSIONS.account_count()
+        if show_session_data:
+            # privileged info
+            table = self.styled_table(
+                "|wAccount Name",
+                "|wOn for",
+                "|wIdle",
+                "|wPuppeting",
+                "|wRoom",
+                "|wCmds",
+                "|wProtocol",
+                "|wHost",
+            )
+            for session in session_list:
+                if not session.logged_in:
+                    continue
+                delta_cmd = time.time() - session.cmd_last_visible
+                delta_conn = time.time() - session.conn_time
+                session_account = session.get_account()
+                puppet = session.get_puppet()
+                location = puppet.location.key if puppet and puppet.location else "None"
+                table.add_row(
+                    utils.crop(session_account.get_display_name(account), width=25),
+                    utils.time_format(delta_conn, 0),
+                    utils.time_format(delta_cmd, 1),
+                    utils.crop(puppet.get_display_name(account) if puppet else "None", width=25),
+                    utils.crop(location, width=25),
+                    session.cmd_total,
+                    session.protocol_key,
+                    isinstance(session.address, tuple) and session.address[0] or session.address,
+                )
+        else:
+            # unprivileged
+            table = self.styled_table("|wAccount name", "|wOn for", "|wIdle", "|wRoom")
+            for session in session_list:
+                if not session.logged_in:
+                    continue
+                delta_cmd = time.time() - session.cmd_last_visible
+                delta_conn = time.time() - session.conn_time
+                session_account = session.get_account()
+                table.add_row(
+                    utils.crop(session_account.get_display_name(account), width=25),
+                    utils.time_format(delta_conn, 0),
+                    utils.time_format(delta_cmd, 1),
+                )
+        is_one = naccounts == 1
+        self.msg(
+            "|wAccounts:|n\n%s\n%s unique account%s logged in."
+            % (table, "One" if is_one else naccounts, "" if is_one else "s")
+        )
+
 # class CmdZog(default_cmds.MuxCommand):
 #     """
 #     speak but with zog

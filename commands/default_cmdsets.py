@@ -41,6 +41,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSheet)
         self.add(CmdSetDesc)
         self.add(CmdFinger)
+        self.add(CmdWho)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
