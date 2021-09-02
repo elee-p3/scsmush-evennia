@@ -476,7 +476,7 @@ class CmdSetDesc(default_cmds.MuxCommand):
         self.caller.db.desc = self.args.strip()
         self.caller.msg("You set your description.")
 
-class CmdWho(COMMAND_DEFAULT_CLASS):
+class CmdWho(default_cmds.MuxCommand):
     """
     list who is currently online
 
