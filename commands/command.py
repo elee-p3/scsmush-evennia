@@ -10,7 +10,11 @@ from evennia.utils import evtable
 from evennia import default_cmds
 from evennia.server.sessionhandler import SESSIONS
 import time
-from evennia.utils import utils, create, logger, search
+import re
+from evennia import ObjectDB, AccountDB
+from evennia import default_cmds
+from evennia.utils import utils, create, evtable, make_iter, inherits_from, datetime_format
+from evennia.comms.models import Msg
 
 class CmdFinger(default_cmds.MuxCommand):
     key = '+finger'
