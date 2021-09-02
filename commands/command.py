@@ -10,6 +10,7 @@ from evennia.utils import evtable
 from evennia import default_cmds
 from evennia.server.sessionhandler import SESSIONS
 import time
+from evennia.utils import utils, create, logger, search
 
 class CmdFinger(default_cmds.MuxCommand):
     key = '+finger'
