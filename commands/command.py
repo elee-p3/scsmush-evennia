@@ -33,7 +33,7 @@ class CmdFinger(default_cmds.MuxCommand):
             return
 
         # character = self.caller.search(charName, global_search=True) # do we want to search the entire DB?
-        target = self.caller.search(self.args, global_search=True)
+        target = self.caller.search(self.args) # searching globally disables the "smart searching" capability
 
         # name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
         # power, knowledge, parry, barrier, speed = self.caller.get_abilities()
