@@ -27,10 +27,10 @@ class CmdFinger(default_cmds.MuxCommand):
     key = '+finger'
     locks = "cmd:all()"
 
-    def func(self, charName):
+    def func(self):
 
         # character = self.caller.search(charName, global_search=True) # do we want to search the entire DB?
-        target = self.caller.search(charName)
+        target = self.caller.search("Ivo")
 
         attrs = vars(target)
         # {'kids': 0, 'name': 'Dog', 'color': 'Spotted', 'age': 10, 'legs': 2, 'smell': 'Alot'}
