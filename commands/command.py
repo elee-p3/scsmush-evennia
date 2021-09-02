@@ -13,24 +13,46 @@ import time
 from evennia.utils import utils, create, logger, search
 
 class CmdFinger(default_cmds.MuxCommand):
+    """
+        +finger
+        Usage:
+          +finger <character>
+        Displays finger'd character's information
+        """
+
     key = '+finger'
     locks = "cmd:all()"
 
-    def func(self):
-        name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
-        power, knowledge, parry, barrier, speed = self.caller.get_abilities()
+    def func(self, charName):
+
+        # character = self.caller.search(charName, global_search=True) # do we want to search the entire DB?
+        target = self.caller.search(charName)
+
+        attrs = vars(target)
+        # {'kids': 0, 'name': 'Dog', 'color': 'Spotted', 'age': 10, 'legs': 2, 'smell': 'Alot'}
+        # now dump this in some way or another
+        print(', '.join("%s: %s" % item for item in attrs.items()))
+
+        # name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
+        # power, knowledge, parry, barrier, speed = self.caller.get_abilities()
+
+        char = self.caller.get_abilities()
 
         charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
                                         border_bottom_char=" ", width=78)
         charInfoTable.add_column()
         charInfoTable.add_column()
-        charInfoTable.add_row("Sex: {0}".format(sex), "Group: {0}".format(group))
-        charInfoTable.add_row("Race: {0}".format(race), "Domain {0}".format(domain))
-        charInfoTable.add_row("Occupation: {0}".format(occupation), "Element: {0}".format(element))
+        charInfoTable.add_row("Sex: {0}".format(char["sex"]), "Group: {0}".format(char["group"]))
+        charInfoTable.add_row("Race: {0}".format(char["race"]), "Domain {0}".format(char["domain"]))
+        charInfoTable.add_row("Occupation: {0}".format(char["occupation"]), "Element: {0}".format(char["element"]))
 
 
-        # charDescTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char=" ", border_bottom_char="_")
-        # charDescTable.add_column()
+        charDescTable = evtable.EvTable(border="table", border_left_char="|", border_right_char="|", border_top_char="-",
+                                        border_bottom_char="_", width=78)
+        charDescTable.add_column()
+        charDescTable.add_row('"{0}"'.format(char["quote"]))
+        charDescTable.add_row("{0}".format(char["profile"]))
+
 
         fingerMsg = ""
         fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
@@ -43,6 +65,7 @@ class CmdFinger(default_cmds.MuxCommand):
 
         # fingerMsg = charInfoTable.__str__() + "\n" + charDescTable.__str__()
         fingerMsg += charInfoTable.__str__() + "\n"
+        fingerMsg += charDescTable.__str__() + "\n"
         fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
         fingerMsg += "\\/" + 74 * " " + "\\/" + "\n"
 

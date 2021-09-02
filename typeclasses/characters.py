@@ -54,7 +54,10 @@ class Character(DefaultCharacter):
         self.db.speed = 100
 
     def get_abilities(self):
-        return self.key, self.db.sex, self.db.race, self.db.occupation, self.db.group, self.db.domain, self.db.element, \
-               self.db.quote, self.db.profile, self.db.lf, self.db.maxlf, self.db.ap, self.db.maxap, self.db.ex, self.db.maxex, self.db.power, self.db.knowledge, self.db.parry, self.db.barrier, self.db.speed
+        return {"name":self.key, "sex":self.db.sex, "race":self.db.race, "occupation":self.db.occupation,
+                "group":self.db.group, "domain":self.db.domain, "element":self.db.element, "quote":self.db.quote,
+                "profile":self.db.profile, "lf":self.db.lf, "maxlf":self.db.maxlf, "ap":self.db.ap,
+                "maxap":self.db.maxap, "ex":self.db.ex, "maxex":self.db.maxex, "power":self.db.power,
+                "knowledge":self.db.knowledge, "parry":self.db.parry, "barrier":self.db.barrier, "speed":self.db.speed}
 
     pass
