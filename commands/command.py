@@ -32,15 +32,11 @@ class CmdFinger(default_cmds.MuxCommand):
         # character = self.caller.search(charName, global_search=True) # do we want to search the entire DB?
         target = self.caller.search("Ivo Galvan", global_search=True)
 
-        attrs = vars(target.get_abilities())
-        # {'kids': 0, 'name': 'Dog', 'color': 'Spotted', 'age': 10, 'legs': 2, 'smell': 'Alot'}
-        # now dump this in some way or another
-        print(', '.join("%s: %s" % item for item in attrs.items()))
-
         # name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
         # power, knowledge, parry, barrier, speed = self.caller.get_abilities()
 
-        char = self.caller.get_abilities()
+        # char = self.caller.get_abilities()
+        char = target.get_abilities()
 
         charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
                                         border_bottom_char=" ", width=78)
