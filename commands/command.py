@@ -28,9 +28,12 @@ class CmdFinger(default_cmds.MuxCommand):
     locks = "cmd:all()"
 
     def func(self):
+        if not self.args[0]:
+            self.caller.msg("Need a person to finger!")
+            return
 
         # character = self.caller.search(charName, global_search=True) # do we want to search the entire DB?
-        target = self.caller.search("Ivo Galvan", global_search=True)
+        target = self.caller.search(self.args[0], global_search=True)
 
         # name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
         # power, knowledge, parry, barrier, speed = self.caller.get_abilities()
@@ -43,7 +46,7 @@ class CmdFinger(default_cmds.MuxCommand):
         charInfoTable.add_column()
         charInfoTable.add_column()
         charInfoTable.add_row("Sex: {0}".format(char["sex"]), "Group: {0}".format(char["group"]))
-        charInfoTable.add_row("Race: {0}".format(char["race"]), "Domain {0}".format(char["domain"]))
+        charInfoTable.add_row("Race: {0}".format(char["race"]), "Domain: {0}".format(char["domain"]))
         charInfoTable.add_row("Occupation: {0}".format(char["occupation"]), "Element: {0}".format(char["element"]))
 
 
@@ -51,6 +54,7 @@ class CmdFinger(default_cmds.MuxCommand):
                                         border_bottom_char="_", width=78)
         charDescTable.add_column()
         charDescTable.add_row('"{0}"'.format(char["quote"]))
+        charDescTable.add_row("")
         charDescTable.add_row("{0}".format(char["profile"]))
 
 
@@ -63,8 +67,8 @@ class CmdFinger(default_cmds.MuxCommand):
         nameBorder += (76 - len(nameBorder)) * " " + "\\/"
         fingerMsg += nameBorder + "\n"
 
-        # fingerMsg = charInfoTable.__str__() + "\n" + charDescTable.__str__()
-        fingerMsg += charInfoTable.__str__() + "\n"
+        charInfoString = charInfoTable.__str__()
+        fingerMsg += charInfoString[:charInfoString.rfind('\n')] + "\n" # delete last newline (i.e. bottom border)
         fingerMsg += charDescTable.__str__() + "\n"
         fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
         fingerMsg += "\\/" + 74 * " " + "\\/" + "\n"
