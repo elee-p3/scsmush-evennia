@@ -39,6 +39,7 @@ class Character(DefaultCharacter):
         self.db.group = "Unknown"
         self.db.domain = "Unknown"
         self.db.element = "Unknown"
+        self.db.origin = "Unknown"
         self.db.quote = '"..."'
         self.db.profile = "This character is shrouded in mystery."
         self.db.lf = 1000
@@ -55,9 +56,9 @@ class Character(DefaultCharacter):
 
     def get_abilities(self):
         return {"name":self.key, "sex":self.db.sex, "race":self.db.race, "occupation":self.db.occupation,
-                "group":self.db.group, "domain":self.db.domain, "element":self.db.element, "quote":self.db.quote,
-                "profile":self.db.profile, "lf":self.db.lf, "maxlf":self.db.maxlf, "ap":self.db.ap,
-                "maxap":self.db.maxap, "ex":self.db.ex, "maxex":self.db.maxex, "power":self.db.power,
+                "group":self.db.group, "domain":self.db.domain, "element":self.db.element, "origin":self.db.origin,
+                "quote":self.db.quote, "profile":self.db.profile, "lf":self.db.lf, "maxlf":self.db.maxlf,
+                "ap":self.db.ap, "maxap":self.db.maxap, "ex":self.db.ex, "maxex":self.db.maxex, "power":self.db.power,
                 "knowledge":self.db.knowledge, "parry":self.db.parry, "barrier":self.db.barrier, "speed":self.db.speed}
 
     pass
