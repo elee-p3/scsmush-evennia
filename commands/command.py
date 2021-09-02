@@ -8,6 +8,7 @@ from math import floor
 from evennia.commands.command import Command as BaseCommand
 from evennia.utils import evtable
 from evennia import default_cmds
+from evennia.server.sessionhandler import SESSIONS
 
 class CmdFinger(default_cmds.MuxCommand):
     key = '+finger'
