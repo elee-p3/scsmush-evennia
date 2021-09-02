@@ -12,6 +12,10 @@ from evennia.server.sessionhandler import SESSIONS
 import time
 from evennia.utils import utils, create, logger, search
 
+from evennia import create_help_entry
+
+entry = create_help_entry("blahblah", "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.", category="testingcategory", locks="view:all()")
+
 class CmdFinger(default_cmds.MuxCommand):
     key = '+finger'
     locks = "cmd:all()"
