@@ -29,48 +29,49 @@ class CmdFinger(default_cmds.MuxCommand):
 
     def func(self):
         if not self.args:
+            # TODO: better messaging
             self.caller.msg("Need a person to finger!")
             return
 
         target = self.caller.search(self.args) # using the global_search=True param messes up partial string searching
 
+        # TODO: actually figure out error handling. Need to be able to differentiate between "ambiguous search" error and "not a character" error
         try:
             char = target.get_abilities()
+            charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
+                                            border_bottom_char=" ", width=78)
+            charInfoTable.add_column()
+            charInfoTable.add_column()
+            charInfoTable.add_row("Sex: {0}".format(char["sex"]), "Group: {0}".format(char["group"]))
+            charInfoTable.add_row("Race: {0}".format(char["race"]), "Domain: {0}".format(char["domain"]))
+            charInfoTable.add_row("Origin: {0}".format(char["origin"]), "Element: {0}".format(char["element"]))
+
+            charDescTable = evtable.EvTable(border="table", border_left_char="|", border_right_char="|",
+                                            border_top_char="-",
+                                            border_bottom_char="_", width=78)
+            charDescTable.add_column()
+            charDescTable.add_row('"{0}"'.format(char["quote"]))
+            charDescTable.add_row("")
+            charDescTable.add_row("{0}".format(char["profile"]))
+
+            fingerMsg = ""
+            fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
+
+            # TODO: we want if-else logic to add an alias if they have it, and just spit out their name if they don't
+            nameBorder = "\\/" + (37 - floor(len(char["name"] + " - " + char["occupation"]) / 2.0)) * " "
+            nameBorder += char["name"] + " - " + char["occupation"]
+            nameBorder += (76 - len(nameBorder)) * " " + "\\/"
+            fingerMsg += nameBorder + "\n"
+
+            charInfoString = charInfoTable.__str__()
+            fingerMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
+            fingerMsg += charDescTable.__str__() + "\n"
+            fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
+            fingerMsg += "\\/" + 74 * " " + "\\/" + "\n"
+
+            self.caller.msg(fingerMsg)
         except:
             self.caller.msg("Target is either not a character or there are multiple matches")
-
-        charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
-                                        border_bottom_char=" ", width=78)
-        charInfoTable.add_column()
-        charInfoTable.add_column()
-        charInfoTable.add_row("Sex: {0}".format(char["sex"]), "Group: {0}".format(char["group"]))
-        charInfoTable.add_row("Race: {0}".format(char["race"]), "Domain: {0}".format(char["domain"]))
-        charInfoTable.add_row("Origin: {0}".format(char["origin"]), "Element: {0}".format(char["element"]))
-
-        charDescTable = evtable.EvTable(border="table", border_left_char="|", border_right_char="|",
-                                        border_top_char="-",
-                                        border_bottom_char="_", width=78)
-        charDescTable.add_column()
-        charDescTable.add_row('"{0}"'.format(char["quote"]))
-        charDescTable.add_row("")
-        charDescTable.add_row("{0}".format(char["profile"]))
-
-        fingerMsg = ""
-        fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
-
-        # TODO: we want if-else logic to add an alias if they have it, and just spit out their name if they don't
-        nameBorder = "\\/" + (37 - floor(len(char["name"] + " - " + char["occupation"]) / 2.0)) * " "
-        nameBorder += char["name"] + " - " + char["occupation"]
-        nameBorder += (76 - len(nameBorder)) * " " + "\\/"
-        fingerMsg += nameBorder + "\n"
-
-        charInfoString = charInfoTable.__str__()
-        fingerMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
-        fingerMsg += charDescTable.__str__() + "\n"
-        fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
-        fingerMsg += "\\/" + 74 * " " + "\\/" + "\n"
-
-        self.caller.msg(fingerMsg)
 
 
 
