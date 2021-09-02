@@ -510,12 +510,12 @@ class CmdWho(default_cmds.MuxCommand):
 
         session_list = sorted(session_list, key=lambda o: o.account.key)
 
-        if self.cmdstring == "doing":
-            show_session_data = False
-        else:
-            show_session_data = account.check_permstring("Developer") or account.check_permstring(
-                "Admins"
-            )
+        # if self.cmdstring == "doing":
+        show_session_data = True
+        # else:
+        #    show_session_data = account.check_permstring("Developer") or account.check_permstring(
+        #        "Admins"
+        #    )
 
         naccounts = SESSIONS.account_count()
         if show_session_data:
