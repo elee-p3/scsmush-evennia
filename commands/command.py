@@ -32,14 +32,12 @@ class CmdFinger(default_cmds.MuxCommand):
             self.caller.msg("Need a person to finger!")
             return
 
-        # character = self.caller.search(charName, global_search=True) # do we want to search the entire DB?
-        target = self.caller.search(self.args) # searching globally disables the "smart searching" capability
+        target = self.caller.search(self.args) # using the global_search=True param messes up partial string searching
 
-        # name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
-        # power, knowledge, parry, barrier, speed = self.caller.get_abilities()
-
-        # char = self.caller.get_abilities()
-        char = target.get_abilities()
+        try:
+            char = target.get_abilities()
+        except:
+            self.caller.msg("Target is either not a character or there are multiple matches")
 
         charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
                                         border_bottom_char=" ", width=78)
@@ -47,16 +45,15 @@ class CmdFinger(default_cmds.MuxCommand):
         charInfoTable.add_column()
         charInfoTable.add_row("Sex: {0}".format(char["sex"]), "Group: {0}".format(char["group"]))
         charInfoTable.add_row("Race: {0}".format(char["race"]), "Domain: {0}".format(char["domain"]))
-        charInfoTable.add_row("Occupation: {0}".format(char["occupation"]), "Element: {0}".format(char["element"]))
+        charInfoTable.add_row("Origin: {0}".format(char["origin"]), "Element: {0}".format(char["element"]))
 
-
-        charDescTable = evtable.EvTable(border="table", border_left_char="|", border_right_char="|", border_top_char="-",
+        charDescTable = evtable.EvTable(border="table", border_left_char="|", border_right_char="|",
+                                        border_top_char="-",
                                         border_bottom_char="_", width=78)
         charDescTable.add_column()
         charDescTable.add_row('"{0}"'.format(char["quote"]))
         charDescTable.add_row("")
         charDescTable.add_row("{0}".format(char["profile"]))
-
 
         fingerMsg = ""
         fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
@@ -68,12 +65,13 @@ class CmdFinger(default_cmds.MuxCommand):
         fingerMsg += nameBorder + "\n"
 
         charInfoString = charInfoTable.__str__()
-        fingerMsg += charInfoString[:charInfoString.rfind('\n')] + "\n" # delete last newline (i.e. bottom border)
+        fingerMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
         fingerMsg += charDescTable.__str__() + "\n"
         fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
         fingerMsg += "\\/" + 74 * " " + "\\/" + "\n"
 
         self.caller.msg(fingerMsg)
+
 
 
 
