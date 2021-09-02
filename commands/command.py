@@ -28,7 +28,7 @@ class CmdFinger(default_cmds.MuxCommand):
     locks = "cmd:all()"
 
     def func(self):
-        if not self.args[0]:
+        if not self.args:
             self.caller.msg("Need a person to finger!")
             return
 
