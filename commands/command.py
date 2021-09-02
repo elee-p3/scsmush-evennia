@@ -35,7 +35,7 @@ class CmdFinger(default_cmds.MuxCommand):
 
         # We've tried changing the evennia-master code in evennia/objects/object.py to allow for non-exact string
         # matching with global_search=True, but this seems to cause "examine <db_id>" to fail
-        # TODO: figure out a way to have partial string matching AND db_id referencing
+        # TODO: figure out a way to have partial string matching AND db_id referencing. Might be able to do this with more playing around with the if-else logic in objects.py
         target = self.caller.search(self.args, global_search=True)
 
         # TODO: actually figure out error handling. Need to be able to differentiate between "ambiguous search" error and "not a character" error
