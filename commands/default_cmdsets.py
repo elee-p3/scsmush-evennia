@@ -16,7 +16,7 @@ own cmdsets by inheriting from them or directly from `evennia.CmdSet`.
 
 from evennia import default_cmds
 from evennia.contrib import dice
-from commands.command import CmdOOC, CmdEmit, CmdSheet, CmdSetDesc, CmdFinger, CmdWho
+from commands.command import CmdOOC, CmdEmit, CmdSheet, CmdSetDesc, CmdFinger, CmdWho, CmdMail
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
     """
@@ -42,6 +42,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSetDesc)
         self.add(CmdFinger)
         self.add(CmdWho)
+        self.add(CmdMail)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
