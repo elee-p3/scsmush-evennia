@@ -510,85 +510,61 @@ class CmdWho(default_cmds.MuxCommand):
 
         session_list = sorted(session_list, key=lambda o: o.account.key)
 
-        # show_session_data = True
-        # if self.cmdstring == "doing":
-        #     show_session_data = False
-        # else:
-        #    show_session_data = account.check_permstring("Developer") or account.check_permstring(
-        #        "Admins"
-        #    )
+        if self.cmdstring == "doing":
+            show_session_data = False
+        else:
+           show_session_data = account.check_permstring("Developer") or account.check_permstring(
+               "Admins"
+           )
 
         naccounts = SESSIONS.account_count()
-        # if show_session_data:
-        #     # privileged info
-        #     table = self.styled_table(
-        #         "|wAccount Name",
-        #         "|wOn for",
-        #         "|wIdle",
-        #         "|wPuppeting",
-        #         "|wRoom",
-        #         "|wCmds",
-        #         "|wProtocol",
-        #         "|wHost",
-        #     )
-        #     for session in session_list:
-        #         if not session.logged_in:
-        #             continue
-        #         delta_cmd = time.time() - session.cmd_last_visible
-        #         delta_conn = time.time() - session.conn_time
-        #         session_account = session.get_account()
-        #         puppet = session.get_puppet()
-        #         location = puppet.location.key if puppet and puppet.location else "None"
-        #         table.add_row(
-        #             utils.crop(session_account.get_display_name(account), width=25),
-        #             utils.time_format(delta_conn, 0),
-        #             utils.time_format(delta_cmd, 1),
-        #             utils.crop(puppet.get_display_name(account) if puppet else "None", width=25),
-        #             utils.crop(location, width=25),
-        #             session.cmd_total,
-        #             session.protocol_key,
-        #             isinstance(session.address, tuple) and session.address[0] or session.address,
-        #         )
-        # else:
-        #     # unprivileged
-        #     table = self.styled_table("|wAccount name", "|wOn for", "|wIdle", "|wRoom")
-        #     for session in session_list:
-        #         if not session.logged_in:
-        #             continue
-        #         delta_cmd = time.time() - session.cmd_last_visible
-        #         delta_conn = time.time() - session.conn_time
-        #         session_account = session.get_account()
-        #         table.add_row(
-        #             utils.crop(session_account.get_display_name(account), width=25),
-        #             utils.time_format(delta_conn, 0),
-        #             utils.time_format(delta_cmd, 1),
-        #         )
-
-        table = self.styled_table(
-            "|wAccount Name",
-            "|wOn for",
-            "|wIdle",
-            "|wRoom",
-        )
-        for session in session_list:
-            if not session.logged_in:
-                continue
-            delta_cmd = time.time() - session.cmd_last_visible
-            delta_conn = time.time() - session.conn_time
-            session_account = session.get_account()
-            puppet = session.get_puppet()
-            location = puppet.location.key if puppet and puppet.location else "None"
-            table.add_row(
-                utils.crop(session_account.get_display_name(account), width=25),
-                utils.time_format(delta_conn, 0),
-                utils.time_format(delta_cmd, 1),
-                utils.crop(puppet.get_display_name(account) if puppet else "None", width=25),
-                utils.crop(location, width=25),
-                session.cmd_total,
-                session.protocol_key,
-                isinstance(session.address, tuple) and session.address[0] or session.address,
+        if show_session_data:
+            # privileged info
+            table = self.styled_table(
+                "|wAccount Name",
+                "|wOn for",
+                "|wIdle",
+                "|wPuppeting",
+                "|wRoom",
+                "|wCmds",
+                "|wProtocol",
+                "|wHost",
             )
-
+            for session in session_list:
+                if not session.logged_in:
+                    continue
+                delta_cmd = time.time() - session.cmd_last_visible
+                delta_conn = time.time() - session.conn_time
+                session_account = session.get_account()
+                puppet = session.get_puppet()
+                location = puppet.location.key if puppet and puppet.location else "None"
+                table.add_row(
+                    utils.crop(session_account.get_display_name(account), width=25),
+                    utils.time_format(delta_conn, 0),
+                    utils.time_format(delta_cmd, 1),
+                    utils.crop(puppet.get_display_name(account) if puppet else "None", width=25),
+                    utils.crop(location, width=25),
+                    session.cmd_total,
+                    session.protocol_key,
+                    isinstance(session.address, tuple) and session.address[0] or session.address,
+                )
+        else:
+            # unprivileged
+            table = self.styled_table("|wAccount name", "|wOn for", "|wIdle", "|wRoom")
+            for session in session_list:
+                if not session.logged_in:
+                    continue
+                delta_cmd = time.time() - session.cmd_last_visible
+                delta_conn = time.time() - session.conn_time
+                session_account = session.get_account()
+                puppet = session.get_puppet()
+                location = puppet.location.key if puppet and puppet.location else "None"
+                table.add_row(
+                    utils.crop(session_account.get_display_name(account), width=25),
+                    utils.time_format(delta_conn, 0),
+                    utils.time_format(delta_cmd, 1),
+                    utils.crop(location, width=25),
+                )
         is_one = naccounts == 1
         self.msg(
             "|wAccounts:|n\n%s\n%s unique account%s logged in."
