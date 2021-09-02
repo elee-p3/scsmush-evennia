@@ -32,7 +32,7 @@ class CmdFinger(default_cmds.MuxCommand):
         # character = self.caller.search(charName, global_search=True) # do we want to search the entire DB?
         target = self.caller.search("Ivo Galvan", global_search=True)
 
-        attrs = vars(target)
+        attrs = vars(target.get_abilities())
         # {'kids': 0, 'name': 'Dog', 'color': 'Spotted', 'age': 10, 'legs': 2, 'smell': 'Alot'}
         # now dump this in some way or another
         print(', '.join("%s: %s" % item for item in attrs.items()))
@@ -62,8 +62,8 @@ class CmdFinger(default_cmds.MuxCommand):
         fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
 
         # TODO: we want if-else logic to add an alias if they have it, and just spit out their name if they don't
-        nameBorder = "\\/" + (37 - floor(len(name + " - " + occupation) / 2.0)) * " "
-        nameBorder += name + " - " + occupation
+        nameBorder = "\\/" + (37 - floor(len(char["name"] + " - " + char["occupation"]) / 2.0)) * " "
+        nameBorder += char["name"] + " - " + char["occupation"]
         nameBorder += (76 - len(nameBorder)) * " " + "\\/"
         fingerMsg += nameBorder + "\n"
 
