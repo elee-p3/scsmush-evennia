@@ -36,34 +36,7 @@ SERVERNAME = "Star Chaser Story MUSH"
 GAME_SLOGAN = '"Until the star we follow brings us back to you."'
 WEBSERVER_PORTS = [(80, 4005)]
 
-INSTALLED_APPS += (
-    "world.dominion",
-    "world.msgs",
-    "world.conditions.apps.ConditionsConfig",
-    "world.fashion.apps.FashionConfig",
-    "world.petitions.apps.PetitionsConfig",
-    "web.character",
-    "web.news",
-    "web.helpdesk",
-    "web.help_topics",
-    "cloudinary",
-    "django.contrib.humanize",
-    "bootstrapform",
-    "crispy_forms",
-    "world.weather",
-    "world.templates.apps.TemplateConfig",
-    "world.exploration",
-    "web.admintools",
-    "world.magic",
-    "world.quests.apps.QuestsConfig",
-    "world.stat_checks.apps.StatChecksConfig",
-    "world.prayer.apps.PrayerConfig",
-    "world.traits.apps.TraitsConfig",
-    "evennia_extensions.object_extensions.apps.ObjectExtensionsConfig",
-    "world.game_constants.apps.GameConstantsConfig",
-    "world.crafting.apps.CraftingConfig",
-    "evennia_extensions.character_extensions.apps.CharacterExtensionsConfig",
-)
+INSTALLED_APPS += ("world.msgs")
 ######################################################################
 # Settings given in secret_settings.py override those in this file.
 ######################################################################
