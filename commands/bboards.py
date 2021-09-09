@@ -6,7 +6,8 @@ make sure to homogenize self.caller to always be the player object
 for easy handling.
 """
 from evennia.utils import create
-from server.utils import prettytable
+# from server.utils import prettytable
+from evennia.utils.evtable import EvTable
 # from server.utils.arx_utils import inform_staff
 # from commands.base import ArxCommand, ArxPlayerCommand
 from evennia import default_cmds
@@ -15,9 +16,9 @@ from typeclasses.bulletin_board.bboard import BBoard
 # limit symbol import for API
 __all__ = (
     "CmdBBReadOrPost",
-    "CmdBBSub",
-    "CmdBBUnsub",
-    "CmdBBCreate",
+    # "CmdBBSub",
+    # "CmdBBUnsub",
+    # "CmdBBCreate",
     "get_boards",
     "get_unread_posts",
 )
@@ -45,9 +46,12 @@ def list_bboards(caller, old=False):
     # just display the subscribed bboards with no extra info
     if old:
         caller.msg("|cDisplaying only archived posts.|n")
-    bbtable = prettytable.PrettyTable(
+    # bbtable = prettytable.PrettyTable(
+    #     ["|wbb #", "|wName", "|wPosts|n", "|wSubscribed|n"]
+    # )
+    bbtable = EvTable(
         ["|wbb #", "|wName", "|wPosts|n", "|wSubscribed|n"]
-    )
+        )
     for bboard in bb_list:
         bb_number = bb_list.index(bboard)
         bb_name = bboard.key
@@ -111,7 +115,10 @@ def list_messages(caller, board, board_num, old=False):
     caller.msg(title)
     posts = board.get_all_posts(old=old)
     msgnum = 0
-    msgtable = prettytable.PrettyTable(
+    # msgtable = prettytable.PrettyTable(
+    #     ["|wbb/msg", "|wSubject", "|wPostDate", "|wPosted By"]
+    # )
+    msgtable = EvTable(
         ["|wbb/msg", "|wSubject", "|wPostDate", "|wPosted By"]
     )
     from world.msgs.models import Post
@@ -379,7 +386,7 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
                 caller.msg("Post %sd" % verb)
                # inform_staff(
                #     "%s has %sd post %s on board %s." % (caller, verb, post_num, board)
-                )
+               #  )
             else:
                 caller.msg("Post %s failed for unknown reason." % verb)
             return
@@ -409,7 +416,7 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
                 self.msg("Post edited.")
                 # inform_staff(
                 #    "%s has edited post %s on board %s." % (caller, post_num, board)
-                )
+                # )
             return
         if "post" in switches:
             if not self.rhs:
