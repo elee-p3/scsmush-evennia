@@ -18,7 +18,7 @@ from evennia import default_cmds
 from evennia.contrib import dice
 import commands.command
 from commands.command import *
-from commands.bboards import *
+# from commands.bboards import *
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
     """
@@ -45,10 +45,10 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdFinger)
         self.add(CmdWho)
         self.add(CmdMail)
-        self.add(CmdBBCreate)
-        self.add(CmdBBSub)
-        self.add(CmdBBUnsub)
-        self.add(CmdBBReadOrPost)
+        # self.add(CmdBBCreate)
+        # self.add(CmdBBSub)
+        # self.add(CmdBBUnsub)
+        # self.add(CmdBBReadOrPost)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
