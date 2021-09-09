@@ -323,25 +323,26 @@ class CmdSheet(default_cmds.MuxCommand):
         def func(self):
             "implements the actual functionality"
 
-            name, sex, race, occupation, group, domain, element, origin, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
-            power, knowledge, parry, barrier, speed = self.caller.get_abilities()
+            char = self.caller.get_abilities()
+            # name, sex, race, occupation, group, domain, element, origin, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
+            # power, knowledge, parry, barrier, speed = self.caller.get_abilities()
             sheetMsg = ""
 
             sheetMsg += "/\\" + 74 * "_" + "/\\" + "\n"
-            nameBorder = "\\/" + (37 - floor(len(name + " - " + occupation)/2.0)) * " "
-            nameBorder += name + " - " + occupation
+            nameBorder = "\\/" + (37 - floor(len(char["name"] + " - " + char["occupation"])/2.0)) * " "
+            nameBorder += char["name"] + " - " + char["occupation"]
             nameBorder += (76 - len(nameBorder))*" " + "\\/"
             sheetMsg += nameBorder + "\n"
             sheetMsg += "--" + 74 * "-" + "--" + "\n"
 
             # first row
             firstRow = "| LF"
-            firstRow += (22 - (len(str(lf)) + len(str(maxlf)) + 1 + len(firstRow))) * " "
-            firstRow += "{0}/{1}".format(lf, maxlf)
+            firstRow += (22 - (len(str(char["lf"])) + len(str(char["maxlf"])) + 1 + len(firstRow))) * " "
+            firstRow += "{0}/{1}".format(char["lf"], char["maxlf"])
             firstRow = self.padToSecondLabel(firstRow)
             firstRow += "Power"
             firstRow = self.padToLastValue(firstRow)
-            firstRow += "{0}".format(power)
+            firstRow += "{0}".format(char["power"])
             firstRow = self.padToEnd(firstRow)
             firstRow += "\n"
             sheetMsg += firstRow
@@ -353,19 +354,19 @@ class CmdSheet(default_cmds.MuxCommand):
             secondRow = self.padToSecondLabel(secondRow)
             secondRow += "Knowledge"
             secondRow = self.padToLastValue(secondRow)
-            secondRow += "{0}".format(knowledge)
+            secondRow += "{0}".format(char["knowledge"])
             secondRow = self.padToEnd(secondRow)
             secondRow += "\n"
             sheetMsg += secondRow
 
             # third row
             thirdRow = "| AP"
-            thirdRow += (22 - (len(str(ap)) + len(str(maxap)) + 1 + len(thirdRow))) * " "
-            thirdRow += "{0}/{1}".format(ap, maxap)
+            thirdRow += (22 - (len(str(char["ap"])) + len(str(char["maxap"])) + 1 + len(thirdRow))) * " "
+            thirdRow += "{0}/{1}".format(char["ap"], char["maxap"])
             thirdRow = self.padToSecondLabel(thirdRow)
             thirdRow += "Parry"
             thirdRow = self.padToLastValue(thirdRow)
-            thirdRow += "{0}".format(parry)
+            thirdRow += "{0}".format(char["parry"])
             thirdRow = self.padToEnd(thirdRow)
             thirdRow += "\n"
             sheetMsg += thirdRow
@@ -377,19 +378,19 @@ class CmdSheet(default_cmds.MuxCommand):
             fourthRow = self.padToSecondLabel(fourthRow)
             fourthRow += "Barrier"
             fourthRow = self.padToLastValue(fourthRow)
-            fourthRow += "{0}".format(barrier)
+            fourthRow += "{0}".format(char["barrier"])
             fourthRow = self.padToEnd(fourthRow)
             fourthRow += "\n"
             sheetMsg += fourthRow
 
             # fifth row
             fifthRow = "| EX"
-            fifthRow += (20 - (len(str(ex)) + len(str(maxex)) + 1 + len(fifthRow))) * " "
-            fifthRow += "{0}%/{1}%".format(ex, maxex)
+            fifthRow += (20 - (len(str(char["ex"])) + len(str(char["maxex"])) + 1 + len(fifthRow))) * " "
+            fifthRow += "{0}%/{1}%".format(char["ex"], char["maxex"])
             fifthRow = self.padToSecondLabel(fifthRow)
             fifthRow += "Speed"
             fifthRow = self.padToLastValue(fifthRow)
-            fifthRow += "{0}".format(speed)
+            fifthRow += "{0}".format(char["speed"])
             fifthRow = self.padToEnd(fifthRow)
             fifthRow += "\n"
             sheetMsg += fifthRow
