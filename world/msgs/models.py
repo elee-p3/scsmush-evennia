@@ -90,8 +90,8 @@ def get_model_from_tags(tag_list):
     Returns:
         The appropriate proxy class.
     """
-    if WHITE_TAG in tag_list or BLACK_TAG in tag_list or RELATIONSHIP_TAG in tag_list:
-        return Journal
+    # if WHITE_TAG in tag_list or BLACK_TAG in tag_list or RELATIONSHIP_TAG in tag_list:
+    #     return Journal
     if MESSENGER_TAG in tag_list:
         return Messenger
     if POST_TAG in tag_list:
@@ -190,99 +190,99 @@ class MarkReadMixin(object):
 
 
 # different proxy classes for Msg objects
-class Journal(MarkReadMixin, Msg):
-    """
-    Proxy model for Msg that represents an in-game journal written by a Character.
-    """
-
-    class Meta:
-        proxy = True
-
-    objects = JournalManager()
-    white_journals = WhiteJournalManager()
-    black_journals = BlackJournalManager()
-
-    @property
-    def writer(self):
-        """The person who wrote this journal."""
-        try:
-            return self.senders[0]
-        except IndexError:
-            pass
-
-    @property
-    def relationship(self):
-        """Character who a journal is written about."""
-        try:
-            return self.db_receivers_objects.all()[0]
-        except IndexError:
-            pass
-
-    def __str__(self):
-        relationship = self.relationship
-        rel_txt = " on %s" % relationship.key if relationship else ""
-        return "<Journal written by %s%s>" % (self.writer, rel_txt)
-
-    def tag_favorite(self, player):
-        """
-        Tags this journal as a favorite by the player. We create a custom tag on the Journal to represent that.
-        Args:
-            player: Player tagging this journal as a favorite.
-        """
-        self.tags.add("pid_%s_favorite" % player.id)
-
-    def untag_favorite(self, player):
-        """
-        Removes tag marking this journal as a favorite of the player if it's present.
-        Args:
-            player: Player removing this journal as a favorite.
-        """
-        self.tags.remove("pid_%s_favorite" % player.id)
-
-    def add_black_locks(self):
-        """Sets the locks for this message being black"""
-        try:
-            p_id = self.senders[0].player_ob.id
-            blacklock = "read: perm(Builders) or pid(%s)." % p_id
-        except (AttributeError, IndexError):
-            blacklock = "read: perm(Builders)"
-        self.locks.add(blacklock)
-
-    def remove_black_locks(self):
-        """Removes the lock for black journals"""
-        self.locks.add("read: all()")
-
-    def convert_to_black(self):
-        """Converts this journal to a black journal"""
-        self.db_header = self.db_header.replace("white", "black")
-        self.tags.add(BLACK_TAG, category="msg")
-        self.tags.remove(WHITE_TAG, category="msg")
-        self.add_black_locks()
-        self.save()
-
-    def convert_to_white(self):
-        """Converts this journal to a white journal"""
-        self.db_header = self.db_header.replace("black", "white")
-        self.tags.remove(BLACK_TAG, category="msg")
-        self.tags.add(WHITE_TAG, category="msg")
-        self.remove_black_locks()
-        self.save()
-
-    def reveal_black_journal(self):
-        """Makes a black journal viewable to all - intended for posthumous releases"""
-        self.remove_black_locks()
-        self.tags.add(REVEALED_BLACK_TAG, category="msg")
-
-    def hide_black_journal(self):
-        """Hides a black journal again, for fixing errors"""
-        self.add_black_locks()
-        self.tags.remove(REVEALED_BLACK_TAG, category="msg")
-
-    @property
-    def is_public(self):
-        """Whether this journal is visible to the public without an access check"""
-        tags = self.tags.all()
-        return WHITE_TAG in tags or REVEALED_BLACK_TAG in tags
+# class Journal(MarkReadMixin, Msg):
+#     """
+#     Proxy model for Msg that represents an in-game journal written by a Character.
+#     """
+#
+#     class Meta:
+#         proxy = True
+#
+#     objects = JournalManager()
+#     white_journals = WhiteJournalManager()
+#     black_journals = BlackJournalManager()
+#
+#     @property
+#     def writer(self):
+#         """The person who wrote this journal."""
+#         try:
+#             return self.senders[0]
+#         except IndexError:
+#             pass
+#
+#     @property
+#     def relationship(self):
+#         """Character who a journal is written about."""
+#         try:
+#             return self.db_receivers_objects.all()[0]
+#         except IndexError:
+#             pass
+#
+#     def __str__(self):
+#         relationship = self.relationship
+#         rel_txt = " on %s" % relationship.key if relationship else ""
+#         return "<Journal written by %s%s>" % (self.writer, rel_txt)
+#
+#     def tag_favorite(self, player):
+#         """
+#         Tags this journal as a favorite by the player. We create a custom tag on the Journal to represent that.
+#         Args:
+#             player: Player tagging this journal as a favorite.
+#         """
+#         self.tags.add("pid_%s_favorite" % player.id)
+#
+#     def untag_favorite(self, player):
+#         """
+#         Removes tag marking this journal as a favorite of the player if it's present.
+#         Args:
+#             player: Player removing this journal as a favorite.
+#         """
+#         self.tags.remove("pid_%s_favorite" % player.id)
+#
+#     def add_black_locks(self):
+#         """Sets the locks for this message being black"""
+#         try:
+#             p_id = self.senders[0].player_ob.id
+#             blacklock = "read: perm(Builders) or pid(%s)." % p_id
+#         except (AttributeError, IndexError):
+#             blacklock = "read: perm(Builders)"
+#         self.locks.add(blacklock)
+#
+#     def remove_black_locks(self):
+#         """Removes the lock for black journals"""
+#         self.locks.add("read: all()")
+#
+#     def convert_to_black(self):
+#         """Converts this journal to a black journal"""
+#         self.db_header = self.db_header.replace("white", "black")
+#         self.tags.add(BLACK_TAG, category="msg")
+#         self.tags.remove(WHITE_TAG, category="msg")
+#         self.add_black_locks()
+#         self.save()
+#
+#     def convert_to_white(self):
+#         """Converts this journal to a white journal"""
+#         self.db_header = self.db_header.replace("black", "white")
+#         self.tags.remove(BLACK_TAG, category="msg")
+#         self.tags.add(WHITE_TAG, category="msg")
+#         self.remove_black_locks()
+#         self.save()
+#
+#     def reveal_black_journal(self):
+#         """Makes a black journal viewable to all - intended for posthumous releases"""
+#         self.remove_black_locks()
+#         self.tags.add(REVEALED_BLACK_TAG, category="msg")
+#
+#     def hide_black_journal(self):
+#         """Hides a black journal again, for fixing errors"""
+#         self.add_black_locks()
+#         self.tags.remove(REVEALED_BLACK_TAG, category="msg")
+#
+#     @property
+#     def is_public(self):
+#         """Whether this journal is visible to the public without an access check"""
+#         tags = self.tags.all()
+#         return WHITE_TAG in tags or REVEALED_BLACK_TAG in tags
 
 
 class Messenger(MarkReadMixin, Msg):
