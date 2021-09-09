@@ -16,9 +16,9 @@ from typeclasses.bulletin_board.bboard import BBoard
 # limit symbol import for API
 __all__ = (
     "CmdBBReadOrPost",
-    # "CmdBBSub",
-    # "CmdBBUnsub",
-    # "CmdBBCreate",
+    "CmdBBSub",
+    "CmdBBUnsub",
+    "CmdBBCreate",
     "get_boards",
     "get_unread_posts",
 )
