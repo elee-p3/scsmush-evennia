@@ -321,7 +321,7 @@ class CmdSheet(default_cmds.MuxCommand):
         def func(self):
             "implements the actual functionality"
 
-            name, sex, race, occupation, group, domain, element, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
+            name, sex, race, occupation, group, domain, element, origin, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
             power, knowledge, parry, barrier, speed = self.caller.get_abilities()
             sheetMsg = ""
 
