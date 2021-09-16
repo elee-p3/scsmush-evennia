@@ -57,7 +57,8 @@ def list_bboards(caller, old=False):
         bb_name = bboard.key
         caller.msg("In list_bboards call: type is {0}".format(type(caller).__name__))
         # print("In list_bboards call: type is {0}".format(type(caller).__name__))
-        unread_num = bboard.num_of_unread_posts(caller, old)
+        # unread_num = bboard.num_of_unread_posts(caller, old)
+        unread_num = bboard.num_of_unread_posts(caller.account, old)
         subbed = bboard in my_subs
         posts = bboard.archived_posts if old else bboard.posts
         if unread_num:
