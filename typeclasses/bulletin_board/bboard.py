@@ -9,19 +9,19 @@ from evennia.comms.models import Msg
 from world.msgs.models import Post
 from world.msgs.managers import POST_TAG, TAG_CATEGORY
 
-def get_full_url(url):
-    """
-    Gets the full url when given a partial, used for formatting links. For this to work
-    properly, you should define your Site's url under the 'Sites' app in django's admin
-    site.
-    Args:
-        url: A partial url from a few, like '/namespace/view/'
-    Returns:
-        A full url, like "http://www.example.com/namespace/view/"
-    """
-    from django.contrib.sites.models import Site
-
-    return "http://%s%s" % (Site.objects.get_current(), url)
+# def get_full_url(url):
+#     """
+#     Gets the full url when given a partial, used for formatting links. For this to work
+#     properly, you should define your Site's url under the 'Sites' app in django's admin
+#     site.
+#     Args:
+#         url: A partial url from a few, like '/namespace/view/'
+#     Returns:
+#         A full url, like "http://www.example.com/namespace/view/"
+#     """
+#     from django.contrib.sites.models import Site
+#
+#     return "http://%s%s" % (Site.objects.get_current(), url)
 
 class BBoard(Object):
     """
@@ -76,21 +76,21 @@ class BBoard(Object):
             self.flush_unread_cache()
         if announce:
             post_num = self.posts.count()
-            from django.urls import reverse
+            # from django.urls import reverse
+            #
+            # post_url = get_full_url(
+            #     reverse(
+            #         "msgs:post_view", kwargs={"board_id": self.id, "post_id": post.id}
+            #     )
+            # )
 
-            post_url = get_full_url(
-                reverse(
-                    "msgs:post_view", kwargs={"board_id": self.id, "post_id": post.id}
-                )
-            )
-
-            notify = "\n{{wNew post on {0} by {1}:{{n {2}".format(
+            notify = "\n{|wNew post on {0} by {1}:{|n {2}".format(
                 self.key, posted_by, subject
             )
-            notify += "\nUse {w@bbread %s/%s {nor {w%s{n to read this message." % (
+            notify += "\nUse |w@bbread %s/%s |nor |w%s|n to read this message." % (
                 self.key,
                 post_num,
-                post_url,
+                # post_url,
             )
 
             self.notify_subs(notify)
@@ -292,17 +292,17 @@ class BBoard(Object):
             posts = self.posts
         # format post
         sender = self.get_poster(post)
-        message = "\n{w" + "-" * 60 + "{n\n"
-        message += "{wBoard:{n %s, {wPost Number:{n %s\n" % (
+        message = "\n|w" + "-" * 60 + "|n\n"
+        message += "|wBoard:|n %s, |wPost Number:|n %s\n" % (
             self.key,
             list(posts).index(post) + 1,
         )
-        message += "{wPoster:{n %s\n" % sender
-        message += "{wSubject:{n %s\n" % post.db_header
-        message += "{wDate:{n %s\n" % post.db_date_created.strftime("%x %X")
-        message += "{w" + "-" * 60 + "{n\n"
+        message += "|wPoster:|n %s\n" % sender
+        message += "|wSubject:|n %s\n" % post.db_header
+        message += "|wDate:|n %s\n" % post.db_date_created.strftime("%x %X")
+        message += "|w" + "-" * 60 + "|n\n"
         message += post.db_message
-        message += "\n{w" + "-" * 60 + "{n\n"
+        message += "\n|w" + "-" * 60 + "|n\n"
         caller.msg(message)
         if caller.is_guest():
             return
