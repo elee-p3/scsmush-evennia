@@ -50,7 +50,7 @@ def list_bboards(caller, old=False):
     #     ["|wbb #", "|wName", "|wPosts|n", "|wSubscribed|n"]
     # )
     bbtable = EvTable(
-        ["|wbb #", "|wName", "|wPosts|n", "|wSubscribed|n"]
+        table=["|wbb #", "|wName", "|wPosts|n", "|wSubscribed|n"]
         )
     for bboard in bb_list:
         bb_number = bb_list.index(bboard)
