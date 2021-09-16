@@ -55,6 +55,7 @@ def list_bboards(caller, old=False):
     for bboard in bb_list:
         bb_number = bb_list.index(bboard)
         bb_name = bboard.key
+        print("In list_bboards call: type is {0}".format(type(caller).__name__))
         unread_num = bboard.num_of_unread_posts(caller, old)
         subbed = bboard in my_subs
         posts = bboard.archived_posts if old else bboard.posts
@@ -272,6 +273,7 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
         switches = self.switches
         old = "old" in switches
         if not args and not ("new" in switches or "catchup" in switches):
+            print("In @bb call: type is {0}".format(type(caller).__name__))
             return list_bboards(caller, old)
 
         # first, "@bb <board #>" use case
