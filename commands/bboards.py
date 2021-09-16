@@ -65,7 +65,7 @@ def list_bboards(caller, old=False):
             unread_str = " |w(%s new)|n" % unread_num
         else:
             unread_str = ""
-        bbtable.add_row([bb_number, bb_name, "%s%s" % (len(posts), unread_str), subbed])
+        bbtable.add_row(bb_number, bb_name, "%s%s" % (len(posts), unread_str), subbed)
     caller.msg("\n|w" + "=" * 60 + "|n\n%s" % bbtable)
 
 
