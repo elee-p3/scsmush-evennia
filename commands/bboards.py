@@ -20,6 +20,7 @@ __all__ = (
     "CmdBBUnsub",
     "CmdBBCreate",
     "CmdBBNew",
+    "CmdGetUnreadPosts",
     "get_boards",
     "get_unread_posts",
 )
@@ -158,6 +159,18 @@ def get_unread_posts(caller):
         msg += ", ".join(bb.key.capitalize() for bb in unread)
         caller.msg(msg)
 
+class CmdGetUnreadPosts(default_cmds.MuxCommand):
+    """
+    +bbunread - get unread posts
+    """
+
+    key = "+bbunread"
+    aliases = ["@bbunread"]
+    help_category = "Comms"
+    locks = "cmd:not pperm(bboard_banned)"
+
+    def func(self):
+        get_unread_posts()
 
 class CmdBBNew(default_cmds.MuxCommand):
     """
