@@ -19,6 +19,7 @@ __all__ = (
     "CmdBBSub",
     "CmdBBUnsub",
     "CmdBBCreate",
+    "CmdBBNew",
     "get_boards",
     "get_unread_posts",
 )
@@ -234,7 +235,6 @@ class CmdBBNew(default_cmds.MuxCommand):
                 "No new posts found on boards: %s."
                 % ", ".join(str(sub) for sub in my_subs)
             )
-
 
 class CmdBBReadOrPost(default_cmds.MuxCommand):
     """
