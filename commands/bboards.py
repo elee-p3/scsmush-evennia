@@ -214,16 +214,16 @@ class CmdBBNew(default_cmds.MuxCommand):
         caller.msg("Unread posts:\n{}".format("-" * 60))
         noread = "markread" in self.switches
         for bb in my_subs:
-            posts = bb.get_unread_posts(caller)
+            posts = bb.get_unread_posts(caller.account)
             if not posts:
                 continue
             caller.msg("Board %s:" % bb.key)
             posts_on_board = 0
             for post in posts:
                 if noread:
-                    bb.mark_read(caller, post)
+                    bb.mark_read(caller.account, post)
                 else:
-                    bb.read_post(caller, post)
+                    bb.read_post(caller.account, post)
                 found_posts += 1
                 posts_on_board += 1
                 if found_posts >= num_posts:
