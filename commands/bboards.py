@@ -181,6 +181,13 @@ class CmdBBNew(default_cmds.MuxCommand):
         args = self.lhs
         bb_list = get_boards(caller)
         my_subs = []
+
+        caller.msg("Got to bbnew")
+        caller.msg("passed arguments are {0}".format(args))
+        caller.msg("list of boards is ")
+        for bb in bb_list:
+            caller.msg(bb)
+
         if not bb_list:
             return
         if not self.rhs:
@@ -298,16 +305,14 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
                     switches.append("read")
         if "new" in switches or "catchup" in switches:
             if "catchup" in switches:
-                caller.msg("got catchup switch, here are the arg")
-                caller.msg(args)
+                # caller.msg("got catchup switch, here are the arg")
+                # caller.msg(args)
                 caller.execute_cmd("+bbnew/markread" + args)
                 return
             caller.execute_cmd("+bbnew" + args)
             return
         # both post/read share board #
         arglist = args.split("/")
-        caller.msg("about to call access_bboard, caller is {0}".format(caller))
-        caller.msg("list of args is")
         for argstring in arglist:
             caller.msg(argstring)
         board = access_bboard(caller, arglist[0])
