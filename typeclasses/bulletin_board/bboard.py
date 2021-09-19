@@ -87,11 +87,11 @@ class BBoard(Object):
             notify = "\nNew post on {0} by {1}:{2}".format(
                 self.key, posted_by, subject
             )
-            notify += "\nUse @bbread %s/%s or %s to read this message." % (
-                self.key,
-                post_num,
-                # post_url,
-            )
+            # notify += "\nUse @bbread %s/%s or %s to read this message." % (
+            #     self.key,
+            #     post_num,
+            #     # post_url,
+            # )
 
             self.notify_subs(notify)
         self.update_cache_on_post(poster_obj)
