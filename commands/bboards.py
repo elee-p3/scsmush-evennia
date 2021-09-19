@@ -305,11 +305,11 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
                     switches.append("read")
         if "new" in switches or "catchup" in switches:
             if "catchup" in switches:
-                # caller.msg("got catchup switch, here are the arg")
-                # caller.msg(args)
-                caller.execute_cmd("+bbnew/markread" + args)
+                caller.msg("got catchup switch, here are the args")
+                caller.msg(args)
+                caller.account.execute_cmd("+bbnew/markread" + args)
                 return
-            caller.execute_cmd("+bbnew" + args)
+            caller.account.execute_cmd("+bbnew" + args)
             return
         # both post/read share board #
         arglist = args.split("/")
