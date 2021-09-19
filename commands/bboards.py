@@ -47,7 +47,7 @@ def list_bboards(caller, old=False):
     if old:
         caller.msg("Displaying only archived posts.")
     bbtable = EvTable(
-        table=["bb #", "Name", "Posts", "Subscribed"]
+        "bb #", "Name", "Posts", "Subscribed"
         )
     for bboard in bb_list:
         bb_number = bb_list.index(bboard)
