@@ -118,7 +118,7 @@ def list_messages(caller, board, board_num, old=False):
     )
     from world.msgs.models import Post
 
-    read_posts = Post.objects.all_read_by(caller)
+    read_posts = Post.objects.all_read_by(caller.account)
     for post in posts:
         unread = post not in read_posts
         msgnum += 1
