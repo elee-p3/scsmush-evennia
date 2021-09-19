@@ -221,9 +221,9 @@ class CmdBBNew(default_cmds.MuxCommand):
             posts_on_board = 0
             for post in posts:
                 if noread:
-                    bb.mark_read(caller.account, post)
+                    bb.mark_read(caller, post)
                 else:
-                    bb.read_post(caller.account, post)
+                    bb.read_post(caller, post)
                 found_posts += 1
                 posts_on_board += 1
                 if found_posts >= num_posts:
