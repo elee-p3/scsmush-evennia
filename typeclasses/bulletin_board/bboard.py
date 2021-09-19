@@ -84,10 +84,10 @@ class BBoard(Object):
             #     )
             # )
 
-            notify = "\n{|wNew post on {0} by {1}:{|n {2}".format(
+            notify = "\n{New post on {0} by {1}:{ {2}".format(
                 self.key, posted_by, subject
             )
-            notify += "\nUse |w@bbread %s/%s |nor |w%s|n to read this message." % (
+            notify += "\nUse @bbread %s/%s or %s to read this message." % (
                 self.key,
                 post_num,
                 # post_url,
@@ -131,12 +131,12 @@ class BBoard(Object):
             return
         if post.tags.get(tagname, category=category):
             poster_obj.msg(
-                "|w%s|n has already declared a position on this matter." % org
+                "%s has already declared a position on this matter." % org
             )
             return
         if not org.access(poster_obj, "declarations"):
             poster_obj.msg(
-                "Your |w%s|n rank is not set to make declarations on their behalf."
+                "Your %s rank is not set to make declarations on their behalf."
                 % org
             )
             return
@@ -144,15 +144,15 @@ class BBoard(Object):
             poster_obj.msg("That message is too long for a brief declaration.")
             return
         secret = org.secret
-        poster_obj_str = "" if secret else (" via |c%s|n" % poster_obj)
-        post.db_message += "\n\n--- |w%s|n Stance%s ---\n%s" % (
+        poster_obj_str = "" if secret else (" via %s" % poster_obj)
+        post.db_message += "\n\n--- %s Stance%s ---\n%s" % (
             org,
             poster_obj_str,
             msg,
         )
         post.tags.add(tagname, category=category)
         post.save()
-        success_msg = "|w%s|n%s declared a stance on '%s' (proclamation %s)." % (
+        success_msg = "%s%s declared a stance on '%s' (proclamation %s)." % (
             org,
             poster_obj_str,
             post.db_header,
@@ -163,7 +163,7 @@ class BBoard(Object):
         # from server.utils.arx_utils import inform_staff
 
         if secret:
-            success_msg = "(By |c%s|n) %s" % (poster_obj.key, success_msg)
+            success_msg = "(By %s) %s" % (poster_obj.key, success_msg)
         # inform_staff(success_msg)
 
     def has_subscriber(self, pobj):
@@ -292,17 +292,17 @@ class BBoard(Object):
             posts = self.posts
         # format post
         sender = self.get_poster(post)
-        message = "\n|w" + "-" * 60 + "|n\n"
-        message += "|wBoard:|n %s, |wPost Number:|n %s\n" % (
+        message = "\n" + "-" * 60 + "\n"
+        message += "Board: %s, Post Number: %s\n" % (
             self.key,
             list(posts).index(post) + 1,
         )
-        message += "|wPoster:|n %s\n" % sender
-        message += "|wSubject:|n %s\n" % post.db_header
-        message += "|wDate:|n %s\n" % post.db_date_created.strftime("%x %X")
-        message += "|w" + "-" * 60 + "|n\n"
+        message += "Poster: %s\n" % sender
+        message += "Subject: %s\n" % post.db_header
+        message += "Date: %s\n" % post.db_date_created.strftime("%x %X")
+        message += "" + "-" * 60 + "\n"
         message += post.db_message
-        message += "\n|w" + "-" * 60 + "|n\n"
+        message += "\n" + "-" * 60 + "\n"
         caller.msg(message)
         if caller.is_guest():
             return

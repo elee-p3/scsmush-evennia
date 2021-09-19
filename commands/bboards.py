@@ -45,12 +45,9 @@ def list_bboards(caller, old=False):
     my_subs = [bb for bb in bb_list if bb.has_subscriber(caller)]
     # just display the subscribed bboards with no extra info
     if old:
-        caller.msg("|cDisplaying only archived posts.|n")
-    # bbtable = prettytable.PrettyTable(
-    #     ["|wbb #", "|wName", "|wPosts|n", "|wSubscribed|n"]
-    # )
+        caller.msg("Displaying only archived posts.")
     bbtable = EvTable(
-        table=["|wbb #", "|wName", "|wPosts|n", "|wSubscribed|n"]
+        table=["bb #", "Name", "Posts", "Subscribed"]
         )
     for bboard in bb_list:
         bb_number = bb_list.index(bboard)
@@ -62,11 +59,11 @@ def list_bboards(caller, old=False):
         subbed = bboard in my_subs
         posts = bboard.archived_posts if old else bboard.posts
         if unread_num:
-            unread_str = " |w(%s new)|n" % unread_num
+            unread_str = " (%s new)" % unread_num
         else:
             unread_str = ""
         bbtable.add_row(bb_number, bb_name, "%s%s" % (len(posts), unread_str), subbed)
-    caller.msg("\n|w" + "=" * 60 + "|n\n%s" % bbtable)
+    caller.msg("\n" + "=" * 60 + "\n%s" % bbtable)
 
 
 def access_bboard(caller, args, request="read"):
@@ -112,17 +109,17 @@ def list_messages(caller, board, board_num, old=False):
     if not board:
         caller.msg("No bulletin board found.")
         return
-    caller.msg("|w" + "=" * 60 + "\n|n")
-    title = "|w**** %s ****|n" % board.key.capitalize()
+    caller.msg("" + "=" * 60 + "\n")
+    title = "**** %s ****" % board.key.capitalize()
     title = "{:^80}".format(title)
     caller.msg(title)
     posts = board.get_all_posts(old=old)
     msgnum = 0
     # msgtable = prettytable.PrettyTable(
-    #     ["|wbb/msg", "|wSubject", "|wPostDate", "|wPosted By"]
+    #     ["bb/msg", "Subject", "PostDate", "Posted By"]
     # )
     msgtable = EvTable(
-        ["|wbb/msg", "|wSubject", "|wPostDate", "|wPosted By"]
+        ["bb/msg", "Subject", "PostDate", "Posted By"]
     )
     from world.msgs.models import Post
 
@@ -136,13 +133,13 @@ def list_messages(caller, board, board_num, old=False):
             bbmsgnum = board.name.capitalize() + "/" + str(msgnum)
         # if unread message, make the message white-bold
         if unread:
-            bbmsgnum = "|w" + "{0}".format(bbmsgnum)
+            bbmsgnum = "" + "{0}".format(bbmsgnum)
         subject = post.db_header[:35]
         date = post.db_date_created.strftime("%x")
         poster = board.get_poster(post)[:10]
         # turn off white-bold color if unread message
         if unread:
-            poster = "{0}".format(poster) + "|n"
+            poster = "{0}".format(poster) + ""
         msgtable.add_row([bbmsgnum, subject, date, poster])
     caller.msg(str(msgtable))
     pass
@@ -153,7 +150,7 @@ def get_unread_posts(caller):
     if not bb_list:
         return
     my_subs = [bb for bb in bb_list if bb.has_subscriber(caller)]
-    msg = "|wNew posts on bulletin boards:|n "
+    msg = "New posts on bulletin boards: "
     unread = []
     for bb in my_subs:
         post = bb.get_latest_post()
@@ -211,13 +208,13 @@ class CmdBBNew(default_cmds.MuxCommand):
                 caller.msg("Argument must either be 'all' or a number.")
                 return
         found_posts = 0
-        caller.msg("|wUnread posts:\n{}|n".format("-" * 60))
+        caller.msg("Unread posts:\n{}".format("-" * 60))
         noread = "markread" in self.switches
         for bb in my_subs:
             posts = bb.get_unread_posts(caller)
             if not posts:
                 continue
-            caller.msg("|wBoard |c%s|n:" % bb.key)
+            caller.msg("Board %s:" % bb.key)
             posts_on_board = 0
             for post in posts:
                 if noread:
@@ -288,7 +285,7 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
                 reader.msg(
                     "You are not yet a subscriber to {0}".format(board_to_check.key)
                 )
-                reader.msg("Use |w@bbsub|n to subscribe to it.")
+                reader.msg("Use @bbsub to subscribe to it.")
                 return
             list_messages(reader, board_to_check, arguments, old)
 
