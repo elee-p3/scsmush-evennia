@@ -158,6 +158,8 @@ def get_unread_posts(caller):
     if unread:
         msg += ", ".join(bb.key.capitalize() for bb in unread)
         caller.msg(msg)
+    else:
+        caller.msg("No unread messages")
 
 class CmdGetUnreadPosts(default_cmds.MuxCommand):
     """
