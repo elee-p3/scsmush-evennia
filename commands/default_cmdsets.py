@@ -49,6 +49,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdBBSub)
         self.add(CmdBBUnsub)
         self.add(CmdBBReadOrPost)
+        self.add(CmdBBNew)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
