@@ -170,7 +170,8 @@ class CmdGetUnreadPosts(default_cmds.MuxCommand):
     locks = "cmd:not pperm(bboard_banned)"
 
     def func(self):
-        get_unread_posts()
+        caller = self.caller
+        get_unread_posts(caller.account)
 
 class CmdBBNew(default_cmds.MuxCommand):
     """
