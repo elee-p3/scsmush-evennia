@@ -183,9 +183,6 @@ class CmdBBNew(default_cmds.MuxCommand):
         bb_list = get_boards(caller)
         my_subs = []
 
-        caller.msg("Got to bbnew")
-        caller.msg("passed arguments are {0}".format(args))
-        caller.msg("list of boards is ")
         for bb in bb_list:
             caller.msg(bb)
 
@@ -274,8 +271,6 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
         switches = self.switches
         old = "old" in switches
         if not args and not ("new" in switches or "catchup" in switches):
-            caller.msg("In @bb call: type is {0}".format(type(caller).__name__))
-            # print("In @bb call: type is {0}".format(type(caller).__name__))
             return list_bboards(caller, old)
 
         # first, "@bb <board #>" use case
@@ -305,12 +300,10 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
                     switches.append("read")
         if "new" in switches or "catchup" in switches:
             if "catchup" in switches:
-                caller.msg("got catchup switch")
                 caller.account.execute_cmd("+bbnew/markread" + args)
                 return
             caller.account.execute_cmd("+bbnew" + args)
             return
-        caller.msg("Should be returning before we get here")
         # both post/read share board #
         arglist = args.split("/")
         board = access_bboard(caller, arglist[0])
