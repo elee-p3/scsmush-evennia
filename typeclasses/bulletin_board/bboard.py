@@ -332,7 +332,7 @@ class BBoard(Object):
     def mark_read(self, caller, post):
         if not post.db_receivers_accounts.filter(id=caller.id).exists():
             # Mark our post read
-            post.db_receivers_accounts.add(caller)
+            post.db_receivers_accounts.add(caller.account)
             self.mark_read_if_cache(caller)
 
         if caller.db.bbaltread:
