@@ -135,7 +135,7 @@ def list_messages(caller, board, board_num, old=False):
         # turn off white-bold color if unread message
         if unread:
             poster = "{0}".format(poster) + ""
-        msgtable.add_row([bbmsgnum, subject, date, poster])
+        msgtable.add_row(bbmsgnum, subject, date, poster)
     caller.msg(str(msgtable))
     pass
 
