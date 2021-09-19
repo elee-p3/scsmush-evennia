@@ -114,7 +114,7 @@ def list_messages(caller, board, board_num, old=False):
     posts = board.get_all_posts(old=old)
     msgnum = 0
     msgtable = EvTable(
-        ["bb/msg", "Subject", "PostDate", "Posted By"]
+        "bb/msg", "Subject", "PostDate", "Posted By"
     )
     from world.msgs.models import Post
 

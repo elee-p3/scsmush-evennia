@@ -304,8 +304,8 @@ class BBoard(Object):
         message += post.db_message
         message += "\n" + "-" * 60 + "\n"
         caller.msg(message)
-        if caller.is_guest():
-            return
+        # if caller.is_guest():
+        #     return
         # mark it read
         self.mark_read(caller, post)
 
