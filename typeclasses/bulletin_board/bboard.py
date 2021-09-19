@@ -333,7 +333,7 @@ class BBoard(Object):
         if not post.db_receivers_accounts.filter(id=caller.id).exists():
             # Mark our post read
             post.db_receivers_accounts.add(caller.account)
-            self.mark_read_if_cache(caller)
+            self.mark_read_if_cache(caller.account)
 
         if caller.db.bbaltread:
             try:
