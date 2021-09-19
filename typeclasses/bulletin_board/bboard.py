@@ -84,7 +84,7 @@ class BBoard(Object):
             #     )
             # )
 
-            notify = "\n{New post on {0} by {1}:{ {2}".format(
+            notify = "\nNew post on {0} by {1}:{2}".format(
                 self.key, posted_by, subject
             )
             notify += "\nUse @bbread %s/%s or %s to read this message." % (
