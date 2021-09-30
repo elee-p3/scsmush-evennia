@@ -167,7 +167,7 @@ class BBoard(Object):
         # inform_staff(success_msg)
 
     def has_subscriber(self, pobj):
-        if pobj in self.subscriber_list:
+        if pobj.key in self.subscriber_list:
             return True
         else:
             return False
