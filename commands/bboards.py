@@ -272,7 +272,6 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
     a board, use @bbnew.
     To mark all posts as read, use '+bbnew/markread all'. The /old
     switch may be chained to view archived posts.
-    @bborgstance is used to set an organization's stance on a proclamation.
     """
 
     key = "@bb"
