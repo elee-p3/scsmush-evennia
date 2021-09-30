@@ -144,12 +144,6 @@ def list_messages(caller, board, board_num, old=False):
 
 def get_unread_posts(caller):
     bb_list = get_boards(caller)
-    caller.msg("Checking each board's subscriber list")
-    for board in bb_list:
-        caller.msg(board.key)
-        sub_list = board.subscriber_list
-        for sub in sub_list:
-            caller.msg(sub)
     if not bb_list:
         return
     my_subs = [bb for bb in bb_list if bb.has_subscriber(caller)]
