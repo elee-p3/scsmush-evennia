@@ -503,10 +503,12 @@ class CmdSetDesc(default_cmds.MuxCommand):
         """add the description"""
 
         if not self.args:
-            self.caller.msg("You must add a description. Test!")
+            self.caller.msg("You must add a description.")
             return
 
-        self.caller.db.desc = self.args.strip()
+        message = self.args
+        message = self.sub_old_ansi(message)
+        self.caller.db.desc = message
         self.caller.msg("You set your description.")
 
 class CmdWho(default_cmds.MuxCommand):
