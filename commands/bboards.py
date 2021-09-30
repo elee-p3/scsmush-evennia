@@ -146,7 +146,7 @@ def get_unread_posts(caller):
     bb_list = get_boards(caller)
     if not bb_list:
         return
-    my_subs = [bb for bb in bb_list if bb.has_subscriber(caller.account)]
+    my_subs = [bb for bb in bb_list if bb.has_subscriber(caller)]
     caller.msg("List of subbed boards:")
     for board in my_subs:
         caller.msg(board.key)
