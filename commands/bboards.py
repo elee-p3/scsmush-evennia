@@ -147,6 +147,9 @@ def get_unread_posts(caller):
     if not bb_list:
         return
     my_subs = [bb for bb in bb_list if bb.has_subscriber(caller)]
+    print("Subbed to the following boards")
+    for board in my_subs:
+        print(board.key)
     msg = "New posts on bulletin boards: "
     unread = []
     for bb in my_subs:
