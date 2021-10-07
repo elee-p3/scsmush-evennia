@@ -152,13 +152,13 @@ def get_unread_posts(caller):
     #     caller.msg(board.key)
     msg = "New posts on bulletin boards: "
     unread = []
-    caller.msg("Player ID is {0}".format(caller.id))
+    caller.msg("Player ID is {0}, account ID is {1}".format(caller.id, caller.account.id))
     for bb in my_subs:
         post = bb.get_latest_post()
         # caller.msg("This is a post {0}".format(post))
         if not post:
             continue
-        if not post.check_read(caller):
+        if not post.check_read(caller.account):
             unread.append(bb)
     if unread:
         msg += ", ".join(bb.key.capitalize() for bb in unread)
