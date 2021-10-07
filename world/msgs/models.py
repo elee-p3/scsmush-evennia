@@ -123,7 +123,10 @@ class MarkReadMixin(object):
         self.db_receivers_accounts.remove(player)
 
     def check_read(self, player):
-        player.msg("Here's the list of db receivers accounts for this post: {0}".format(self.db_receivers_accounts.all()))
+        all_accounts = self.db_recievers_accounts.all()
+        player.msg("Here's the list of db receivers accounts for this post: {0}".format(all_accounts))
+        for account in all_accounts:
+            player.msg(account)
         player.msg("This is what the filter function returns: {0}".format(self.db_receivers_accounts.filter(id=3)))
         return self.db_receivers_accounts.filter(id=3)
 
