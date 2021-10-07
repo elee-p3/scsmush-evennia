@@ -172,8 +172,10 @@ class BBoard(Object):
         # for sub in self.subscriber_list:
         #     pobj.msg(sub)
         if pobj in self.subscriber_list:
+            pobj.msg("Success")
             return True
         else:
+            pobj.msg("Failure")
             return False
 
     def get_unread_posts(self, pobj, old=False):
