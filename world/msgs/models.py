@@ -123,7 +123,7 @@ class MarkReadMixin(object):
         self.db_receivers_accounts.remove(player)
 
     def check_read(self, player):
-        player.msg("Here's the list of db receivers accounts for this post: {0}".format(self.db_receivers_accounts))
+        player.msg("Here's the list of db receivers accounts for this post: {0}".format(self.db_receivers_accounts.all()))
         return self.db_receivers_accounts.filter(id=player.id)
 
     def parse_header(self):
