@@ -167,15 +167,15 @@ class BBoard(Object):
         # inform_staff(success_msg)
 
     def has_subscriber(self, pobj):
-        pobj.msg("Player object is {0}, and the key is {1}".format(pobj, pobj.key))
-        pobj.msg("Checking subs for board {0}".format(self.key))
+        # pobj.msg("Player object is {0}, and the key is {1}".format(pobj, pobj.key))
+        # pobj.msg("Checking subs for board {0}".format(self.key))
         # for sub in self.subscriber_list:
         #     pobj.msg(sub)
         if pobj in self.subscriber_list:
-            pobj.msg("Success")
+            # pobj.msg("Success")
             return True
         else:
-            pobj.msg("Failure")
+            # pobj.msg("Failure")
             return False
 
     def get_unread_posts(self, pobj, old=False):
