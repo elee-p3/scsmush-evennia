@@ -168,6 +168,8 @@ class BBoard(Object):
 
     def has_subscriber(self, pobj):
         pobj.msg("Checking subs for board {0}".format(self.key))
+        for sub in self.subscriber_list:
+            pobj.msg(sub)
         if pobj in self.subscriber_list:
             return True
         else:

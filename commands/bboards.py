@@ -176,7 +176,7 @@ class CmdGetUnreadPosts(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
-        get_unread_posts(caller)
+        get_unread_posts(caller.account)
 
 class CmdBBNew(default_cmds.MuxCommand):
     """
