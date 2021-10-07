@@ -147,8 +147,7 @@ def get_unread_posts(caller):
     if not bb_list:
         return
     caller.msg("About to check subbed boards")
-    # my_subs = [bb for bb in bb_list if bb.has_subscriber(caller)]
-    my_subs = []
+    my_subs = [bb for bb in bb_list if bb.has_subscriber(caller)]
     caller.msg("List of subbed boards:")
     for board in my_subs:
         caller.msg(board.key)
@@ -178,6 +177,7 @@ class CmdGetUnreadPosts(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
+        caller.msg("This is the caller {0}".format(caller))
         get_unread_posts(caller)
 
 class CmdBBNew(default_cmds.MuxCommand):
