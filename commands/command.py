@@ -281,7 +281,14 @@ class CmdOOC(default_cmds.MuxCommand):
         caller = self.caller
 
         if not self.args:
-            caller.msg("Say what OOC?")
+            home = caller.home
+            if not home:
+                caller.msg("Mysteriously, you cannot return to the OOC Room.")
+            elif home == caller.location:
+                caller.msg("You are already in the OOC Room.")
+            else:
+                caller.msg("You return whence you came.")
+                caller.move_to(home)
             return
 
         speech = self.args
