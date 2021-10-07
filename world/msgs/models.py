@@ -127,8 +127,8 @@ class MarkReadMixin(object):
         player.msg("Here's the list of db receivers accounts for this post: {0}".format(all_accounts))
         for account in all_accounts:
             player.msg(account)
-        player.msg("This is what the filter function returns: {0}".format(self.db_receivers_accounts.filter(id=2)))
-        return self.db_receivers_accounts.filter(id=2)
+        player.msg("This is what the filter function returns: {0}".format(self.db_receivers_accounts.filter(id=7)))
+        return self.db_receivers_accounts.filter(id=7)
 
     def parse_header(self):
         """
