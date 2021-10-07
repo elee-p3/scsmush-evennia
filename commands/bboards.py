@@ -147,15 +147,10 @@ def get_unread_posts(caller):
     if not bb_list:
         return
     my_subs = [bb for bb in bb_list if bb.has_subscriber(caller)]
-    # caller.msg("List of subbed boards:")
-    # for board in my_subs:
-    #     caller.msg(board.key)
-    msg = "New posts on bulletin boards: "
+    msg = "New @bb posts in: "
     unread = []
-    caller.msg("Player ID is {0}, account ID is {1}".format(caller.id, caller.account.id))
     for bb in my_subs:
         post = bb.get_latest_post()
-        # caller.msg("This is a post {0}".format(post))
         if not post:
             continue
         if not post.check_read(caller.account):
@@ -164,7 +159,7 @@ def get_unread_posts(caller):
         msg += ", ".join(bb.key.capitalize() for bb in unread)
         caller.msg(msg)
     else:
-        caller.msg("Type @bb to see any unread BB posts")
+        caller.msg("There are no unread posts on your subscribed @bb boards.")
 
 class CmdGetUnreadPosts(default_cmds.MuxCommand):
     """
