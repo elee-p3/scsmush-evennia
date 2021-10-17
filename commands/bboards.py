@@ -228,7 +228,8 @@ class CmdBBNew(default_cmds.MuxCommand):
         caller.msg("Unread posts:\n{}".format("-" * 60))
         noread = "markread" in self.switches
         for bb in my_subs:
-            posts = bb.get_unread_posts(caller.account)
+            # posts = bb.get_unread_posts(caller.account)
+            posts = bb.get_unread_posts(caller)
             if not posts:
                 continue
             caller.msg("Board %s:" % bb.key)
