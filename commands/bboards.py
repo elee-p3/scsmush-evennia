@@ -228,6 +228,7 @@ class CmdBBNew(default_cmds.MuxCommand):
             posts = bb.get_unread_posts(caller.account)
             if not posts:
                 continue
+            unread_count += 1
             # caller.msg("Board %s:" % bb.key)
             posts_on_board = 0
             for post in posts:
@@ -246,7 +247,7 @@ class CmdBBNew(default_cmds.MuxCommand):
                 "No new posts found on boards: %s."
                 % ", ".join(str(sub) for sub in my_subs)
             )
-        if found_posts != 0:
+        if unread_count != 0:
             caller.msg("Marked posts as read.")
         else:
             caller.msg("Already caught up on all bb messages.")
