@@ -125,35 +125,6 @@ class CmdPose(default_cmds.MuxCommand):
     aliases = [":", "emote"]
     locks = "cmd:all()"
 
-    # def sub_old_ansi(self, text):
-    #     """Replacing old ansi with newer evennia markup strings"""
-    #     if not text:
-    #         return ""
-    #     text = text.replace("%r", "|/")
-    #     text = text.replace("%R", "|/")
-    #     text = text.replace("%t", "|-")
-    #     text = text.replace("%T", "|-")
-    #     text = text.replace("%b", "|_")
-    #     text = text.replace("%cr", "|r")
-    #     text = text.replace("%cR", "|[R")
-    #     text = text.replace("%cg", "|g")
-    #     text = text.replace("%cG", "|[G")
-    #     text = text.replace("%cy", "|!Y")
-    #     text = text.replace("%cY", "|[Y")
-    #     text = text.replace("%cb", "|!B")
-    #     text = text.replace("%cB", "|[B")
-    #     text = text.replace("%cm", "|!M")
-    #     text = text.replace("%cM", "|[M")
-    #     text = text.replace("%cc", "|!C")
-    #     text = text.replace("%cC", "|[C")
-    #     text = text.replace("%cw", "|!W")
-    #     text = text.replace("%cW", "|[W")
-    #     text = text.replace("%cx", "|!X")
-    #     text = text.replace("%cX", "|[X")
-    #     text = text.replace("%ch", "|h")
-    #     text = text.replace("%cn", "|n")
-    #     return text
-
     def parse(self):
         """
         Custom parse the cases where the emote
@@ -201,35 +172,6 @@ class CmdEmit(default_cmds.MuxCommand):
     help_category = "Social"
     perm_for_switches = "Builders"
     arg_regex = None
-
-    # def sub_old_ansi(self, text):
-    #     """Replacing old ansi with newer evennia markup strings"""
-    #     if not text:
-    #         return ""
-    #     text = text.replace("%r", "|/")
-    #     text = text.replace("%R", "|/")
-    #     text = text.replace("%t", "|-")
-    #     text = text.replace("%T", "|-")
-    #     text = text.replace("%b", "|_")
-    #     text = text.replace("%cr", "|r")
-    #     text = text.replace("%cR", "|[R")
-    #     text = text.replace("%cg", "|g")
-    #     text = text.replace("%cG", "|[G")
-    #     text = text.replace("%cy", "|!Y")
-    #     text = text.replace("%cY", "|[Y")
-    #     text = text.replace("%cb", "|!B")
-    #     text = text.replace("%cB", "|[B")
-    #     text = text.replace("%cm", "|!M")
-    #     text = text.replace("%cM", "|[M")
-    #     text = text.replace("%cc", "|!C")
-    #     text = text.replace("%cC", "|[C")
-    #     text = text.replace("%cw", "|!W")
-    #     text = text.replace("%cW", "|[W")
-    #     text = text.replace("%cx", "|!X")
-    #     text = text.replace("%cX", "|[X")
-    #     text = text.replace("%ch", "|h")
-    #     text = text.replace("%cn", "|n")
-    #     return text
 
     def get_help(self, caller, cmdset):
         """Returns custom help file based on caller"""
@@ -574,35 +516,6 @@ class CmdSetDesc(default_cmds.MuxCommand):
     aliases = ["@desc"]
     locks = "cmd:all()"
     arg_regex = r"\s|$"
-
-    # def sub_old_ansi(self, text):
-    #     """Replacing old ansi with newer evennia markup strings"""
-    #     if not text:
-    #         return ""
-    #     text = text.replace("%r", "|/")
-    #     text = text.replace("%R", "|/")
-    #     text = text.replace("%t", "|-")
-    #     text = text.replace("%T", "|-")
-    #     text = text.replace("%b", "|_")
-    #     text = text.replace("%cr", "|r")
-    #     text = text.replace("%cR", "|[R")
-    #     text = text.replace("%cg", "|g")
-    #     text = text.replace("%cG", "|[G")
-    #     text = text.replace("%cy", "|!Y")
-    #     text = text.replace("%cY", "|[Y")
-    #     text = text.replace("%cb", "|!B")
-    #     text = text.replace("%cB", "|[B")
-    #     text = text.replace("%cm", "|!M")
-    #     text = text.replace("%cM", "|[M")
-    #     text = text.replace("%cc", "|!C")
-    #     text = text.replace("%cC", "|[C")
-    #     text = text.replace("%cw", "|!W")
-    #     text = text.replace("%cW", "|[W")
-    #     text = text.replace("%cx", "|!X")
-    #     text = text.replace("%cX", "|[X")
-    #     text = text.replace("%ch", "|h")
-    #     text = text.replace("%cn", "|n")
-    #     return text
 
     def func(self):
         """add the description"""

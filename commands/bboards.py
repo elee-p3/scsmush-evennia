@@ -153,7 +153,7 @@ def get_unread_posts(caller):
         post = bb.get_latest_post()
         if not post:
             continue
-        if not post.check_read(caller.account):
+        if not post.check_read(caller):
             unread.append(bb)
     if unread:
         msg += ", ".join(bb.key.capitalize() for bb in unread)
