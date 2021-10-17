@@ -248,6 +248,8 @@ class CmdBBNew(default_cmds.MuxCommand):
             )
         if found_posts != 0:
             caller.msg("Marked posts as read.")
+        else:
+            caller.msg("Already caught up on all bb messages.")
 
 class CmdBBReadOrPost(default_cmds.MuxCommand):
     """
