@@ -16,6 +16,36 @@ from evennia import default_cmds
 from evennia.utils import utils, create, evtable, make_iter, inherits_from, datetime_format
 from evennia.comms.models import Msg
 
+
+def sub_old_ansi(self, text):
+    """Replacing old ansi with newer evennia markup strings"""
+    if not text:
+        return ""
+    text = text.replace("%r", "|/")
+    text = text.replace("%R", "|/")
+    text = text.replace("%t", "|-")
+    text = text.replace("%T", "|-")
+    text = text.replace("%b", "|_")
+    text = text.replace("%cr", "|r")
+    text = text.replace("%cR", "|[R")
+    text = text.replace("%cg", "|g")
+    text = text.replace("%cG", "|[G")
+    text = text.replace("%cy", "|!Y")
+    text = text.replace("%cY", "|[Y")
+    text = text.replace("%cb", "|!B")
+    text = text.replace("%cB", "|[B")
+    text = text.replace("%cm", "|!M")
+    text = text.replace("%cM", "|[M")
+    text = text.replace("%cc", "|!C")
+    text = text.replace("%cC", "|[C")
+    text = text.replace("%cw", "|!W")
+    text = text.replace("%cW", "|[W")
+    text = text.replace("%cx", "|!X")
+    text = text.replace("%cX", "|[X")
+    text = text.replace("%ch", "|h")
+    text = text.replace("%cn", "|n")
+    return text
+
 class CmdFinger(default_cmds.MuxCommand):
     """
         +finger
@@ -95,34 +125,34 @@ class CmdPose(default_cmds.MuxCommand):
     aliases = [":", "emote"]
     locks = "cmd:all()"
 
-    def sub_old_ansi(self, text):
-        """Replacing old ansi with newer evennia markup strings"""
-        if not text:
-            return ""
-        text = text.replace("%r", "|/")
-        text = text.replace("%R", "|/")
-        text = text.replace("%t", "|-")
-        text = text.replace("%T", "|-")
-        text = text.replace("%b", "|_")
-        text = text.replace("%cr", "|r")
-        text = text.replace("%cR", "|[R")
-        text = text.replace("%cg", "|g")
-        text = text.replace("%cG", "|[G")
-        text = text.replace("%cy", "|!Y")
-        text = text.replace("%cY", "|[Y")
-        text = text.replace("%cb", "|!B")
-        text = text.replace("%cB", "|[B")
-        text = text.replace("%cm", "|!M")
-        text = text.replace("%cM", "|[M")
-        text = text.replace("%cc", "|!C")
-        text = text.replace("%cC", "|[C")
-        text = text.replace("%cw", "|!W")
-        text = text.replace("%cW", "|[W")
-        text = text.replace("%cx", "|!X")
-        text = text.replace("%cX", "|[X")
-        text = text.replace("%ch", "|h")
-        text = text.replace("%cn", "|n")
-        return text
+    # def sub_old_ansi(self, text):
+    #     """Replacing old ansi with newer evennia markup strings"""
+    #     if not text:
+    #         return ""
+    #     text = text.replace("%r", "|/")
+    #     text = text.replace("%R", "|/")
+    #     text = text.replace("%t", "|-")
+    #     text = text.replace("%T", "|-")
+    #     text = text.replace("%b", "|_")
+    #     text = text.replace("%cr", "|r")
+    #     text = text.replace("%cR", "|[R")
+    #     text = text.replace("%cg", "|g")
+    #     text = text.replace("%cG", "|[G")
+    #     text = text.replace("%cy", "|!Y")
+    #     text = text.replace("%cY", "|[Y")
+    #     text = text.replace("%cb", "|!B")
+    #     text = text.replace("%cB", "|[B")
+    #     text = text.replace("%cm", "|!M")
+    #     text = text.replace("%cM", "|[M")
+    #     text = text.replace("%cc", "|!C")
+    #     text = text.replace("%cC", "|[C")
+    #     text = text.replace("%cw", "|!W")
+    #     text = text.replace("%cW", "|[W")
+    #     text = text.replace("%cx", "|!X")
+    #     text = text.replace("%cX", "|[X")
+    #     text = text.replace("%ch", "|h")
+    #     text = text.replace("%cn", "|n")
+    #     return text
 
     def parse(self):
         """
@@ -144,7 +174,7 @@ class CmdPose(default_cmds.MuxCommand):
             self.caller.msg(msg)
         else:
             msg = "%s%s" % (self.caller.name, self.args)
-            msg = self.sub_old_ansi(msg)
+            msg = sub_old_ansi(msg)
             self.caller.location.msg_contents(text=(msg, {"type": "pose"}), from_obj=self.caller)
 
 class CmdEmit(default_cmds.MuxCommand):
@@ -172,34 +202,34 @@ class CmdEmit(default_cmds.MuxCommand):
     perm_for_switches = "Builders"
     arg_regex = None
 
-    def sub_old_ansi(self, text):
-        """Replacing old ansi with newer evennia markup strings"""
-        if not text:
-            return ""
-        text = text.replace("%r", "|/")
-        text = text.replace("%R", "|/")
-        text = text.replace("%t", "|-")
-        text = text.replace("%T", "|-")
-        text = text.replace("%b", "|_")
-        text = text.replace("%cr", "|r")
-        text = text.replace("%cR", "|[R")
-        text = text.replace("%cg", "|g")
-        text = text.replace("%cG", "|[G")
-        text = text.replace("%cy", "|!Y")
-        text = text.replace("%cY", "|[Y")
-        text = text.replace("%cb", "|!B")
-        text = text.replace("%cB", "|[B")
-        text = text.replace("%cm", "|!M")
-        text = text.replace("%cM", "|[M")
-        text = text.replace("%cc", "|!C")
-        text = text.replace("%cC", "|[C")
-        text = text.replace("%cw", "|!W")
-        text = text.replace("%cW", "|[W")
-        text = text.replace("%cx", "|!X")
-        text = text.replace("%cX", "|[X")
-        text = text.replace("%ch", "|h")
-        text = text.replace("%cn", "|n")
-        return text
+    # def sub_old_ansi(self, text):
+    #     """Replacing old ansi with newer evennia markup strings"""
+    #     if not text:
+    #         return ""
+    #     text = text.replace("%r", "|/")
+    #     text = text.replace("%R", "|/")
+    #     text = text.replace("%t", "|-")
+    #     text = text.replace("%T", "|-")
+    #     text = text.replace("%b", "|_")
+    #     text = text.replace("%cr", "|r")
+    #     text = text.replace("%cR", "|[R")
+    #     text = text.replace("%cg", "|g")
+    #     text = text.replace("%cG", "|[G")
+    #     text = text.replace("%cy", "|!Y")
+    #     text = text.replace("%cY", "|[Y")
+    #     text = text.replace("%cb", "|!B")
+    #     text = text.replace("%cB", "|[B")
+    #     text = text.replace("%cm", "|!M")
+    #     text = text.replace("%cM", "|[M")
+    #     text = text.replace("%cc", "|!C")
+    #     text = text.replace("%cC", "|[C")
+    #     text = text.replace("%cw", "|!W")
+    #     text = text.replace("%cW", "|[W")
+    #     text = text.replace("%cx", "|!X")
+    #     text = text.replace("%cX", "|[X")
+    #     text = text.replace("%ch", "|h")
+    #     text = text.replace("%cn", "|n")
+    #     return text
 
     def get_help(self, caller, cmdset):
         """Returns custom help file based on caller"""
@@ -257,14 +287,14 @@ class CmdEmit(default_cmds.MuxCommand):
 
         if not self.rhs or not caller.check_permstring(perm):
             message = args
-            message = self.sub_old_ansi(message)
+            message = sub_old_ansi(message)
             normal_emit = True
             objnames = []
             do_global = False
         else:
             do_global = True
             message = self.rhs
-            message = self.sub_old_ansi(message)
+            message = sub_old_ansi(message)
             if caller.check_permstring(perm):
                 objnames = self.lhslist
             else:
@@ -545,34 +575,34 @@ class CmdSetDesc(default_cmds.MuxCommand):
     locks = "cmd:all()"
     arg_regex = r"\s|$"
 
-    def sub_old_ansi(self, text):
-        """Replacing old ansi with newer evennia markup strings"""
-        if not text:
-            return ""
-        text = text.replace("%r", "|/")
-        text = text.replace("%R", "|/")
-        text = text.replace("%t", "|-")
-        text = text.replace("%T", "|-")
-        text = text.replace("%b", "|_")
-        text = text.replace("%cr", "|r")
-        text = text.replace("%cR", "|[R")
-        text = text.replace("%cg", "|g")
-        text = text.replace("%cG", "|[G")
-        text = text.replace("%cy", "|!Y")
-        text = text.replace("%cY", "|[Y")
-        text = text.replace("%cb", "|!B")
-        text = text.replace("%cB", "|[B")
-        text = text.replace("%cm", "|!M")
-        text = text.replace("%cM", "|[M")
-        text = text.replace("%cc", "|!C")
-        text = text.replace("%cC", "|[C")
-        text = text.replace("%cw", "|!W")
-        text = text.replace("%cW", "|[W")
-        text = text.replace("%cx", "|!X")
-        text = text.replace("%cX", "|[X")
-        text = text.replace("%ch", "|h")
-        text = text.replace("%cn", "|n")
-        return text
+    # def sub_old_ansi(self, text):
+    #     """Replacing old ansi with newer evennia markup strings"""
+    #     if not text:
+    #         return ""
+    #     text = text.replace("%r", "|/")
+    #     text = text.replace("%R", "|/")
+    #     text = text.replace("%t", "|-")
+    #     text = text.replace("%T", "|-")
+    #     text = text.replace("%b", "|_")
+    #     text = text.replace("%cr", "|r")
+    #     text = text.replace("%cR", "|[R")
+    #     text = text.replace("%cg", "|g")
+    #     text = text.replace("%cG", "|[G")
+    #     text = text.replace("%cy", "|!Y")
+    #     text = text.replace("%cY", "|[Y")
+    #     text = text.replace("%cb", "|!B")
+    #     text = text.replace("%cB", "|[B")
+    #     text = text.replace("%cm", "|!M")
+    #     text = text.replace("%cM", "|[M")
+    #     text = text.replace("%cc", "|!C")
+    #     text = text.replace("%cC", "|[C")
+    #     text = text.replace("%cw", "|!W")
+    #     text = text.replace("%cW", "|[W")
+    #     text = text.replace("%cx", "|!X")
+    #     text = text.replace("%cX", "|[X")
+    #     text = text.replace("%ch", "|h")
+    #     text = text.replace("%cn", "|n")
+    #     return text
 
     def func(self):
         """add the description"""
@@ -582,7 +612,7 @@ class CmdSetDesc(default_cmds.MuxCommand):
             return
 
         message = self.args
-        message = self.sub_old_ansi(message)
+        message = sub_old_ansi(message)
         self.caller.db.desc = message
         self.caller.msg("You set your description.")
 
