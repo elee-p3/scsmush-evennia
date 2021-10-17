@@ -220,9 +220,9 @@ class CmdBBNew(default_cmds.MuxCommand):
             except ValueError:
                 caller.msg("Argument must either be 'all' or a number.")
                 return
-        found_posts = 0
+        # found_posts = 0
         # caller.msg("Unread posts:\n{}".format("-" * 60))
-        noread = "markread" in self.switches
+        # noread = "markread" in self.switches
         unread_count = 0
         for bb in my_subs:
             posts = bb.get_unread_posts(caller.account)
@@ -230,23 +230,24 @@ class CmdBBNew(default_cmds.MuxCommand):
                 continue
             unread_count += 1
             # caller.msg("Board %s:" % bb.key)
-            posts_on_board = 0
+            # posts_on_board = 0
             for post in posts:
-                if noread:
-                    bb.mark_read(caller, post)
-                else:
-                    bb.read_post(caller, post)
-                found_posts += 1
-                posts_on_board += 1
-                if found_posts >= num_posts:
-                    return
-            if noread:
-                self.msg("You have marked %s posts as read." % posts_on_board)
-        if not found_posts:
-            self.msg(
-                "No new posts found on boards: %s."
-                % ", ".join(str(sub) for sub in my_subs)
-            )
+                bb.read_post(caller, post)
+                # if noread:
+                #     bb.mark_read(caller, post)
+                # else:
+                #     bb.read_post(caller, post)
+                # found_posts += 1
+                # posts_on_board += 1
+                # if found_posts >= num_posts:
+                #     return
+            # if noread:
+            #     self.msg("You have marked %s posts as read." % posts_on_board)
+        # if not found_posts:
+        #     self.msg(
+        #         "No new posts found on boards: %s."
+        #         % ", ".join(str(sub) for sub in my_subs)
+        #     )
         if unread_count != 0:
             caller.msg("Marked posts as read.")
         else:
