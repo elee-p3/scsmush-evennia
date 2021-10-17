@@ -77,7 +77,75 @@ class CmdFinger(default_cmds.MuxCommand):
             self.caller.msg("Target is either not a character or there are multiple matches")
 
 
+class CmdPose(default_cmds.MuxCommand):
+    """
+    strike a pose
+    Usage:
+      pose <pose text>
+      pose's <pose text>
+    Example:
+      pose is standing by the wall, smiling.
+       -> others will see:
+      Tom is standing by the wall, smiling.
+    Describe an action being taken. The pose text will
+    automatically begin with your name.
+    """
 
+    key = "pose"
+    aliases = [":", "emote"]
+    locks = "cmd:all()"
+
+    def sub_old_ansi(self, text):
+        """Replacing old ansi with newer evennia markup strings"""
+        if not text:
+            return ""
+        text = text.replace("%r", "|/")
+        text = text.replace("%R", "|/")
+        text = text.replace("%t", "|-")
+        text = text.replace("%T", "|-")
+        text = text.replace("%b", "|_")
+        text = text.replace("%cr", "|r")
+        text = text.replace("%cR", "|[R")
+        text = text.replace("%cg", "|g")
+        text = text.replace("%cG", "|[G")
+        text = text.replace("%cy", "|!Y")
+        text = text.replace("%cY", "|[Y")
+        text = text.replace("%cb", "|!B")
+        text = text.replace("%cB", "|[B")
+        text = text.replace("%cm", "|!M")
+        text = text.replace("%cM", "|[M")
+        text = text.replace("%cc", "|!C")
+        text = text.replace("%cC", "|[C")
+        text = text.replace("%cw", "|!W")
+        text = text.replace("%cW", "|[W")
+        text = text.replace("%cx", "|!X")
+        text = text.replace("%cX", "|[X")
+        text = text.replace("%ch", "|h")
+        text = text.replace("%cn", "|n")
+        return text
+
+    def parse(self):
+        """
+        Custom parse the cases where the emote
+        starts with some special letter, such
+        as 's, at which we don't want to separate
+        the caller's name and the emote with a
+        space.
+        """
+        args = self.args
+        if args and not args[0] in ["'", ",", ":"]:
+            args = " %s" % args.strip()
+        self.args = args
+
+    def func(self):
+        """Hook function"""
+        if not self.args:
+            msg = "What do you want to do?"
+            self.caller.msg(msg)
+        else:
+            msg = "%s%s" % (self.caller.name, self.args)
+            msg = self.sub_old_ansi(msg)
+            self.caller.location.msg_contents(text=(msg, {"type": "pose"}), from_obj=self.caller)
 
 class CmdEmit(default_cmds.MuxCommand):
     """
