@@ -200,9 +200,6 @@ class CmdBBNew(default_cmds.MuxCommand):
         bb_list = get_boards(caller)
         my_subs = []
 
-        for bb in bb_list:
-            caller.msg(bb)
-
         if not bb_list:
             return
         if not self.rhs:
