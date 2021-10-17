@@ -150,6 +150,7 @@ def get_unread_posts(caller):
     msg = "New @bb posts in: "
     unread = []
     for bb in my_subs:
+        caller.msg("Checking {0}".format(bb))
         post = bb.get_latest_post()
         if not post:
             continue
