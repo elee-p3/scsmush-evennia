@@ -154,7 +154,7 @@ def get_unread_posts(caller):
         post = bb.get_latest_post()
         if not post:
             continue
-        if not post.check_read(caller):
+        if not post.check_read(caller.account):
             unread.append(bb)
     if unread:
         msg += ", ".join(bb.key.capitalize() for bb in unread)
@@ -174,7 +174,7 @@ class CmdGetUnreadPosts(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
-        get_unread_posts(caller)
+        get_unread_posts(caller.account)
 
 class CmdBBNew(default_cmds.MuxCommand):
     """
@@ -228,8 +228,7 @@ class CmdBBNew(default_cmds.MuxCommand):
         caller.msg("Unread posts:\n{}".format("-" * 60))
         noread = "markread" in self.switches
         for bb in my_subs:
-            # posts = bb.get_unread_posts(caller.account)
-            posts = bb.get_unread_posts(caller)
+            posts = bb.get_unread_posts(caller.account)
             if not posts:
                 continue
             caller.msg("Board %s:" % bb.key)
