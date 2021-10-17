@@ -150,7 +150,6 @@ def get_unread_posts(caller):
     msg = "New @bb posts in: "
     unread = []
     for bb in my_subs:
-        caller.msg("Checking {0}".format(bb))
         post = bb.get_latest_post()
         if not post:
             continue
@@ -222,13 +221,14 @@ class CmdBBNew(default_cmds.MuxCommand):
                 caller.msg("Argument must either be 'all' or a number.")
                 return
         found_posts = 0
-        caller.msg("Unread posts:\n{}".format("-" * 60))
+        # caller.msg("Unread posts:\n{}".format("-" * 60))
         noread = "markread" in self.switches
+        unread_count = 0
         for bb in my_subs:
             posts = bb.get_unread_posts(caller.account)
             if not posts:
                 continue
-            caller.msg("Board %s:" % bb.key)
+            # caller.msg("Board %s:" % bb.key)
             posts_on_board = 0
             for post in posts:
                 if noread:
@@ -246,6 +246,8 @@ class CmdBBNew(default_cmds.MuxCommand):
                 "No new posts found on boards: %s."
                 % ", ".join(str(sub) for sub in my_subs)
             )
+        if found_posts != 0:
+            caller.msg("Marked posts as read.")
 
 class CmdBBReadOrPost(default_cmds.MuxCommand):
     """
