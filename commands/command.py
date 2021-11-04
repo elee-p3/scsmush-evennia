@@ -938,7 +938,7 @@ class CmdMail(default_cmds.MuxAccountCommand):
                 self.caller.msg("There are no messages in your inbox.")
 
 # Overloading default CmdSay class to add post timer updating functionality
-class CmdSay(COMMAND_DEFAULT_CLASS):
+class CmdSay(default_cmds.MuxCommand):
     """
     speak as your character
 
