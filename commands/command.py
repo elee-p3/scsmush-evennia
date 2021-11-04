@@ -713,6 +713,23 @@ class CmdPot(default_cmds.MuxCommand):
 
         self.caller.msg(table)
 
+class CmdObserve(default_cmds.MuxCommand):
+    """
+        Observer mode
+
+        Usage:
+          +observe
+
+        DEVIN THIS IS ALSO YOUR DUTY TO FILL THIS OUT
+        """
+
+    key = "+observe"
+    aliases = ["observe"]
+    locks = "cmd:all()"
+
+    def func(self):
+        self.caller.character.set_pose_time(0.0)
+
 # The mail command from contrib
 
 _HEAD_CHAR = "|015-|n"
