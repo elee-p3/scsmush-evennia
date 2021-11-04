@@ -673,6 +673,9 @@ class CmdPot(default_cmds.MuxCommand):
             "|wIdle",
             "|wLast posed"
         )
+
+        old_session_list = []
+
         for session in session_list:
             if not session.logged_in:
                 continue
@@ -683,8 +686,9 @@ class CmdPot(default_cmds.MuxCommand):
             delta_conn = time.time() - session.conn_time
             delta_pose_time = time.time() - puppet.get_pose_time()
 
-            # self.caller.msg("Puppet object type is {0}".format(type(puppet)))
-            # self.caller.msg("self.caller object type is {0}".format(type(self.caller)))
+            if delta_post_time > 3600:
+                old_session_list.add(session)
+                continue
 
             if puppet.location == self.caller.character.location:
                 # logic for setting up pose table
@@ -692,6 +696,20 @@ class CmdPot(default_cmds.MuxCommand):
                               utils.time_format(delta_conn, 0),
                               utils.time_format(delta_cmd, 1),
                               utils.time_format(delta_pose_time, 1))
+
+        for session in old_session_list:
+            session_account = session.get_account()
+            puppet = session.get_puppet()
+            delta_cmd = time.time() - session.cmd_last_visible
+            delta_conn = time.time() - session.conn_time
+            delta_pose_time = time.time() - puppet.get_pose_time()
+
+            if puppet.location == self.caller.character.location:
+                # logic for setting up pose table
+                table.add_row(puppet.key,
+                              utils.time_format(delta_conn, 0),
+                              utils.time_format(delta_cmd, 1),
+                              "-")
 
         self.caller.msg(table)
 
