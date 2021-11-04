@@ -53,6 +53,7 @@ class Character(DefaultCharacter):
         self.db.parry = 100
         self.db.barrier = 100
         self.db.speed = 100
+        self.pose_time = 0.0
 
     def get_abilities(self):
         return {"name":self.key, "sex":self.db.sex, "race":self.db.race, "occupation":self.db.occupation,
@@ -60,5 +61,11 @@ class Character(DefaultCharacter):
                 "quote":self.db.quote, "profile":self.db.profile, "lf":self.db.lf, "maxlf":self.db.maxlf,
                 "ap":self.db.ap, "maxap":self.db.maxap, "ex":self.db.ex, "maxex":self.db.maxex, "power":self.db.power,
                 "knowledge":self.db.knowledge, "parry":self.db.parry, "barrier":self.db.barrier, "speed":self.db.speed}
+
+    def get_pose_time(self):
+        return self.pose_time
+
+    def set_post_time(self, time):
+        self.pose_time = time
 
     pass
