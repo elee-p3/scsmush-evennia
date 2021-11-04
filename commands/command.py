@@ -686,14 +686,14 @@ class CmdPot(default_cmds.MuxCommand):
             # self.caller.msg("Puppet object type is {0}".format(type(puppet)))
             # self.caller.msg("self.caller object type is {0}".format(type(self.caller)))
 
-            if puppet.location == self.location:
+            if puppet.location == self.caller.character.location:
                 # logic for setting up pose table
                 table.add_row(puppet.key,
                               utils.time_format(delta_conn, 0),
                               utils.time_format(delta_cmd, 1),
                               utils.time_format(delta_pose_time, 1))
 
-        self.msg(table)
+        self.caller.msg(table)
 
 # The mail command from contrib
 
