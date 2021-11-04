@@ -687,7 +687,7 @@ class CmdPot(default_cmds.MuxCommand):
             delta_pose_time = time.time() - puppet.get_pose_time()
 
             if delta_pose_time > 3600:
-                old_session_list.add(session)
+                old_session_list.append(session)
                 continue
 
             if puppet.location == self.caller.character.location:
