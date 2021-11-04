@@ -146,8 +146,8 @@ class CmdPose(default_cmds.MuxCommand):
         else:
             # Update the pose timer if outside of OOC room
             # This assumes that the character's home is the OOC room, which it is by default
-            if caller.location != caller.home:
-                caller.set_pose_time(time.time())
+            if self.caller.location != self.caller.home:
+                self.caller.set_pose_time(time.time())
 
             msg = "%s%s" % (self.caller.name, self.args)
             msg = sub_old_ansi(msg)
