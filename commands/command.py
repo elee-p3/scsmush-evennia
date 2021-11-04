@@ -148,6 +148,7 @@ class CmdPose(default_cmds.MuxCommand):
             # This assumes that the character's home is the OOC room, which it is by default
             if self.caller.location != self.caller.home:
                 self.caller.set_pose_time(time.time())
+                self.caller.set_obs_mode(False)
 
             msg = "%s%s" % (self.caller.name, self.args)
             msg = sub_old_ansi(msg)
@@ -201,6 +202,7 @@ class CmdEmit(default_cmds.MuxCommand):
         # This assumes that the character's home is the OOC room, which it is by default
         if caller.location != caller.home:
             caller.set_pose_time(time.time())
+            caller.set_obs_mode(False)
 
         if caller.check_permstring(self.perm_for_switches):
             args = self.args
@@ -729,6 +731,7 @@ class CmdObserve(default_cmds.MuxCommand):
 
     def func(self):
         self.caller.set_pose_time(0.0)
+        self.caller.set_obs_mode(True)
         self.msg("Entering observer mode.")
 
 # The mail command from contrib
@@ -1060,6 +1063,7 @@ class CmdSay(default_cmds.MuxCommand):
         # This assumes that the character's home is the OOC room, which it is by default
         if caller.location != caller.home:
             caller.set_pose_time(time.time())
+            caller.set_obs_mode(False)
 
         if not self.args:
             caller.msg("Say what?")

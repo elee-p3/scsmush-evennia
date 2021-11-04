@@ -54,6 +54,7 @@ class Character(DefaultCharacter):
         self.db.barrier = 100
         self.db.speed = 100
         self.db.pose_time = 0.0
+        self.db.obs_mode = False
 
     def get_abilities(self):
         return {"name":self.key, "sex":self.db.sex, "race":self.db.race, "occupation":self.db.occupation,
@@ -67,5 +68,11 @@ class Character(DefaultCharacter):
 
     def set_pose_time(self, time):
         self.db.pose_time = time
+
+    def get_obs_mode(self):
+        return self.db.obs_mode
+
+    def set_obs_mode(self, mode_flag):
+        self.db.obs_mode = mode_flag
 
     pass
