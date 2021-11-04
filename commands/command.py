@@ -728,7 +728,7 @@ class CmdObserve(default_cmds.MuxCommand):
     locks = "cmd:all()"
 
     def func(self):
-        self.caller.character.set_pose_time(0.0)
+        self.caller.set_pose_time(0.0)
 
 # The mail command from contrib
 
