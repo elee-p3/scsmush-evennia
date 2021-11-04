@@ -65,7 +65,7 @@ class Character(DefaultCharacter):
     def get_pose_time(self):
         return self.db.pose_time
 
-    def set_post_time(self, time):
+    def set_pose_time(self, time):
         self.db.pose_time = time
 
     pass
