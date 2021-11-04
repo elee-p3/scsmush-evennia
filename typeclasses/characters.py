@@ -8,9 +8,10 @@ creation commands.
 
 """
 from evennia import DefaultCharacter
+from objects import SCSCharacter
 
 
-class Character(DefaultCharacter):
+class Character(SCSCharacter):
     """
     The Character defaults to reimplementing some of base Object's hook methods with the
     following functionality:
