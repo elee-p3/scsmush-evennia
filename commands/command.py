@@ -686,7 +686,7 @@ class CmdPot(default_cmds.MuxCommand):
             delta_conn = time.time() - session.conn_time
             delta_pose_time = time.time() - puppet.get_pose_time()
 
-            if delta_post_time > 3600:
+            if delta_pose_time > 3600:
                 old_session_list.add(session)
                 continue
 
