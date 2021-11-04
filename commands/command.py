@@ -632,6 +632,64 @@ class CmdWho(default_cmds.MuxCommand):
             % (table, "One" if is_one else naccounts, "" if is_one else "s")
         )
 
+class CmdPot(default_cmds.MuxCommand):
+    """
+    Pose tracker
+
+    Usage:
+      +pot
+
+    This is the pose tracker. DEVIN IT IS YOUR DUTY TO FILL THIS OUT
+    """
+
+    key = "+pot"
+    aliases = ["pot"]
+    locks = "cmd:all()"
+
+    # this is used by the parent
+    account_caller = True
+
+    def func(self):
+        """
+        Get all connected accounts by polling session.
+        """
+
+        account = self.account
+        session_list = SESSIONS.get_sessions()
+
+        session_list = sorted(session_list, key=lambda o: o.account.key)
+
+        if self.cmdstring == "doing":
+            show_session_data = False
+        else:
+           show_session_data = account.check_permstring("Developer") or account.check_permstring(
+               "Admins"
+           )
+
+        naccounts = SESSIONS.account_count()
+        table = self.styled_table(
+            "|wCharacter",
+            "|wOn for",
+            "|wIdle",
+            "|wLast posed"
+        )
+        for session in session_list:
+            if not session.logged_in:
+                continue
+
+            session_account = session.get_account()
+            puppet = session.get_puppet()
+            delta_cmd = time.time() - session.cmd_last_visible
+            delta_conn = time.time() - session.conn_time
+            delta_pose_time = time.time() - puppet.get_pose_time()
+
+            if puppet.location == self.caller.location:
+                # logic for setting up pose table
+                table.add_row(puppet.key,
+                              utils.time_format(delta_conn, 0),
+                              utils.time_format(delta_cmd, 1),
+                              utils.time_format(delta_pose_time, 1))
+
 # The mail command from contrib
 
 _HEAD_CHAR = "|015-|n"

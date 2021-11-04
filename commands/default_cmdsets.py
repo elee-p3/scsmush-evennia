@@ -53,6 +53,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdGetUnreadPosts)
         self.add(CmdPose)
         self.add(CmdSay)
+        self.add(CmdPot)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
