@@ -707,11 +707,16 @@ class CmdPot(default_cmds.MuxCommand):
             delta_pose_time = time.time() - puppet.get_pose_time()
 
             if puppet.location == self.caller.character.location:
-                # logic for setting up pose table
-                table.add_row(puppet.key,
-                              utils.time_format(delta_conn, 0),
-                              utils.time_format(delta_cmd, 1),
-                              "-")
+                if self.caller.character.get_obs_mode() == True:
+                    table.add_row("|y" + puppet.key + " (O)",
+                                  utils.time_format(delta_conn, 0),
+                                  utils.time_format(delta_cmd, 1),
+                                  "-")
+                else:
+                    table.add_row(puppet.key,
+                                  utils.time_format(delta_conn, 0),
+                                  utils.time_format(delta_cmd, 1),
+                                  "-")
 
         self.caller.msg(table)
 
@@ -723,7 +728,7 @@ class CmdObserve(default_cmds.MuxCommand):
           +observe
 
         DEVIN THIS IS ALSO YOUR DUTY TO FILL THIS OUT
-        """
+    """
 
     key = "+observe"
     aliases = ["observe"]
