@@ -686,7 +686,7 @@ class CmdPot(default_cmds.MuxCommand):
             self.caller.msg("Puppet object type is {0}".format(type(puppet)))
             self.caller.msg("self.caller object type is {0}".format(type(self.caller)))
 
-            if puppet.location == self.caller.location:
+            if puppet.location == self.caller.obj.location:
                 # logic for setting up pose table
                 table.add_row(puppet.key,
                               utils.time_format(delta_conn, 0),
