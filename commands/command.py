@@ -729,6 +729,7 @@ class CmdObserve(default_cmds.MuxCommand):
 
     def func(self):
         self.caller.set_pose_time(0.0)
+        self.msg("Entering observer mode.")
 
 # The mail command from contrib
 
