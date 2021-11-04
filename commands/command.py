@@ -360,11 +360,9 @@ class CmdOOC(default_cmds.MuxCommand):
         else:
             speech = ("|y<OOC>|n {0} says, \"{1}\"").format(self.caller.name, speech)
 
-        # caller.location.msg_contents(
-        #     speech, from_obj=caller, options={"is_pose": True}
-        # )
-
-        caller.msg(speech)
+        caller.location.msg_contents(
+            speech, from_obj=caller, options={"is_pose": True}
+        )
 
 class CmdSheet(default_cmds.MuxCommand):
         """
