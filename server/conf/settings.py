@@ -37,6 +37,7 @@ GAME_SLOGAN = '"Until the star we follow brings us back to you."'
 WEBSERVER_PORTS = [(80, 4005)]
 
 INSTALLED_APPS += ["world.msgs"]
+MULTISESSION_MODE = 1
 ######################################################################
 # Settings given in secret_settings.py override those in this file.
 ######################################################################

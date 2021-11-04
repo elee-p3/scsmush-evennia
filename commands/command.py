@@ -16,7 +16,7 @@ from evennia import default_cmds
 from evennia.utils import utils, create, evtable, make_iter, inherits_from, datetime_format
 from evennia.comms.models import Msg
 
-
+# Danny was here, bitches.
 def sub_old_ansi(text):
     """Replacing old ansi with newer evennia markup strings"""
     if not text:
