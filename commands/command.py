@@ -683,6 +683,9 @@ class CmdPot(default_cmds.MuxCommand):
             delta_conn = time.time() - session.conn_time
             delta_pose_time = time.time() - puppet.get_pose_time()
 
+            self.caller.msg("Puppet object type is {0}".format(type(puppet)))
+            self.caller.msg("self.caller object type is {0}".format(type(self.caller)))
+
             if puppet.location == self.caller.location:
                 # logic for setting up pose table
                 table.add_row(puppet.key,
