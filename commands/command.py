@@ -657,7 +657,7 @@ class CmdPot(default_cmds.MuxCommand):
         account = self.account
         session_list = SESSIONS.get_sessions()
 
-        session_list = sorted(session_list, key=lambda o: o.account.key)
+        session_list = sorted(session_list, key=lambda o: o.account.character.pose_time)
 
         if self.cmdstring == "doing":
             show_session_data = False
