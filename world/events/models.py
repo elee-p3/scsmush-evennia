@@ -29,24 +29,24 @@ class RPEvent(SharedMemoryModel):
     is indicated by the celebration_tier.
     """
 
-    name = models.CharField(max_length=255, db_index=True)
-    desc = models.TextField(blank=True, null=True)
-    location = models.ForeignKey(
+    db_name = models.CharField(max_length=255, db_index=True)
+    db_desc = models.TextField(blank=True, null=True)
+    db_location = models.ForeignKey(
         "objects.ObjectDB",
         blank=True,
         null=True,
         related_name="events_held",
         on_delete=models.SET_NULL,
     )
-    date = models.DateTimeField(blank=True, null=True)
-    finished = models.BooleanField(default=False)
-    results = models.TextField(blank=True, null=True)
-    room_desc = models.TextField(blank=True, null=True)
+    db_date = models.DateTimeField(blank=True, null=True)
+    db_finished = models.BooleanField(default=False)
+    db_results = models.TextField(blank=True, null=True)
+    db_room_desc = models.TextField(blank=True, null=True)
     # a beat with a blank desc will be used for connecting us to a Plot before the Event is finished
-
-    search_tags = models.ManyToManyField(
-        "character.SearchTag", blank=True, related_name="events"
-    )
+    #
+    # search_tags = models.ManyToManyField(
+    #     "character.SearchTag", blank=True, related_name="events"
+    # )
 
     # objects = QuerySet.as_manager()
 

@@ -1108,10 +1108,10 @@ class CmdEvent(default_cmds.MuxCommand):
             return
 
         elif "start" in self.switches:
-            event_table = RPEvent(name='testevent',
-                date=datetime.now(),
-                desc='my description',
-                location=caller.location)
+            event_table = RPEvent(db_name='testevent',
+                db_date=datetime.now(),
+                db_desc='my description',
+                db_location=caller.location)
 
             event_table.save()
 
