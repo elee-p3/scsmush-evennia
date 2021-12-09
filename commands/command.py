@@ -14,6 +14,8 @@ from evennia.utils import utils, create, evtable, make_iter, inherits_from, date
 from evennia.comms.models import Msg
 from world.events.models import RPEvent
 
+import datetime
+
 # Danny was here, bitches.
 def sub_old_ansi(text):
     """Replacing old ansi with newer evennia markup strings"""
