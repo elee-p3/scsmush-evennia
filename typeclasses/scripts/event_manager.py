@@ -5,7 +5,7 @@ Script to handle timing for events in the game.
 from django.conf import settings
 from .scripts import Script
 # from world.dominion.models import RPEvent, PrestigeCategory
-from world.models import RPEvent
+from world.events.models import RPEvent
 from twisted.internet import reactor
 from evennia.server.sessionhandler import SESSIONS
 from evennia.utils.ansi import parse_ansi

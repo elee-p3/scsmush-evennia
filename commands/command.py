@@ -5,9 +5,6 @@ Commands describe the input the account can do to the game.
 
 """
 from math import floor
-from evennia.commands.command import Command as BaseCommand
-from evennia.utils import evtable
-from evennia import default_cmds
 from evennia.server.sessionhandler import SESSIONS
 import time
 import re
@@ -15,7 +12,7 @@ from evennia import ObjectDB, AccountDB
 from evennia import default_cmds
 from evennia.utils import utils, create, evtable, make_iter, inherits_from, datetime_format
 from evennia.comms.models import Msg
-from world.models import RPEvent
+from world.events.models import RPEvent
 
 # Danny was here, bitches.
 def sub_old_ansi(text):
@@ -853,7 +850,7 @@ class CmdMail(default_cmds.MuxAccountCommand):
 
     def func(self):
         """
-        Do the main command functionality
+        Do the events command functionality
         """
 
         subject = ""
