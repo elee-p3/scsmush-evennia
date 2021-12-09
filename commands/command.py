@@ -1113,6 +1113,8 @@ class CmdEvent(default_cmds.MuxCommand):
                 desc='my description',
                 location=caller.location)
 
+            event_table.save()
+
             # event = RPEvent.objects.create(
             #     name='testevent',
             #     date=datetime.now(),
