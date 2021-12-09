@@ -1129,7 +1129,7 @@ class CmdEvent(default_cmds.MuxCommand):
         elif "stop" in self.switches:
             # event = events.get(location=self.caller.location)
 
-            events = RPEvent.objects.filter(name='testevent')
+            events = RPEvent.objects.filter(db_name='testevent')
             for event in events:
                 caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}".format(event.db_name, event.db_desc, event.db_location))
 
