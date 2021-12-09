@@ -1108,12 +1108,17 @@ class CmdEvent(default_cmds.MuxCommand):
             return
 
         elif "start" in self.switches:
-            event = RPEvent.objects.create(
-                name='testevent',
+            event_table = RPEvent(name='testevent',
                 date=datetime.now(),
                 desc='my description',
-                location=caller.location,
-            )
+                location=caller.location)
+
+            # event = RPEvent.objects.create(
+            #     name='testevent',
+            #     date=datetime.now(),
+            #     desc='my description',
+            #     location=caller.location,
+            # )
 
             # event_manager = ScriptDB.objects.get(db_key="Event Manager")
             # event_manager.start_event(event, location=caller.location)
