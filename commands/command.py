@@ -1131,8 +1131,8 @@ class CmdEvent(default_cmds.MuxCommand):
 
             events = RPEvent.objects.filter(name='testevent')
             for event in events:
-                caller.msg(event)
-            # caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}".format(event.name, event.desc, event.location))
+                caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}".format(event.db_name, event.db_desc, event.db_location))
+
             # event_manager = ScriptDB.objects.get(db_key="Event Manager")
             # event_manager.finish_event(event)
 
