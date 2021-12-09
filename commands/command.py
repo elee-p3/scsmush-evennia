@@ -1113,8 +1113,6 @@ class CmdEvent(default_cmds.MuxCommand):
                 db_desc='my description',
                 db_location=caller.location)
 
-            event_table.save()
-
             # event = RPEvent.objects.create(
             #     name='testevent',
             #     date=datetime.now(),
@@ -1131,8 +1129,10 @@ class CmdEvent(default_cmds.MuxCommand):
         elif "stop" in self.switches:
             # event = events.get(location=self.caller.location)
 
-            event = RPEvent.objects.filter(name='testevent')[0]
-            caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}".format(event.name, event.desc, event.location))
+            events = RPEvent.objects.filter(name='testevent')
+            for event in events:
+                caller.msg(event)
+            # caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}".format(event.name, event.desc, event.location))
             # event_manager = ScriptDB.objects.get(db_key="Event Manager")
             # event_manager.finish_event(event)
 
