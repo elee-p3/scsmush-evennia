@@ -1085,3 +1085,49 @@ class CmdSay(default_cmds.MuxCommand):
 
         # Call the at_after_say hook on the character
         caller.at_say(speech, msg_self=True)
+
+class CmdEvent(default_cmds.MuxCommand):
+    """
+    Usage:
+            @event
+            @event/start
+            @event/stop
+    """
+
+    key = "@event"
+    # aliases = ['', "'"]
+    locks = "cmd:all()"
+
+    def func(self):
+        """Run the say command"""
+
+        caller = self.caller
+
+        if not self.switches:
+            caller.msg("No switches, ignoring")
+            return
+
+        elif "start" in self.switches:
+            event = RPEvent.objects.create(
+                name='testevent',
+                date=datetime.now(),
+                desc='my description',
+                location=caller.location,
+            )
+
+            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            # event_manager.start_event(event, location=caller.location)
+
+            caller.msg("Starting Event")
+            return
+
+        elif "stop" in self.switches:
+            # event = events.get(location=self.caller.location)
+
+            event = RPEvent.objects.filter(name='testevent')
+            caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}".format(event.name, event.desc, event.location))
+            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            # event_manager.finish_event(event)
+
+            caller.msg("Stopping Event")
+            return

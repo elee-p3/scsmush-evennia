@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from evennia.utils.idmapper.models import SharedMemoryModel
 from django.db import models
-# from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.urls import reverse
 
 # from .managers import OrganizationManager, LandManager, RPEventQuerySet
@@ -48,7 +48,7 @@ class RPEvent(SharedMemoryModel):
         "character.SearchTag", blank=True, related_name="events"
     )
 
-    # objects = RPEventQuerySet.as_manager()
+    # objects = QuerySet.as_manager()
 
     def can_end_or_move(self, player):
         """Whether an in-progress event can be stopped or moved by a host"""

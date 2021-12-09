@@ -5,6 +5,7 @@ Script to handle timing for events in the game.
 from django.conf import settings
 from .scripts import Script
 # from world.dominion.models import RPEvent, PrestigeCategory
+from world.models import RPEvent
 from twisted.internet import reactor
 from evennia.server.sessionhandler import SESSIONS
 from evennia.utils.ansi import parse_ansi
@@ -68,7 +69,7 @@ class EventManager(Script):
         """
         self.key = "Event Manager"
         self.desc = "Manages RP events and notifications"
-        self.interval = 300
+        self.interval = 5 #300
         self.persistent = True
         self.start_delay = True
         # we store everything as IDs of the event objects rather than the events themselves
@@ -163,78 +164,74 @@ class EventManager(Script):
 
     # noinspection PyBroadException
     def start_event(self, event, location=None):
-        # see if this was called from callLater, and if so, remove reference to it
-        if event.id in self.db.pending_start:
-            del self.db.pending_start[event.id]
-
-        # if we've already started, do nothing. Can happen due to queue
-        if event.id in self.db.active_events:
-            return
-        # announce event start
-        if location:
-            loc = location
-        else:
-            loc = self.get_event_location(event)
-        if loc:  # set up event logging, tag room
-            loc.start_event_logging(event)
-            start_str = "%s has started at %s." % (event.name, loc.name)
-            if loc != event.location:
-                event.location = loc
-                event.save()
-        else:
-            start_str = "%s has started." % event.name
-        if event.public_event:
-            border = "{w***********************************************************{n\n"
-            start_str = border + start_str + "\n" + border
-            SESSIONS.announce_all(start_str)
-        elif event.location:
-            try:
-                event.location.msg_contents(start_str, options={"box": True})
-            except Exception:
-                pass
+        # # see if this was called from callLater, and if so, remove reference to it
+        # if event.id in self.db.pending_start:
+        #     del self.db.pending_start[event.id]
+        #
+        # # if we've already started, do nothing. Can happen due to queue
+        # if event.id in self.db.active_events:
+        #     return
+        # # announce event start
+        # if location:
+        #     loc = location
+        # else:
+        #     loc = self.get_event_location(event)
+        # if loc:  # set up event logging, tag room
+        #     loc.start_event_logging(event)
+        #     start_str = "%s has started at %s." % (event.name, loc.name)
+        #     if loc != event.location:
+        #         event.location = loc
+        #         event.save()
+        # else:
+        #     start_str = "%s has started." % event.name
+        # if event.public_event:
+        #     border = "{w***********************************************************{n\n"
+        #     start_str = border + start_str + "\n" + border
+        #     SESSIONS.announce_all(start_str)
+        # elif event.location:
+        #     try:
+        #         event.location.msg_contents(start_str, options={"box": True})
+        #     except Exception:
+        #         pass
         self.db.active_events.append(event.id)
-        self.db.idle_events[event.id] = 0
-        now = time_now()
-        if now < event.date:
-            # if we were forced to start early, update our date
-            event.date = now
-            event.save()
+        # self.db.idle_events[event.id] = 0
+        # now = time_now()
+        # if now < event.date:
+        #     # if we were forced to start early, update our date
+        #     event.date = now
+        #     event.save()
+
         # set up log for event
         open_logs = self.ndb.open_logs or []
-        open_gm_logs = self.ndb.open_gm_logs or []
         # noinspection PyBroadException
         with open(self.get_log_path(event.id), "a+") as log:
             open_logs.append(log)
-        with open(self.get_gmlog_path(event.id), "a+") as gmlog:
-            open_gm_logs.append(gmlog)
         self.ndb.open_logs = open_logs
-        self.ndb.open_gm_logs = open_gm_logs
 
     def finish_event(self, event):
-        loc = self.get_event_location(event)
-        if loc:
-            try:
-                loc.stop_event_logging()
-            except AttributeError:
-                loc.db.current_event = None
-                loc.msg_contents("{rEvent logging is now off for this room.{n")
-                loc.tags.remove("logging event")
-            end_str = "%s has ended at %s." % (event.name, loc.name)
-        else:
-            end_str = "%s has ended." % event.name
-        if event.public_event:
-            SESSIONS.announce_all(end_str)
-        else:
-            if loc:
-                loc.msg_contents(end_str)
+        # loc = self.get_event_location(event)
+        # if loc:
+        #     try:
+        #         loc.stop_event_logging()
+        #     except AttributeError:
+        #         loc.db.current_event = None
+        #         loc.msg_contents("{rEvent logging is now off for this room.{n")
+        #         loc.tags.remove("logging event")
+        #     end_str = "%s has ended at %s." % (event.name, loc.name)
+        # else:
+        #     end_str = "%s has ended." % event.name
+        # if event.public_event:
+        #     SESSIONS.announce_all(end_str)
+        # else:
+        #     if loc:
+        #         loc.msg_contents(end_str)
         event.finished = True
         event.clear_room()
         event.save()
-        if event.id in self.db.active_events:
-            self.db.active_events.remove(event.id)
-        if event.id in self.db.idle_events:
-            del self.db.idle_events[event.id]
-        self.do_awards(event)
+        # if event.id in self.db.active_events:
+        #     self.db.active_events.remove(event.id)
+        # if event.id in self.db.idle_events:
+        #     del self.db.idle_events[event.id]
         # noinspection PyBroadException
         self.delete_event_post(event)
 

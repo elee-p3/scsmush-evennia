@@ -55,6 +55,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdSay)
         self.add(CmdPot)
         self.add(CmdObserve)
+        self.add(CmdEvent)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
