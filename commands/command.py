@@ -1096,20 +1096,6 @@ class CmdWarp(default_cmds.MuxCommand):
 
     Examples:
       warp granse - zerhem kingdom
-    #   tel/quiet box = Limbo
-    #   tel/tonone box
-    #
-    # Switches:
-    #   quiet  - don't echo leave/arrive messages to the source/target
-    #            locations for the move.
-    #   intoexit - if target is an exit, teleport INTO
-    #              the exit object instead of to its destination
-    #   tonone - if set, teleport the object to a None-location. If this
-    #            switch is set, <target location> is ignored.
-    #            Note that the only way to retrieve
-    #            an object from a None location is by direct #dbref
-    #            reference. A puppeted object cannot be moved to None.
-    #   loc - teleport object to the target's location instead of its contents
 
     """
 
