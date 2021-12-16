@@ -1169,10 +1169,10 @@ class CmdEvent(default_cmds.MuxCommand):
             #     db_location=caller.location)
 
             event = RPEvent.objects.create(
-                name='testevent',
-                date=datetime.now(),
-                desc='my description',
-                location=caller.location,
+                db_name='testevent',
+                db_date=datetime.now(),
+                db_desc='my description',
+                db_location=caller.location,
             )
 
             # event_manager = ScriptDB.objects.get(db_key="Event Manager")
