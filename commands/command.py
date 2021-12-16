@@ -1136,6 +1136,8 @@ class CmdWarp(default_cmds.MuxCommand):
             caller.msg("Destination not found.")
             return
         if destination:
+            caller.msg("Your destination is: {0}".format(destination))
+            caller.msg("Your destination typeclass is: {0}".format(type(destination)))
             if type(destination) != "typeclasses.rooms.Room":
                 caller.msg("Destination is not a room.")
                 return
