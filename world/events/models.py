@@ -50,28 +50,28 @@ class RPEvent(SharedMemoryModel):
 
     # objects = QuerySet.as_manager()
 
-    def can_end_or_move(self, player):
-        """Whether an in-progress event can be stopped or moved by a host"""
-        dompc = player.Dominion
-        return (
-            self.can_admin(player)
-            or dompc in self.hosts.all()
-            or dompc in self.gms.all()
-        )
+    # def can_end_or_move(self, player):
+    #     """Whether an in-progress event can be stopped or moved by a host"""
+    #     dompc = player.Dominion
+    #     return (
+    #         self.can_admin(player)
+    #         or dompc in self.hosts.all()
+    #         or dompc in self.gms.all()
+    #     )
 
-    def can_admin(self, player):
-        """Who can run admin commands for this event"""
-        if player.check_permstring("builders"):
-            return True
-        if self.gm_event:
-            return False
-        try:
-            dompc = player.Dominion
-            if not dompc:
-                return False
-            return dompc == self.main_host
-        except AttributeError:
-            return False
+    # def can_admin(self, player):
+    #     """Who can run admin commands for this event"""
+    #     if player.check_permstring("builders"):
+    #         return True
+    #     if self.gm_event:
+    #         return False
+    #     try:
+    #         dompc = player.Dominion
+    #         if not dompc:
+    #             return False
+    #         return dompc == self.main_host
+    #     except AttributeError:
+    #         return False
 
     def create_room(self):
         """Creates a temp room for this RPEvent's plotroom"""
