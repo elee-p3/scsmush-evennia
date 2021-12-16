@@ -5,9 +5,6 @@ Commands describe the input the account can do to the game.
 
 """
 from math import floor
-from evennia.commands.command import Command as BaseCommand
-from evennia.utils import evtable
-from evennia import default_cmds
 from evennia.server.sessionhandler import SESSIONS
 import time
 import re
@@ -219,6 +216,12 @@ class CmdPose(default_cmds.MuxCommand):
             msg = "What do you want to do?"
             self.caller.msg(msg)
         else:
+            # Update the pose timer if outside of OOC room
+            # This assumes that the character's home is the OOC room, which it is by default
+            if self.caller.location != self.caller.home:
+                self.caller.set_pose_time(time.time())
+                self.caller.set_obs_mode(False)
+
             msg = "%s%s" % (self.caller.name, self.args)
             msg = sub_old_ansi(msg)
 
@@ -278,6 +281,13 @@ class CmdEmit(default_cmds.MuxCommand):
         """Implement the command"""
 
         caller = self.caller
+
+        # Update the pose timer if outside of OOC room
+        # This assumes that the character's home is the OOC room, which it is by default
+        if caller.location != caller.home:
+            caller.set_pose_time(time.time())
+            caller.set_obs_mode(False)
+
         if caller.check_permstring(self.perm_for_switches):
             args = self.args
         else:
@@ -931,7 +941,7 @@ class CmdMail(default_cmds.MuxAccountCommand):
 
     def func(self):
         """
-        Do the main command functionality
+        Do the events command functionality
         """
 
         subject = ""
@@ -1122,6 +1132,57 @@ class CmdMail(default_cmds.MuxAccountCommand):
                 self.caller.msg(_HEAD_CHAR * _WIDTH)
             else:
                 self.caller.msg("There are no messages in your inbox.")
+
+# Overloading default CmdSay class to add post timer updating functionality
+class CmdSay(default_cmds.MuxCommand):
+    """
+    speak as your character
+
+    Usage:
+      say <message>
+
+    Talk to those in your current location.
+    """
+
+    key = "say"
+    aliases = ['"', "'"]
+    locks = "cmd:all()"
+
+    def func(self):
+        """Run the say command"""
+
+        caller = self.caller
+
+        # Update the pose timer if outside of OOC room
+        # This assumes that the character's home is the OOC room, which it is by default
+        if caller.location != caller.home:
+            caller.set_pose_time(time.time())
+            caller.set_obs_mode(False)
+
+        if not self.args:
+            caller.msg("Say what?")
+            return
+
+        speech = self.args
+
+        # speech = highlight_names(caller, speech)
+
+        # Calling the at_before_say hook on the character
+        speech = caller.at_before_say(speech)
+        # tailored_msg(caller, speech)
+
+        # If speech is empty, stop here
+        if not speech:
+            return
+
+        # Call the at_after_say hook on the character
+        caller.at_say(speech, msg_self=True)
+
+        # If an event is running in the current room, then write to event log
+        if caller.location.db.active_event:
+            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            event_manager = EventManager()
+            event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
 
 class CmdWarp(default_cmds.MuxCommand):
     """
