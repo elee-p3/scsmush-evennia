@@ -178,9 +178,9 @@ class RPEvent(SharedMemoryModel):
         return obj
 
 
-    def get_absolute_url(self):
-        """Gets absolute URL for the RPEvent from their display view"""
-        return reverse("dominion:display_event", kwargs={"pk": self.id})
+    # def get_absolute_url(self):
+    #     """Gets absolute URL for the RPEvent from their display view"""
+    #     return reverse("dominion:display_event", kwargs={"pk": self.id})
 
     # @CachedProperty
     # def attended(self):

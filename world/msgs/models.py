@@ -31,54 +31,54 @@ from .managers import (
 # ------------------------------------------------------------
 
 
-class Inform(models.Model):
-    """
-    Informs represent persistent messages sent from the server
-    to a player. For communication between entities, like mail,
-    Msg should be used. This will primarily be used in Dominion
-    or other game events where players will be informed upon
-    logging-in of what transpired. In Dominion, these messages
-    are created during weekly maintenance, and the week # is
-    stored as well.
-
-    The Inform class defines the following properties:
-        player - recipient of the inform
-        message - Text that is sent to the player
-        date_sent - Time the inform was sent
-        is_unread - Whether the player has read the inform
-        week - The # of the week during which this inform was created.
-    """
-
-    player = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name="informs",
-        blank=True,
-        null=True,
-        on_delete=models.CASCADE,
-    )
-    organization = models.ForeignKey(
-        "dominion.Organization",
-        related_name="informs",
-        blank=True,
-        null=True,
-        on_delete=models.CASCADE,
-    )
-    message = models.TextField("Information sent to player or org")
-    # send date
-    date_sent = models.DateTimeField(editable=False, auto_now_add=True, db_index=True)
-    # the week # of the maintenance cycle during which this inform was created
-    week = models.PositiveSmallIntegerField(default=0, blank=0, db_index=True)
-    read_by = models.ManyToManyField(
-        settings.AUTH_USER_MODEL, blank=True, related_name="read_informs"
-    )
-    # allow for different types of informs/reports
-    category = models.CharField(blank=True, null=True, max_length=80)
-    # let them mark important messages for saving
-    important = models.BooleanField(default=False)
-
-    class Meta:
-        app_label = "msgs"
-        db_table = "comms_inform"
+# class Inform(models.Model):
+#     """
+#     Informs represent persistent messages sent from the server
+#     to a player. For communication between entities, like mail,
+#     Msg should be used. This will primarily be used in Dominion
+#     or other game events where players will be informed upon
+#     logging-in of what transpired. In Dominion, these messages
+#     are created during weekly maintenance, and the week # is
+#     stored as well.
+#
+#     The Inform class defines the following properties:
+#         player - recipient of the inform
+#         message - Text that is sent to the player
+#         date_sent - Time the inform was sent
+#         is_unread - Whether the player has read the inform
+#         week - The # of the week during which this inform was created.
+#     """
+#
+#     player = models.ForeignKey(
+#         settings.AUTH_USER_MODEL,
+#         related_name="informs",
+#         blank=True,
+#         null=True,
+#         on_delete=models.CASCADE,
+#     )
+#     organization = models.ForeignKey(
+#         "dominion.Organization",
+#         related_name="informs",
+#         blank=True,
+#         null=True,
+#         on_delete=models.CASCADE,
+#     )
+#     message = models.TextField("Information sent to player or org")
+#     # send date
+#     date_sent = models.DateTimeField(editable=False, auto_now_add=True, db_index=True)
+#     # the week # of the maintenance cycle during which this inform was created
+#     week = models.PositiveSmallIntegerField(default=0, blank=0, db_index=True)
+#     read_by = models.ManyToManyField(
+#         settings.AUTH_USER_MODEL, blank=True, related_name="read_informs"
+#     )
+#     # allow for different types of informs/reports
+#     category = models.CharField(blank=True, null=True, max_length=80)
+#     # let them mark important messages for saving
+#     important = models.BooleanField(default=False)
+#
+#     class Meta:
+#         app_label = "msgs"
+#         db_table = "comms_inform"
 
 
 def get_model_from_tags(tag_list):
@@ -142,25 +142,25 @@ class MarkReadMixin(object):
         }
         return keydict
 
-    @property
-    def event(self):
-        from world.dominion.models import RPEvent
-        from evennia.typeclasses.tags import Tag
-
-        try:
-            tag = self.db_tags.get(
-                db_key__isnull=False, db_data__isnull=False, db_category="event"
-            )
-            return RPEvent.objects.get(id=tag.db_data)
-        except (
-            Tag.DoesNotExist,
-            Tag.MultipleObjectsReturned,
-            AttributeError,
-            TypeError,
-            ValueError,
-            RPEvent.DoesNotExist,
-        ):
-            return None
+    # @property
+    # def event(self):
+    #     from world.dominion.models import RPEvent
+    #     from evennia.typeclasses.tags import Tag
+    #
+    #     try:
+    #         tag = self.db_tags.get(
+    #             db_key__isnull=False, db_data__isnull=False, db_category="event"
+    #         )
+    #         return RPEvent.objects.get(id=tag.db_data)
+    #     except (
+    #         Tag.DoesNotExist,
+    #         Tag.MultipleObjectsReturned,
+    #         AttributeError,
+    #         TypeError,
+    #         ValueError,
+    #         RPEvent.DoesNotExist,
+    #     ):
+    #         return None
 
     @property
     def sender(self):

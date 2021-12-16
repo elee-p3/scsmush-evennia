@@ -251,12 +251,12 @@ class EventManager(Script):
         msg = "\n" + msg + "\n"
         with open(self.get_log_path(eventid), "a+") as log:
             log.write(msg)
-        try:
-            dompc = sender.player.Dominion
-            if dompc not in event.attended:
-                event.record_attendance(dompc)
-        except AttributeError:
-            pass
+        # try:
+        #     dompc = sender.player.Dominion
+        #     if dompc not in event.attended:
+        #         event.record_attendance(dompc)
+        # except AttributeError:
+        #     pass
 
     def add_gmnote(self, eventid, msg):
         msg = parse_ansi(msg, strip_ansi=True)
