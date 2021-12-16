@@ -1086,6 +1086,72 @@ class CmdSay(default_cmds.MuxCommand):
         # Call the at_after_say hook on the character
         caller.at_say(speech, msg_self=True)
 
+class CmdWarp(default_cmds.MuxCommand):
+    """
+    teleport to another location
+
+    Usage:
+      warp <target location>
+
+    Examples:
+      warp granse - zerhem kingdom
+    #   tel/quiet box = Limbo
+    #   tel/tonone box
+    #
+    # Switches:
+    #   quiet  - don't echo leave/arrive messages to the source/target
+    #            locations for the move.
+    #   intoexit - if target is an exit, teleport INTO
+    #              the exit object instead of to its destination
+    #   tonone - if set, teleport the object to a None-location. If this
+    #            switch is set, <target location> is ignored.
+    #            Note that the only way to retrieve
+    #            an object from a None location is by direct #dbref
+    #            reference. A puppeted object cannot be moved to None.
+    #   loc - teleport object to the target's location instead of its contents
+
+    """
+
+    key = "warp"
+    aliases = "+warp"
+    # switch_options = ("quiet", "intoexit", "tonone", "loc")
+    # rhs_split = ("=", " to ")  # Prefer = delimiter, but allow " to " usage.
+    locks = "cmd:all()"
+
+    def func(self):
+        """Performs the teleport"""
+
+        caller = self.caller
+        args = self.args
+        # lhs, rhs = self.lhs, self.rhs
+        # switches = self.switches
+
+        # setting switches
+        # tel_quietly = "quiet" in switches
+        # to_none = "tonone" in switches
+        # to_loc = "loc" in switches
+
+        destination = caller.search(args, global_search=True)
+        if not destination:
+            caller.msg("Destination not found.")
+            return
+        if destination:
+            if type(destination) != "typeclasses.rooms.Room":
+                caller.msg("Destination is not a room.")
+                return
+            else:
+                caller.move_to(destination)
+                caller.msg("Teleported to %s." % destination)
+
+        # try the teleport
+        # if obj_to_teleport.move_to(
+        #     destination, quiet=tel_quietly, emit_to_obj=caller, use_destination=use_destination
+        # ):
+        #     if obj_to_teleport == caller:
+        #         caller.msg("Teleported to %s." % destination)
+        #     else:
+        #         caller.msg("Teleported %s -> %s." % (obj_to_teleport, destination))
+
 class CmdEvent(default_cmds.MuxCommand):
     """
     Usage:
