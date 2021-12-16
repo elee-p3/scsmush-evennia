@@ -13,6 +13,7 @@ from evennia import default_cmds
 from evennia.utils import utils, create, evtable, make_iter, inherits_from, datetime_format
 from evennia.comms.models import Msg
 from world.events.models import RPEvent
+from typeclasses.rooms import Room
 
 from datetime import datetime
 
@@ -1138,7 +1139,7 @@ class CmdWarp(default_cmds.MuxCommand):
         if destination:
             caller.msg("Your destination is: {0}".format(destination))
             caller.msg("Your destination typeclass is: {0}".format(type(destination)))
-            if type(destination) != "<class 'typeclasses.rooms.Room'>":
+            if type(destination) != Room:
                 caller.msg("Destination is not a room.")
                 return
             else:
