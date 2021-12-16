@@ -5,9 +5,6 @@ Commands describe the input the account can do to the game.
 
 """
 from math import floor
-from evennia.commands.command import Command as BaseCommand
-from evennia.utils import evtable
-from evennia import default_cmds
 from evennia.server.sessionhandler import SESSIONS
 import time
 import re
@@ -15,6 +12,9 @@ from evennia import ObjectDB, AccountDB
 from evennia import default_cmds
 from evennia.utils import utils, create, evtable, make_iter, inherits_from, datetime_format
 from evennia.comms.models import Msg
+from world.events.models import RPEvent
+
+from datetime import datetime
 
 # Danny was here, bitches.
 def sub_old_ansi(text):
@@ -144,6 +144,12 @@ class CmdPose(default_cmds.MuxCommand):
             msg = "What do you want to do?"
             self.caller.msg(msg)
         else:
+            # Update the pose timer if outside of OOC room
+            # This assumes that the character's home is the OOC room, which it is by default
+            if self.caller.location != self.caller.home:
+                self.caller.set_pose_time(time.time())
+                self.caller.set_obs_mode(False)
+
             msg = "%s%s" % (self.caller.name, self.args)
             msg = sub_old_ansi(msg)
             self.caller.location.msg_contents(text=(msg, {"type": "pose"}), from_obj=self.caller)
@@ -191,6 +197,13 @@ class CmdEmit(default_cmds.MuxCommand):
         """Implement the command"""
 
         caller = self.caller
+
+        # Update the pose timer if outside of OOC room
+        # This assumes that the character's home is the OOC room, which it is by default
+        if caller.location != caller.home:
+            caller.set_pose_time(time.time())
+            caller.set_obs_mode(False)
+
         if caller.check_permstring(self.perm_for_switches):
             args = self.args
         else:
@@ -621,6 +634,111 @@ class CmdWho(default_cmds.MuxCommand):
             % (table, "One" if is_one else naccounts, "" if is_one else "s")
         )
 
+class CmdPot(default_cmds.MuxCommand):
+    """
+    Pose tracker
+
+    Usage:
+      +pot
+
+    This is the pose tracker. DEVIN IT IS YOUR DUTY TO FILL THIS OUT
+    """
+
+    key = "+pot"
+    aliases = ["pot"]
+    locks = "cmd:all()"
+
+    # this is used by the parent
+    account_caller = True
+
+    def func(self):
+        """
+        Get all connected accounts by polling session.
+        """
+
+        account = self.account
+        session_list = SESSIONS.get_sessions()
+
+        session_list = sorted(session_list, key=lambda o: o.account.character.get_pose_time())
+
+        if self.cmdstring == "doing":
+            show_session_data = False
+        else:
+           show_session_data = account.check_permstring("Developer") or account.check_permstring(
+               "Admins"
+           )
+
+        naccounts = SESSIONS.account_count()
+        table = self.styled_table(
+            "|wCharacter",
+            "|wOn for",
+            "|wIdle",
+            "|wLast posed"
+        )
+
+        old_session_list = []
+
+        for session in session_list:
+            if not session.logged_in:
+                continue
+
+            session_account = session.get_account()
+            puppet = session.get_puppet()
+            delta_cmd = time.time() - session.cmd_last_visible
+            delta_conn = time.time() - session.conn_time
+            delta_pose_time = time.time() - puppet.get_pose_time()
+
+            if delta_pose_time > 3600:
+                old_session_list.append(session)
+                continue
+
+            if puppet.location == self.caller.character.location:
+                # logic for setting up pose table
+                table.add_row(puppet.key,
+                              utils.time_format(delta_conn, 0),
+                              utils.time_format(delta_cmd, 1),
+                              utils.time_format(delta_pose_time, 1))
+
+        for session in old_session_list:
+            session_account = session.get_account()
+            puppet = session.get_puppet()
+            delta_cmd = time.time() - session.cmd_last_visible
+            delta_conn = time.time() - session.conn_time
+            delta_pose_time = time.time() - puppet.get_pose_time()
+
+            if puppet.location == self.caller.character.location:
+                if puppet.get_obs_mode() == True:
+                    table.add_row("|y" + puppet.key + " (O)",
+                                  utils.time_format(delta_conn, 0),
+                                  utils.time_format(delta_cmd, 1),
+                                  "-")
+                else:
+                    table.add_row(puppet.key,
+                                  utils.time_format(delta_conn, 0),
+                                  utils.time_format(delta_cmd, 1),
+                                  "-")
+
+        self.caller.msg(table)
+
+class CmdObserve(default_cmds.MuxCommand):
+    """
+        Observer mode
+
+        Usage:
+          +observe
+
+        DEVIN THIS IS ALSO YOUR DUTY TO FILL THIS OUT
+    """
+
+    key = "+observe"
+    aliases = ["observe"]
+    locks = "cmd:all()"
+
+    def func(self):
+        self.caller.set_pose_time(0.0)
+        self.caller.set_obs_mode(True)
+        self.msg("Entering observer mode.")
+
 # The mail command from contrib
 
 _HEAD_CHAR = "|015-|n"
@@ -734,7 +852,7 @@ class CmdMail(default_cmds.MuxAccountCommand):
 
     def func(self):
         """
-        Do the main command functionality
+        Do the events command functionality
         """
 
         subject = ""
@@ -926,68 +1044,97 @@ class CmdMail(default_cmds.MuxAccountCommand):
             else:
                 self.caller.msg("There are no messages in your inbox.")
 
-class CmdWarp(default_cmds.MuxCommand):
+# Overloading default CmdSay class to add post timer updating functionality
+class CmdSay(default_cmds.MuxCommand):
     """
-    teleport to another location
+    speak as your character
 
     Usage:
-      warp <target location>
+      say <message>
 
-    Examples:
-      warp granse - zerhem kingdom
-    #   tel/quiet box = Limbo
-    #   tel/tonone box
-    #
-    # Switches:
-    #   quiet  - don't echo leave/arrive messages to the source/target
-    #            locations for the move.
-    #   intoexit - if target is an exit, teleport INTO
-    #              the exit object instead of to its destination
-    #   tonone - if set, teleport the object to a None-location. If this
-    #            switch is set, <target location> is ignored.
-    #            Note that the only way to retrieve
-    #            an object from a None location is by direct #dbref
-    #            reference. A puppeted object cannot be moved to None.
-    #   loc - teleport object to the target's location instead of its contents
-
+    Talk to those in your current location.
     """
 
-    key = "warp"
-    aliases = "+warp"
-    # switch_options = ("quiet", "intoexit", "tonone", "loc")
-    # rhs_split = ("=", " to ")  # Prefer = delimiter, but allow " to " usage.
+    key = "say"
+    aliases = ['"', "'"]
     locks = "cmd:all()"
 
     def func(self):
-        """Performs the teleport"""
+        """Run the say command"""
 
         caller = self.caller
-        args = self.args
-        # lhs, rhs = self.lhs, self.rhs
-        # switches = self.switches
 
-        # setting switches
-        # tel_quietly = "quiet" in switches
-        # to_none = "tonone" in switches
-        # to_loc = "loc" in switches
+        # Update the pose timer if outside of OOC room
+        # This assumes that the character's home is the OOC room, which it is by default
+        if caller.location != caller.home:
+            caller.set_pose_time(time.time())
+            caller.set_obs_mode(False)
 
-        destination = caller.search(args, global_search=True)
-        if not destination:
-            caller.msg("Destination not found.")
+        if not self.args:
+            caller.msg("Say what?")
             return
-        if destination:
-            if type(destination) != "typeclasses.rooms.Room":
-                caller.msg("Destination is not a room.")
-                return
-            else:
-                caller.move_to(destination)
-                caller.msg("Teleported to %s." % destination)
 
-        # try the teleport
-        # if obj_to_teleport.move_to(
-        #     destination, quiet=tel_quietly, emit_to_obj=caller, use_destination=use_destination
-        # ):
-        #     if obj_to_teleport == caller:
-        #         caller.msg("Teleported to %s." % destination)
-        #     else:
-        #         caller.msg("Teleported %s -> %s." % (obj_to_teleport, destination))
+        speech = self.args
+
+        # Calling the at_before_say hook on the character
+        speech = caller.at_before_say(speech)
+
+        # If speech is empty, stop here
+        if not speech:
+            return
+
+        # Call the at_after_say hook on the character
+        caller.at_say(speech, msg_self=True)
+
+class CmdEvent(default_cmds.MuxCommand):
+    """
+    Usage:
+            @event
+            @event/start
+            @event/stop
+    """
+
+    key = "@event"
+    # aliases = ['', "'"]
+    locks = "cmd:all()"
+
+    def func(self):
+        """Run the say command"""
+
+        caller = self.caller
+
+        if not self.switches:
+            caller.msg("No switches, ignoring")
+            return
+
+        elif "start" in self.switches:
+            event_table = RPEvent(db_name='testevent',
+                db_date=datetime.now(),
+                db_desc='my description',
+                db_location=caller.location)
+
+            # event = RPEvent.objects.create(
+            #     name='testevent',
+            #     date=datetime.now(),
+            #     desc='my description',
+            #     location=caller.location,
+            # )
+
+            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            # event_manager.start_event(event, location=caller.location)
+
+            caller.msg("Starting Event")
+            return
+
+        elif "stop" in self.switches:
+            # event = events.get(location=self.caller.location)
+
+            events = RPEvent.objects.filter(db_name='testevent')
+            for event in events:
+                caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}".format(event.db_name, event.db_desc, event.db_location))
+
+            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            # event_manager.finish_event(event)
+
+            caller.msg("Stopping Event")
+            return
