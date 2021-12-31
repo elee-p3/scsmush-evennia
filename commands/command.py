@@ -570,9 +570,24 @@ class CmdWho(default_cmds.MuxCommand):
         """
 
         account = self.account
-        session_list = SESSIONS.get_sessions()
+        total_sessions = SESSIONS.get_sessions()
 
-        session_list = sorted(session_list, key=lambda o: o.account.key)
+        total_sessions = sorted(total_sessions, key=lambda o: o.account.key)
+        session_accounts = [session.account.key for session in total_sessions]
+
+        unique_accounts = set(session_accounts)
+        pruned_sessions = []
+
+        for account in unique_accounts:
+            # finds positions of account name matches in the session_accounts list
+            account_positions = [i for i,x in enumerate(session_accounts) if x==account]
+
+            if account_positions.count() != 1:
+                pruned_sessions.append(total_sessions[account_positions[-1]])
+            else:
+                pruned_sessions.append(total_sessions[account_positions[0]])
+
+        # [i for i,x in enumerate([1,2,3,2]) if x==2] # => [1, 3] <--- this is for finding the occurrences of duplicates in the list
 
         if self.cmdstring == "doing":
             show_session_data = False
@@ -594,7 +609,7 @@ class CmdWho(default_cmds.MuxCommand):
                 "|wProtocol",
                 "|wHost",
             )
-            for session in session_list:
+            for session in total_sessions:
                 if not session.logged_in:
                     continue
                 delta_cmd = time.time() - session.cmd_last_visible
@@ -615,7 +630,7 @@ class CmdWho(default_cmds.MuxCommand):
         else:
             # unprivileged
             table = self.styled_table("|wAccount name", "|wOn for", "|wIdle", "|wRoom")
-            for session in session_list:
+            for session in pruned_sessions:
                 if not session.logged_in:
                     continue
                 delta_cmd = time.time() - session.cmd_last_visible
