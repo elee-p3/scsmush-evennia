@@ -423,11 +423,12 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
             post = board.get_post(caller, post_num, old)
             if not post:
                 return
-            if (caller not in post.db_sender_accounts.all() and not board.access(
-                caller, "edit"
-            )) or caller.key.upper() != post.poster_name.upper():
-                caller.msg("You cannot %s someone else's post, only your own." % verb)
-                return
+            if not caller.account.check_permstring("Admins"):
+                if (caller not in post.db_sender_accounts.all() and not board.access(
+                    caller, "edit"
+                )) or caller.key.upper() != post.poster_name.upper():
+                    caller.msg("You cannot %s someone else's post, only your own." % verb)
+                    return
             if getattr(board, method)(post):
                 caller.msg("Post %sd" % verb)
                # inform_staff(
@@ -453,11 +454,12 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
             post = board.get_post(caller, post_num)
             if not post:
                 return
-            if (caller not in post.db_sender_accounts.all() and not board.access(
-                caller, "edit"
-            )) or caller.key.upper() != post.poster_name.upper():
-                caller.msg("You cannot edit someone else's post, only your own.")
-                return
+            if not caller.account.check_permstring("Admins"):
+                if (caller not in post.db_sender_accounts.all() and not board.access(
+                    caller, "edit"
+                )) or caller.key.upper() != post.poster_name.upper():
+                    caller.msg("You cannot edit someone else's post, only your own.")
+                    return
             if board.edit_post(self.caller, post, self.rhs):
                 self.msg("Post edited.")
                 # inform_staff(
