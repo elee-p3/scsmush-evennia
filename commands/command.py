@@ -855,7 +855,7 @@ class CmdMail(default_cmds.MuxAccountCommand):
         for recipient in recipients:
             recipient.msg("You have received a new @mail from %s" % caller)
             new_message = create.create_message(
-                self.caller, message, receivers=recipient, header=subject
+                self.caller, sub_old_ansi(message), receivers=recipient, header=subject
             )
             new_message.tags.add("new", category="mail")
 
