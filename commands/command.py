@@ -584,9 +584,9 @@ class CmdWho(default_cmds.MuxCommand):
 
             # add the position of the account entry we want to the positions list
             if len(account_positions) != 1:
-                positions += list(account_positions[-1])
+                positions.append(account_positions[-1])
             else:
-                positions += account_positions
+                positions.append(account_positions[0])
 
         positions.sort()
         pruned_sessions = []
