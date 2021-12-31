@@ -687,7 +687,7 @@ class CmdPot(default_cmds.MuxCommand):
         account = self.account
         all_sessions = SESSIONS.get_sessions()
 
-        all_sessions = sorted(all_sessions, key=lambda o: o.account.character.get_pose_time())
+        all_sessions = sorted(all_sessions, key=lambda o: o.account.character.get_pose_time()) # sort by last posed time
         pruned_sessions = prune_sessions(all_sessions)
 
         naccounts = SESSIONS.account_count()
