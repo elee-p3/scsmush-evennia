@@ -453,6 +453,10 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
             post = board.get_post(caller, post_num)
             if not post:
                 return
+
+            caller.msg("this poster for this post is {0}".format(post.poster_name))
+            caller.msg("caller is {0}".format(caller.key))
+
             if caller not in post.db_sender_accounts.all() and not board.access(
                 caller, "edit"
             ):
