@@ -582,7 +582,7 @@ class CmdWho(default_cmds.MuxCommand):
             # finds positions of account name matches in the session_accounts list
             account_positions = [i for i,x in enumerate(session_accounts) if x==account]
 
-            if account_positions.count() != 1:
+            if count(account_positions) != 1:
                 pruned_sessions.append(total_sessions[account_positions[-1]])
             else:
                 pruned_sessions.append(total_sessions[account_positions[0]])
