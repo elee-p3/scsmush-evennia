@@ -578,9 +578,9 @@ class CmdWho(default_cmds.MuxCommand):
         unique_accounts = set(session_accounts)
         pruned_sessions = []
 
-        for account in unique_accounts:
+        for acct in unique_accounts:
             # finds positions of account name matches in the session_accounts list
-            account_positions = [i for i,x in enumerate(session_accounts) if x==account]
+            account_positions = [i for i,x in enumerate(session_accounts) if x==acct]
 
             if len(account_positions) != 1:
                 pruned_sessions.append(total_sessions[account_positions[-1]])
