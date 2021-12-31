@@ -572,23 +572,27 @@ class CmdWho(default_cmds.MuxCommand):
         account = self.account
         total_sessions = SESSIONS.get_sessions()
 
-        total_sessions = sorted(total_sessions, key=lambda o: o.account.key)
-        session_accounts = [session.account.key for session in total_sessions]
+        total_sessions = sorted(total_sessions, key=lambda o: o.account.key) # sort sessions by account name
+        session_accounts = [session.account.key for session in total_sessions] # get a list of just the names
 
-        unique_accounts = list(set(session_accounts))
-        unique_accounts.sort()
-        pruned_sessions = []
+        unique_accounts = set(session_accounts)
+        positions = []
 
         for acct in unique_accounts:
             # finds positions of account name matches in the session_accounts list
             account_positions = [i for i,x in enumerate(session_accounts) if x==acct]
 
+            # add the position of the account entry we want to the positions list
             if len(account_positions) != 1:
-                pruned_sessions.append(total_sessions[account_positions[-1]])
+                positions += list(account_positions[-1])
             else:
-                pruned_sessions.append(total_sessions[account_positions[0]])
+                positions += account_positions
 
-        # [i for i,x in enumerate([1,2,3,2]) if x==2] # => [1, 3] <--- this is for finding the occurrences of duplicates in the list
+        positions.sort()
+        pruned_sessions = []
+
+        for pos in positions:
+            pruned_sessions.append(total_sessions[pos])
 
         if self.cmdstring == "doing":
             show_session_data = False
