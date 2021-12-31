@@ -575,7 +575,7 @@ class CmdWho(default_cmds.MuxCommand):
         total_sessions = sorted(total_sessions, key=lambda o: o.account.key)
         session_accounts = [session.account.key for session in total_sessions]
 
-        unique_accounts = set(session_accounts)
+        unique_accounts = list(set(session_accounts)).sort()
         pruned_sessions = []
 
         for acct in unique_accounts:
