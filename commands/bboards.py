@@ -457,9 +457,9 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
             caller.msg("this poster for this post is {0}".format(post.poster_name))
             caller.msg("caller is {0}".format(caller.key))
 
-            if caller not in post.db_sender_accounts.all() and not board.access(
+            if (caller not in post.db_sender_accounts.all() and not board.access(
                 caller, "edit"
-            ):
+            )) or caller.key != post.poster_name:
                 caller.msg("You cannot edit someone else's post, only your own.")
                 return
             if board.edit_post(self.caller, post, self.rhs):
