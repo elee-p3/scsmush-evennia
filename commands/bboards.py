@@ -634,7 +634,7 @@ class CmdBBCreate(default_cmds.MuxCommand):
         lhs = self.lhs
         bboardname = lhs
         # Create and set the bboard up
-        lockstring = "write:all();read:all();control:id(%s)" % caller.id
+        lockstring = "edit:all();write:all();read:all();control:id(%s)" % caller.id
 
         typeclass = BOARD_TYPECLASS
         new_board = create.create_object(
