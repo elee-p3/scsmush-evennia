@@ -47,6 +47,31 @@ def sub_old_ansi(text):
     text = text.replace("%cn", "|n")
     return text
 
+def prune_sessions(session_list):
+    session_accounts = [session.account.key for session in session_list]  # get a list of just the names
+
+    unique_accounts = set(session_accounts)
+    positions = []
+
+    for acct in unique_accounts:
+        # finds positions of account name matches in the session_accounts list
+        account_positions = [i for i, x in enumerate(session_accounts) if x == acct]
+
+        # add the position of the account entry we want to the positions list
+        if len(account_positions) != 1:
+            positions.append(account_positions[-1])
+        else:
+            positions.append(account_positions[0])
+
+    positions.sort()  # since set() unorders the initial list and we want to keep a specific printed order
+    pruned_sessions = []
+
+    for pos in positions:
+        pruned_sessions.append(session_list[pos])
+
+    return pruned_sessions
+
+
 class CmdFinger(default_cmds.MuxCommand):
     """
         +finger
@@ -570,30 +595,12 @@ class CmdWho(default_cmds.MuxCommand):
         """
 
         account = self.account
-        total_sessions = SESSIONS.get_sessions()
+        all_sessions = SESSIONS.get_sessions()
 
-        total_sessions = sorted(total_sessions, key=lambda o: o.account.key) # sort sessions by account name
-        session_accounts = [session.account.key for session in total_sessions] # get a list of just the names
+        all_sessions = sorted(all_sessions, key=lambda o: o.account.key) # sort sessions by account name
+        pruned_sessions = prune_sessions(all_sessions)
 
-        unique_accounts = set(session_accounts)
-        positions = []
-
-        for acct in unique_accounts:
-            # finds positions of account name matches in the session_accounts list
-            account_positions = [i for i,x in enumerate(session_accounts) if x==acct]
-
-            # add the position of the account entry we want to the positions list
-            if len(account_positions) != 1:
-                positions.append(account_positions[-1])
-            else:
-                positions.append(account_positions[0])
-
-        positions.sort()
-        pruned_sessions = []
-
-        for pos in positions:
-            pruned_sessions.append(total_sessions[pos])
-
+        # check if users are admins and should be able to see all users' session data
         if self.cmdstring == "doing":
             show_session_data = False
         else:
@@ -614,7 +621,7 @@ class CmdWho(default_cmds.MuxCommand):
                 "|wProtocol",
                 "|wHost",
             )
-            for session in total_sessions:
+            for session in all_sessions:
                 if not session.logged_in:
                     continue
                 delta_cmd = time.time() - session.cmd_last_visible
@@ -678,16 +685,10 @@ class CmdPot(default_cmds.MuxCommand):
         """
 
         account = self.account
-        session_list = SESSIONS.get_sessions()
+        all_sessions = SESSIONS.get_sessions()
 
-        session_list = sorted(session_list, key=lambda o: o.account.character.get_pose_time())
-
-        if self.cmdstring == "doing":
-            show_session_data = False
-        else:
-           show_session_data = account.check_permstring("Developer") or account.check_permstring(
-               "Admins"
-           )
+        all_sessions = sorted(all_sessions, key=lambda o: o.account.character.get_pose_time())
+        pruned_sessions = prune_sessions(all_sessions)
 
         naccounts = SESSIONS.account_count()
         table = self.styled_table(
@@ -699,7 +700,7 @@ class CmdPot(default_cmds.MuxCommand):
 
         old_session_list = []
 
-        for session in session_list:
+        for session in pruned_sessions:
             if not session.logged_in:
                 continue
 
