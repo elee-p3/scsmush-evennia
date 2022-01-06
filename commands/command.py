@@ -1218,8 +1218,7 @@ class CmdEvent(default_cmds.MuxCommand):
                 db_location=caller.location,
             )
 
-            for event in events:
-                caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}\nid = {3}".format(event.db_name, event.db_desc, event.db_location, event.id))
+            caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}\nid = {3}".format(event.db_name, event.db_desc, event.db_location, event.id))
 
             caller.location.db.event_id = event.id
 
