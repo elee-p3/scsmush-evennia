@@ -311,7 +311,7 @@ class CmdEmit(default_cmds.MuxCommand):
             if caller.location.db.active_event:
                 event_manager = EventManager()
                 # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-                event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
+                event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + message)
             # for ob in non_gms:
             #     caller.location.msg_contents(
             #     message,
