@@ -1110,7 +1110,8 @@ class CmdSay(default_cmds.MuxCommand):
         caller.at_say(speech, msg_self=True)
 
         # If an event is running in the current room, then write to event log
-        EventManager.add_msg(speech)
+        tmp = EventManager()
+        tmp.add_msg(speech)
 
 class CmdWarp(default_cmds.MuxCommand):
     """

@@ -258,7 +258,7 @@ class EventManager(Script):
         # except AttributeError:
         #     pass
 
-    def add_msg(self, msg, sender=None):
+    def add_msg(self, msg):
         # reset idle timer for event
         msg = parse_ansi(msg, strip_ansi=True)
         msg = "\n" + msg + "\n"
