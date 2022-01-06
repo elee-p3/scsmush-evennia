@@ -306,6 +306,12 @@ class CmdEmit(default_cmds.MuxCommand):
             caller.location.msg_contents(
                 message, from_obj=caller, options={"is_pose": True}
             )
+
+            # If an event is running in the current room, then write to event log
+            if caller.location.db.active_event:
+                event_manager = EventManager()
+                # event_manager = ScriptDB.objects.get(db_key="Event Manager")
+                event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
             # for ob in non_gms:
             #     caller.location.msg_contents(
             #     message,
@@ -347,12 +353,6 @@ class CmdEmit(default_cmds.MuxCommand):
                     caller.msg("Emitted to %s:\n%s" % (objname, message))
             else:
                 caller.msg("You are not allowed to emit to %s." % objname)
-
-        # If an event is running in the current room, then write to event log
-        if caller.location.db.active_event:
-            event_manager = EventManager()
-            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-            event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
 
 
 class CmdOOC(default_cmds.MuxCommand):
