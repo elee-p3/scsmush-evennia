@@ -243,20 +243,27 @@ class EventManager(Script):
         if event.id in self.db.active_events:
             new_location.start_event_logging(event)
 
-    def add_msg(self, eventid, msg, sender=None):
-        # reset idle timer for event
-        self.db.idle_events[eventid] = 0
-        event = RPEvent.objects.get(id=eventid)
-        msg = parse_ansi(msg, strip_ansi=True)
-        msg = "\n" + msg + "\n"
-        with open(self.get_log_path(eventid), "a+") as log:
-            log.write(msg)
+    # def add_msg(self, eventid, msg, sender=None):
+    #     # reset idle timer for event
+    #     self.db.idle_events[eventid] = 0
+    #     event = RPEvent.objects.get(id=eventid)
+    #     msg = parse_ansi(msg, strip_ansi=True)
+    #     msg = "\n" + msg + "\n"
+    #     with open(self.get_log_path(eventid), "a+") as log:
+    #         log.write(msg)
         # try:
         #     dompc = sender.player.Dominion
         #     if dompc not in event.attended:
         #         event.record_attendance(dompc)
         # except AttributeError:
         #     pass
+
+    def add_msg(self, msg, sender=None):
+        # reset idle timer for event
+        msg = parse_ansi(msg, strip_ansi=True)
+        msg = "\n" + msg + "\n"
+        with open(self.get_log_path(1), "a+") as log:
+            log.write(msg)
 
     def add_gmnote(self, eventid, msg):
         msg = parse_ansi(msg, strip_ansi=True)

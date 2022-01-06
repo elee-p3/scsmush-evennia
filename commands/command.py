@@ -14,6 +14,7 @@ from evennia.utils import utils, create, evtable, make_iter, inherits_from, date
 from evennia.comms.models import Msg
 from world.events.models import RPEvent
 from typeclasses.rooms import Room
+from typeclasses.scripts.event_manager import EventManager
 
 from datetime import datetime
 
@@ -1107,6 +1108,9 @@ class CmdSay(default_cmds.MuxCommand):
 
         # Call the at_after_say hook on the character
         caller.at_say(speech, msg_self=True)
+
+        # If an event is running in the current room, then write to event log
+        EventManager.add_msg(speech)
 
 class CmdWarp(default_cmds.MuxCommand):
     """
