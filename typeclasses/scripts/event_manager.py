@@ -211,7 +211,7 @@ class EventManager(Script):
 
     def add_msg(self, eventid, msg):
         # reset idle timer for event
-        self.db.idle_events[eventid] = 0
+        # self.db.idle_events[eventid] = 0
         # event = RPEvent.objects.get(id=eventid)
         msg = parse_ansi(msg, strip_ansi=True)
         msg = "\n" + msg + "\n"
