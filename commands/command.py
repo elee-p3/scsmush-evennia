@@ -185,7 +185,7 @@ class CmdPose(default_cmds.MuxCommand):
             if self.caller.location.db.active_event:
                 event_manager = EventManager()
                 # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-                event_manager.add_msg(self.caller.location.db.event_id, self.caller.key + ": " + speech)
+                event_manager.add_msg(self.caller.location.db.event_id, self.caller.key + ": " + msg)
 
 class CmdEmit(default_cmds.MuxCommand):
     """
