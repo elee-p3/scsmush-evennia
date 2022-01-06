@@ -183,7 +183,8 @@ class CmdPose(default_cmds.MuxCommand):
 
             # If an event is running in the current room, then write to event log
             if caller.location.db.active_event:
-                event_manager = ScriptDB.objects.get(db_key="Event Manager")
+                event_manager = EventManager()
+                # event_manager = ScriptDB.objects.get(db_key="Event Manager")
                 event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
 
 class CmdEmit(default_cmds.MuxCommand):
@@ -349,7 +350,8 @@ class CmdEmit(default_cmds.MuxCommand):
 
         # If an event is running in the current room, then write to event log
         if caller.location.db.active_event:
-            event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            event_manager = EventManager()
+            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
             event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
 
 
@@ -1121,7 +1123,8 @@ class CmdSay(default_cmds.MuxCommand):
 
         # If an event is running in the current room, then write to event log
         if caller.location.db.active_event:
-            event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            event_manager = EventManager()
             event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
 
 class CmdWarp(default_cmds.MuxCommand):
@@ -1222,7 +1225,8 @@ class CmdEvent(default_cmds.MuxCommand):
 
             caller.location.db.event_id = event.id
 
-            event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            event_manager = EventManager()
             event_manager.start_event(event)
 
             caller.msg("Starting Event")
@@ -1242,7 +1246,8 @@ class CmdEvent(default_cmds.MuxCommand):
             # Stop the Room's active event
             caller.location.db.active_event = False
 
-            event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            event_manager = EventManager()
             event_manager.finish_event(caller, event)
 
             caller.msg("Stopping Event")
