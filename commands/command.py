@@ -182,10 +182,10 @@ class CmdPose(default_cmds.MuxCommand):
             self.caller.location.msg_contents(text=(msg, {"type": "pose"}), from_obj=self.caller)
 
             # If an event is running in the current room, then write to event log
-            if caller.location.db.active_event:
+            if self.caller.location.db.active_event:
                 event_manager = EventManager()
                 # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-                event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
+                event_manager.add_msg(self.caller.location.db.event_id, self.caller.key + ": " + speech)
 
 class CmdEmit(default_cmds.MuxCommand):
     """
