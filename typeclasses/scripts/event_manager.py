@@ -163,47 +163,12 @@ class EventManager(Script):
         return loc
 
     # noinspection PyBroadException
-    def start_event(self, event, location=None):
-        # # see if this was called from callLater, and if so, remove reference to it
-        # if event.id in self.db.pending_start:
-        #     del self.db.pending_start[event.id]
-        #
-        # # if we've already started, do nothing. Can happen due to queue
-        # if event.id in self.db.active_events:
-        #     return
-        # # announce event start
-        # if location:
-        #     loc = location
-        # else:
-        #     loc = self.get_event_location(event)
-        # if loc:  # set up event logging, tag room
-        #     loc.start_event_logging(event)
-        #     start_str = "%s has started at %s." % (event.name, loc.name)
-        #     if loc != event.location:
-        #         event.location = loc
-        #         event.save()
-        # else:
-        #     start_str = "%s has started." % event.name
-        # if event.public_event:
-        #     border = "{w***********************************************************{n\n"
-        #     start_str = border + start_str + "\n" + border
-        #     SESSIONS.announce_all(start_str)
-        # elif event.location:
-        #     try:
-        #         event.location.msg_contents(start_str, options={"box": True})
-        #     except Exception:
-        #         pass
+    def start_event(self, event):
         self.db.active_events.append(event.id)
-        # self.db.idle_events[event.id] = 0
-        # now = time_now()
-        # if now < event.date:
-        #     # if we were forced to start early, update our date
-        #     event.date = now
-        #     event.save()
 
         # set up log for event
         open_logs = self.ndb.open_logs or []
-        # noinspection PyBroadException
+
         with open(self.get_log_path(event.id), "a+") as log:
             open_logs.append(log)
         self.ndb.open_logs = open_logs
@@ -225,6 +190,7 @@ class EventManager(Script):
         # else:
         #     if loc:
         #         loc.msg_contents(end_str)
+
         event.finished = True
         event.clear_room()
         event.save()
@@ -243,26 +209,13 @@ class EventManager(Script):
         if event.id in self.db.active_events:
             new_location.start_event_logging(event)
 
-    # def add_msg(self, eventid, msg, sender=None):
-    #     # reset idle timer for event
-    #     self.db.idle_events[eventid] = 0
-    #     event = RPEvent.objects.get(id=eventid)
-    #     msg = parse_ansi(msg, strip_ansi=True)
-    #     msg = "\n" + msg + "\n"
-    #     with open(self.get_log_path(eventid), "a+") as log:
-    #         log.write(msg)
-        # try:
-        #     dompc = sender.player.Dominion
-        #     if dompc not in event.attended:
-        #         event.record_attendance(dompc)
-        # except AttributeError:
-        #     pass
-
-    def add_msg(self, msg):
+    def add_msg(self, eventid, msg):
         # reset idle timer for event
+        self.db.idle_events[eventid] = 0
+        # event = RPEvent.objects.get(id=eventid)
         msg = parse_ansi(msg, strip_ansi=True)
         msg = "\n" + msg + "\n"
-        with open(self.get_log_path(1), "a+") as log:
+        with open(self.get_log_path(eventid), "a+") as log:
             log.write(msg)
 
     def add_gmnote(self, eventid, msg):

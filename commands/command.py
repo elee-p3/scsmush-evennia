@@ -181,6 +181,11 @@ class CmdPose(default_cmds.MuxCommand):
             msg = sub_old_ansi(msg)
             self.caller.location.msg_contents(text=(msg, {"type": "pose"}), from_obj=self.caller)
 
+            # If an event is running in the current room, then write to event log
+            if caller.location.db.active_event:
+                event_manager = ScriptDB.objects.get(db_key="Event Manager")
+                event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
+
 class CmdEmit(default_cmds.MuxCommand):
     """
     @emit
@@ -341,6 +346,11 @@ class CmdEmit(default_cmds.MuxCommand):
                     caller.msg("Emitted to %s:\n%s" % (objname, message))
             else:
                 caller.msg("You are not allowed to emit to %s." % objname)
+
+        # If an event is running in the current room, then write to event log
+        if caller.location.db.active_event:
+            event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
 
 
 class CmdOOC(default_cmds.MuxCommand):
@@ -1110,8 +1120,9 @@ class CmdSay(default_cmds.MuxCommand):
         caller.at_say(speech, msg_self=True)
 
         # If an event is running in the current room, then write to event log
-        tmp = EventManager()
-        tmp.add_msg(speech)
+        if caller.location.db.active_event:
+            event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
 
 class CmdWarp(default_cmds.MuxCommand):
     """
@@ -1167,6 +1178,10 @@ class CmdWarp(default_cmds.MuxCommand):
         #     else:
         #         caller.msg("Teleported %s -> %s." % (obj_to_teleport, destination))
 
+# An event is fundamentally tied to a room
+# Whenever we start an event, fundamentally two things happen:
+# 1. We create an RPEvent to keep track of what scenes have happened
+# 2. We flag the current room with an active_event = True and the RPEvent's event id so signify an active event
 class CmdEvent(default_cmds.MuxCommand):
     """
     Usage:
@@ -1189,34 +1204,47 @@ class CmdEvent(default_cmds.MuxCommand):
             return
 
         elif "start" in self.switches:
-            # event_table = RPEvent(db_name='testevent',
-            #     db_date=datetime.now(),
-            #     db_desc='my description',
-            #     db_location=caller.location)
+            # Make sure the current room doesn't already have an active event, and otherwise mark it
+            if caller.location.db.active_event:
+                caller.msg("There is currently an active event running in this room already.")
+                return
+            else:
+                caller.location.db.active_event = True
 
             event = RPEvent.objects.create(
-                db_name='testevent',
+                db_name='Unnamed Event',
                 db_date=datetime.now(),
-                db_desc='my description',
+                db_desc='',
                 db_location=caller.location,
             )
 
-            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-            # event_manager.start_event(event, location=caller.location)
+            for event in events:
+                caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}\nid = {3}".format(event.db_name, event.db_desc, event.db_location, event.id))
+
+            caller.location.db.event_id = event.id
+
+            event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            event_manager.start_event(event)
 
             caller.msg("Starting Event")
             return
 
         elif "stop" in self.switches:
-            # event = events.get(location=self.caller.location)
+            # Make sure the current room's event hasn't already been stopped
+            if not caller.location.db.active_event:
+                caller.msg("There is no active event running in this room")
+                return
 
-            events = RPEvent.objects.filter(db_name='testevent')
+            events = RPEvent.objects.filter(id=caller.location.db.event_id)
 
-            for event in events:
-                caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}".format(event.db_name, event.db_desc, event.db_location))
+            # for event in events:
+            #     caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}".format(event.db_name, event.db_desc, event.db_location))
 
-            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-            # event_manager.finish_event(event)
+            # Stop the Room's active event
+            caller.location.db.active_event = False
+
+            event_manager = ScriptDB.objects.get(db_key="Event Manager")
+            event_manager.finish_event(caller, event)
 
             caller.msg("Stopping Event")
             return
