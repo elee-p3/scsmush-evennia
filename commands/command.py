@@ -1226,8 +1226,8 @@ class CmdEvent(default_cmds.MuxCommand):
             caller.location.db.event_id = event.id
 
             # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-            event_manager = EventManager()
-            event_manager.start_event(event)
+            # event_manager = EventManager()
+            # event_manager.start_event(event)
 
             caller.msg("Starting Event")
             return
@@ -1247,8 +1247,8 @@ class CmdEvent(default_cmds.MuxCommand):
             caller.location.db.active_event = False
 
             # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-            event_manager = EventManager()
-            event_manager.finish_event(caller, event)
+            # event_manager = EventManager()
+            # event_manager.finish_event(caller, event)
 
             caller.msg("Stopping Event")
             return
