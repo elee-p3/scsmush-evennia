@@ -4,6 +4,7 @@ import re
 RE_PARTS = re.compile(r"(d|\+|-|/|\*|<|>|<=|>=|!=|==)")
 RE_MOD = re.compile(r"(\+|-|/|\*)")
 RE_COND = re.compile(r"(<|>|<=|>=|!=|==)")
+RE_COMMENT = re.compile(r"(#)")
 
 class CmdSCSDice(CmdDice):
     def func(self):
@@ -15,13 +16,24 @@ class CmdSCSDice(CmdDice):
             return
         argstring = "".join(str(arg) for arg in self.args)
 
-        parts = [part for part in RE_PARTS.split(self.args) if part]
+        # check for a comment and preprocess the string to remove the comment
+        comment = ""
+        comment_parts = [part for part in RE_COMMENT.split(self.args) if part]
+        for part in comment_parts:
+            self.caller.msg("part is {0}".format(part))
+        # check if there is a comment at all. This will catch when there isn't specifically a hashtag+string
+        # note that if there is only a hashtag, this comparison will still fail, but we won't properly strip the #
+        if len(comment_parts) == 3:
+            comment = comment_parts[2]  # in theory, the last element of the list should be the comment string
+            roll_string = comment_parts[0]  # similarly, everything outside of the hashtag and comment should be the actual roll
+
+        # parts = [part for part in RE_PARTS.split(self.args) if part]
+        parts = [part for part in RE_PARTS.split(roll_string) if part]
         for part in parts:
             self.caller.msg("part is {0}".format(part))
         len_parts = len(parts)
         modifier = None
         conditional = None
-        comment = ""
 
         if len_parts < 3 or parts[1] != "d":
             self.caller.msg(
@@ -103,6 +115,10 @@ class CmdSCSDice(CmdDice):
             self.caller.msg(string)
             string = roomrollstring % (self.caller.key, argstring, "")
             self.caller.location.msg_contents(string, exclude=self.caller)
+            # print only if comment exists
+            if comment:
+                string = "|214Comment:|n {0}".format(comment)
+                self.caller.location.msg_contents(string)
             string = resultstring % (rolls, result)
             string += outcomestring
             self.caller.location.msg_contents(string)
