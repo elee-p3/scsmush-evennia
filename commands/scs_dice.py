@@ -19,18 +19,13 @@ class CmdSCSDice(CmdDice):
         # check for a comment and preprocess the string to remove the comment
         comment = ""
         comment_parts = [part for part in RE_COMMENT.split(self.args) if part]
-        for part in comment_parts:
-            self.caller.msg("part is {0}".format(part))
         # check if there is a comment at all. This will catch when there isn't specifically a hashtag+string
         # note that if there is only a hashtag, this comparison will still fail, but we won't properly strip the #
         if len(comment_parts) == 3:
             comment = comment_parts[2]  # in theory, the last element of the list should be the comment string
             roll_string = comment_parts[0]  # similarly, everything outside of the hashtag and comment should be the actual roll
 
-        # parts = [part for part in RE_PARTS.split(self.args) if part]
         parts = [part for part in RE_PARTS.split(roll_string) if part]
-        for part in parts:
-            self.caller.msg("part is {0}".format(part))
         len_parts = len(parts)
         modifier = None
         conditional = None
@@ -111,9 +106,11 @@ class CmdSCSDice(CmdDice):
             self.caller.msg(string)
         else:
             # normal roll
-            string = yourollstring % (argstring, "")
+            # string = yourollstring % (argstring, "")
+            string = yourollstring % (roll_string, "")
             self.caller.msg(string)
-            string = roomrollstring % (self.caller.key, argstring, "")
+            # string = roomrollstring % (self.caller.key, argstring, "")
+            string = roomrollstring % (self.caller.key, roll_string, "")
             self.caller.location.msg_contents(string, exclude=self.caller)
             # print only if comment exists
             if comment:
