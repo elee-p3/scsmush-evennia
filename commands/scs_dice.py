@@ -1,11 +1,11 @@
-from evennia.contrib import dice
+from evennia.contrib.dice import CmdDice,roll_dice
 import re
 
 RE_PARTS = re.compile(r"(d|\+|-|/|\*|<|>|<=|>=|!=|==)")
 RE_MOD = re.compile(r"(\+|-|/|\*)")
 RE_COND = re.compile(r"(<|>|<=|>=|!=|==)")
 
-class CmdSCSDice(dice.CmdDice):
+class CmdSCSDice(CmdDice):
     def func(self):
         """Mostly parsing for calling the dice roller function"""
 
