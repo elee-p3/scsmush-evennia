@@ -18,12 +18,14 @@ class CmdSCSDice(CmdDice):
 
         # check for a comment and preprocess the string to remove the comment
         comment = ""
+        roll_string = ""
         comment_parts = [part for part in RE_COMMENT.split(self.args) if part]
         # check if there is a comment at all. This will catch when there isn't specifically a hashtag+string
-        # note that if there is only a hashtag, this comparison will still fail, but we won't properly strip the #
         if len(comment_parts) == 3:
             comment = comment_parts[2]  # in theory, the last element of the list should be the comment string
-            roll_string = comment_parts[0]  # similarly, everything outside of the hashtag and comment should be the actual roll
+
+        roll_string = comment_parts[0] # everything outside of the hashtag and comment should be the actual roll.
+        # note that the first element of comment_parts will *always* be the roll string with or without a hashtag
 
         parts = [part for part in RE_PARTS.split(roll_string) if part]
         len_parts = len(parts)
