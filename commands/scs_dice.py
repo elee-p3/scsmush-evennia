@@ -1,0 +1,108 @@
+from evennia.contrib import dice
+import re
+
+RE_PARTS = re.compile(r"(d|\+|-|/|\*|<|>|<=|>=|!=|==)")
+RE_MOD = re.compile(r"(\+|-|/|\*)")
+RE_COND = re.compile(r"(<|>|<=|>=|!=|==)")
+
+class CmdSCSDice(dice.CmdDice):
+    def func(self):
+        """Mostly parsing for calling the dice roller function"""
+
+        # example to use for now is "roll 2d6+4<3"
+        if not self.args:
+            self.caller.msg("Usage: @dice <nr>d<sides> [modifier] [conditional]#comment")
+            return
+        argstring = "".join(str(arg) for arg in self.args)
+
+        parts = [part for part in RE_PARTS.split(self.args) if part]
+        for part in parts:
+            self.caller.msg("part is {0}".format(part))
+        len_parts = len(parts)
+        modifier = None
+        conditional = None
+        comment = ""
+
+        if len_parts < 3 or parts[1] != "d":
+            self.caller.msg(
+                "You must specify the die roll(s) as <nr>d<sides>."
+                " For example, 2d6 means rolling a 6-sided die 2 times."
+            )
+            return
+
+        # Limit the number of dice and sides a character can roll to prevent server slow down and crashes
+        ndicelimit = 10000  # Maximum number of dice
+        nsidelimit = 10000  # Maximum number of sides
+        if int(parts[0]) > ndicelimit or int(parts[2]) > nsidelimit:
+            self.caller.msg("The maximum roll allowed is %sd%s." % (ndicelimit, nsidelimit))
+            return
+
+        ndice, nsides = parts[0], parts[2]
+        if len_parts == 3:
+            # just something like 1d6
+            pass
+        elif len_parts == 5:
+            # either e.g. 1d6 + 3  or something like 1d6 > 3
+            if parts[3] in ("+", "-", "*", "/"):
+                modifier = (parts[3], parts[4])
+            else:  # assume it is a conditional
+                conditional = (parts[3], parts[4])
+        elif len_parts == 7:
+            # the whole sequence, e.g. 1d6 + 3 > 5
+            modifier = (parts[3], parts[4])
+            conditional = (parts[5], parts[6])
+        else:
+            # error
+            self.caller.msg("You must specify a valid die roll")
+            return
+        # do the roll
+        try:
+            result, outcome, diff, rolls = roll_dice(
+                ndice, nsides, modifier=modifier, conditional=conditional, return_tuple=True
+            )
+        except ValueError:
+            self.caller.msg(
+                "You need to enter valid integer numbers, modifiers and operators."
+                " |w%s|n was not understood." % self.args
+            )
+            return
+        # format output
+        if len(rolls) > 1:
+            rolls = ", ".join(str(roll) for roll in rolls[:-1]) + " and " + str(rolls[-1])
+        else:
+            rolls = rolls[0]
+        if outcome is None:
+            outcomestring = ""
+        elif outcome:
+            outcomestring = " This is a |gsuccess|n (by %s)." % diff
+        else:
+            outcomestring = " This is a |rfailure|n (by %s)." % diff
+        yourollstring = "You roll %s%s."
+        roomrollstring = "%s rolls %s%s."
+        resultstring = " Roll(s): %s. Total result is |w%s|n."
+
+        if "secret" in self.switches:
+            # don't echo to the room at all
+            string = yourollstring % (argstring, " (secret, not echoed)")
+            string += "\n" + resultstring % (rolls, result)
+            string += outcomestring + " (not echoed)"
+            self.caller.msg(string)
+        elif "hidden" in self.switches:
+            # announce the roll to the room, result only to caller
+            string = yourollstring % (argstring, " (hidden)")
+            self.caller.msg(string)
+            string = roomrollstring % (self.caller.key, argstring, " (hidden)")
+            self.caller.location.msg_contents(string, exclude=self.caller)
+            # handle result
+            string = resultstring % (rolls, result)
+            string += outcomestring + " (not echoed)"
+            self.caller.msg(string)
+        else:
+            # normal roll
+            string = yourollstring % (argstring, "")
+            self.caller.msg(string)
+            string = roomrollstring % (self.caller.key, argstring, "")
+            self.caller.location.msg_contents(string, exclude=self.caller)
+            string = resultstring % (rolls, result)
+            string += outcomestring
+            self.caller.location.msg_contents(string)
