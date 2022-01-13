@@ -10,7 +10,7 @@ class CmdSCSDice(CmdDice):
     def func(self):
         """Mostly parsing for calling the dice roller function"""
 
-        # example to use for now is "roll 2d6+4<3"
+        # example to use for now is "roll 2d6+4<3#testing"
         if not self.args:
             self.caller.msg("Usage: @dice <nr>d<sides> [modifier] [conditional]#comment")
             return
@@ -31,6 +31,11 @@ class CmdSCSDice(CmdDice):
         len_parts = len(parts)
         modifier = None
         conditional = None
+
+        self.caller.msg("roll string's parts are as follows")
+        for part in parts:
+
+            self.caller.msg("{0}".format(part))
 
         if len_parts < 3 or parts[1] != "d":
             self.caller.msg(
@@ -108,10 +113,8 @@ class CmdSCSDice(CmdDice):
             self.caller.msg(string)
         else:
             # normal roll
-            # string = yourollstring % (argstring, "")
             string = yourollstring % (roll_string, "")
             self.caller.msg(string)
-            # string = roomrollstring % (self.caller.key, argstring, "")
             string = roomrollstring % (self.caller.key, roll_string, "")
             self.caller.location.msg_contents(string, exclude=self.caller)
             # print only if comment exists
