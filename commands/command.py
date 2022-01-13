@@ -95,7 +95,7 @@ def highlight_names(caller, in_string, color_string="055"):
     out_string = in_string
     # for each of the names in the list, replace the string with a colored version
     for name in full_list:
-        caller.msg("{0}".format(name))
+        # caller.msg("{0}".format(name))
         out_string = ireplace(name, "|"+color_string+name+"|n", out_string)
 
     return out_string
