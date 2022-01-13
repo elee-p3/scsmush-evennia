@@ -76,15 +76,15 @@ def prune_sessions(session_list):
 
     return pruned_sessions
 
-def highlight_names(caller, in_string, color_string="045"):
+def highlight_names(caller, in_string, color_string="055"):
     # find all characters in current room
-    name_list = caller.location.contents_get(exclude=caller.location.exits)
-    full_list = []
+    char_list = caller.location.contents_get(exclude=caller.location.exits)
+    name_list = []
 
     # generate a list of all names of said characters, including aliases
-    for name in name_list:
-        full_list.append(name)
-        full_list += caller.aliases.all()
+    for character in char_list:
+        name_list.append(name.key)
+        name_list += caller.aliases.all()
 
     out_string = in_string
     # for each of the names in the list, replace the string with a colored version
