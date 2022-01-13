@@ -84,7 +84,7 @@ def highlight_names(caller, in_string, color_string="055"):
     # generate a list of all names of said characters, including aliases
     for character in char_list:
         name_list.append(character.key)
-        name_list += caller.aliases.all()
+        name_list += character.aliases.all()
 
     out_string = in_string
     # for each of the names in the list, replace the string with a colored version
