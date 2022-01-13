@@ -206,6 +206,7 @@ class CmdPose(default_cmds.MuxCommand):
 
             msg = "%s%s" % (self.caller.name, self.args)
             msg = sub_old_ansi(msg)
+            msg = highlight_names(self.caller, msg)
             self.caller.location.msg_contents(text=(msg, {"type": "pose"}), from_obj=self.caller)
 
             # If an event is running in the current room, then write to event log
@@ -1140,6 +1141,8 @@ class CmdSay(default_cmds.MuxCommand):
             return
 
         speech = self.args
+
+        speech = highlight_names(caller, speech)
 
         # Calling the at_before_say hook on the character
         speech = caller.at_before_say(speech)
