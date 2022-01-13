@@ -19,6 +19,10 @@ from typeclasses.scripts.event_manager import EventManager
 from datetime import datetime
 
 # Danny was here, bitches.
+# text replacement function stolen from https://stackoverflow.com/questions/919056/case-insensitive-replace
+def ireplace(old, repl, text):
+    return re.sub('(?i)'+re.escape(old), lambda m: repl, text)
+
 def sub_old_ansi(text):
     """Replacing old ansi with newer evennia markup strings"""
     if not text:
@@ -72,6 +76,22 @@ def prune_sessions(session_list):
 
     return pruned_sessions
 
+def highlight_names(caller, in_string, color_string="045"):
+    # find all characters in current room
+    name_list = caller.location.contents_get(exclude=caller.location.exits)
+    full_list = []
+
+    # generate a list of all names of said characters, including aliases
+    for name in name_list:
+        full_list.append(name)
+        full_list += caller.aliases.all()
+
+    out_string = in_string
+    # for each of the names in the list, replace the string with a colored version
+    for name in full_list:
+        out_string = ireplace(name, "|"+color_string+name+"|n", out_string)
+
+    return out_string
 
 class CmdFinger(default_cmds.MuxCommand):
     """
@@ -303,6 +323,9 @@ class CmdEmit(default_cmds.MuxCommand):
             # caller.location.msg_contents(
             #     gm_msg, from_obj=caller, options={"is_pose": True}, gm_msg=True
             # )
+
+            message = highlight_names(caller, message)
+
             caller.location.msg_contents(
                 message, from_obj=caller, options={"is_pose": True}
             )
