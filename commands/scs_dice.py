@@ -1,9 +1,9 @@
 from evennia.contrib.dice import CmdDice,roll_dice
 import re
 
-RE_PARTS = re.compile(r"(d|\+|-|/|\*|<|>|<=|>=|!=|==)")
+RE_PARTS = re.compile(r"(d|\+|-|/|\*|<=|>=|<|>|!=|==)")
 RE_MOD = re.compile(r"(\+|-|/|\*)")
-RE_COND = re.compile(r"(<|>|<=|>=|!=|==)")
+RE_COND = re.compile(r"(<=|>=|<|>|!=|==)")
 RE_COMMENT = re.compile(r"(#)")
 
 class CmdSCSDice(CmdDice):
