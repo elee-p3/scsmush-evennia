@@ -80,15 +80,21 @@ def highlight_names(caller, in_string, color_string="055"):
     # find all characters in current room
     char_list = caller.location.contents_get(exclude=caller.location.exits)
     name_list = []
+    full_list = []
 
     # generate a list of all names of said characters, including aliases
     for character in char_list:
         name_list.append(character.key)
         name_list += character.aliases.all()
 
+    # generate a list of all occurrences of the name in the input string. This will allow us to print the names
+    # exactly as they were written, without overriding case
+    for name in name_list:
+        full_list += re.findall(re.compile(re.escape(name), re.IGNORECASE), in_string)
+
     out_string = in_string
     # for each of the names in the list, replace the string with a colored version
-    for name in name_list:
+    for name in full_list:
         caller.msg("{0}".format(name))
         out_string = ireplace(name, "|"+color_string+name+"|n", out_string)
 
