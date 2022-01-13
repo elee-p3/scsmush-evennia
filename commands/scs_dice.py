@@ -27,15 +27,12 @@ class CmdSCSDice(CmdDice):
         roll_string = comment_parts[0] # everything outside of the hashtag and comment should be the actual roll.
         # note that the first element of comment_parts will *always* be the roll string with or without a hashtag
 
+        roll_string = roll_string.rstrip()
+        comment = comment.lstrip()
         parts = [part for part in RE_PARTS.split(roll_string) if part]
         len_parts = len(parts)
         modifier = None
         conditional = None
-
-        self.caller.msg("roll string's parts are as follows")
-        for part in parts:
-
-            self.caller.msg("{0}".format(part))
 
         if len_parts < 3 or parts[1] != "d":
             self.caller.msg(
