@@ -1,4 +1,4 @@
-def sub_old_ansi(self, text):
+def sub_old_ansi(text):
     """Replacing old ansi with newer evennia markup strings"""
     if not text:
         return ""
