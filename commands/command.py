@@ -103,11 +103,11 @@ def tailored_msg(caller, msg):
                                                                     character.db.pose_colors_others),
                                                     {"type": "pose"}),
                                               exclude=everyone_else,
-                                              from_obj=self.caller)
+                                              from_obj=caller)
         else:
             caller.location.msg_contents(text=(msg, {"type": "pose"}),
                                               exclude=everyone_else,
-                                              from_obj=self.caller)
+                                              from_obj=caller)
     return
 
 class CmdFinger(default_cmds.MuxCommand):
