@@ -53,7 +53,7 @@ def highlight_names(source_character, in_string, self_color, others_color):
     if self_color is None:
         self_color = "|550"
 
-    if others_color  is None:
+    if others_color is None:
         others_color = "|055"
 
     # find all characters in current room
@@ -97,6 +97,10 @@ def tailored_msg(caller, msg):
 
     for character in char_list:
         everyone_else = char_list.remove(character)
+        for char in everyone_else:
+            caller.msg("{0}".format(char))
+        caller.msg("pose_colors_self is {0}".format(character.db.pose_colors_self))
+        caller.msg("pose_colors_others is {0}".format(character.db.pose_colors_others))
         name = character.key
         if character.db.pose_colors_on:
             caller.location.msg_contents(text=(highlight_names(character, msg, character.db.pose_colors_self,
