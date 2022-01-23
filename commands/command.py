@@ -88,7 +88,7 @@ def highlight_names(source_character, in_string, self_color, others_color):
 
     return out_string
 
-def tailored_msg(caller, in_string):
+def tailored_msg(caller, msg):
     # the point of this function is to
     # 1. Get a list of character objects in the room
     # 2. For each character, check whether names should be colored
