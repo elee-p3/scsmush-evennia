@@ -51,10 +51,10 @@ def prune_sessions(session_list):
 def highlight_names(source_character, in_string, self_color, others_color):
 
     if self_color is None:
-        self_color = "|550"
+        self_color = "550"
 
     if others_color is None:
-        others_color = "|055"
+        others_color = "055"
 
     # find all characters in current room
     char_list = source_character.location.contents_get(exclude=source_character.location.exits)
@@ -82,9 +82,9 @@ def highlight_names(source_character, in_string, self_color, others_color):
     # for each of the names in the list, replace the string with a colored version
     for name in full_list:
         if name in self_full_list:
-            out_string = ireplace(name, self_color + name + "|n", out_string)
+            out_string = ireplace(name, "|" + self_color + name + "|n", out_string)
         else:
-            out_string = ireplace(name, others_color + name + "|n", out_string)
+            out_string = ireplace(name, "|" + others_color + name + "|n", out_string)
 
     return out_string
 
@@ -94,17 +94,17 @@ def tailored_msg(caller, msg):
     # 2. For each character, check whether names should be colored
     # 3. And custom color the names so that the receiving character's name is highlighted a different color
     char_list = caller.location.contents_get(exclude=caller.location.exits)
-    for char in char_list:
-        caller.msg("{0}".format(char))
+    # for char in char_list:
+    #     caller.msg("{0}".format(char))
 
     for character in char_list:
         everyone_else = caller.location.contents_get(exclude=caller.location.exits)
         everyone_else.remove(character)
-        for char in everyone_else:
-            caller.msg("{0}".format(char))
-        caller.msg("pose_colors_self for {0} is {1}".format(character, character.db.pose_colors_self))
-        caller.msg("pose_colors_others for {0} is {1}".format(character, character.db.pose_colors_others))
-        caller.msg("pose_colors_others for {0} is {1}".format(character, character.db.pose_colors_on))
+        # for char in everyone_else:
+        #     caller.msg("{0}".format(char))
+        # caller.msg("pose_colors_self for {0} is {1}".format(character, character.db.pose_colors_self))
+        # caller.msg("pose_colors_others for {0} is {1}".format(character, character.db.pose_colors_others))
+        # caller.msg("pose_colors_on for {0} is {1}".format(character, character.db.pose_colors_on))
 
         if character.db.pose_colors_on:
             caller.location.msg_contents(text=(highlight_names(character, msg, character.db.pose_colors_self,
