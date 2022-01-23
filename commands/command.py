@@ -80,9 +80,6 @@ def highlight_names(source_character, in_string, self_color, others_color):
 
     out_string = in_string
     # for each of the names in the list, replace the string with a colored version
-
-    source_character.msg("self_color is of type {0} and value {1}".format(type(self_color), self_color))
-    source_character.msg("others_color is of type {0} and value {1}".format(type(others_color), others_color))
     for name in full_list:
         if name in self_full_list:
             out_string = ireplace(name, "|" + self_color + name + "|n", out_string)
@@ -345,38 +342,24 @@ class CmdEmit(default_cmds.MuxCommand):
             do_global = caller.check_permstring(perm)
         # normal emits by players are just sent to the room
         if normal_emit:
-            # gms = [
-            #     ob for ob in caller.location.contents if ob.check_permstring("builders")
-            # ]
             non_gms = [
                 ob
                 for ob in caller.location.contents
                 if "emit_label" in ob.tags.all() and ob.player
             ]
-            # gm_msg = "{w({c%s{w){n %s" % (caller.name, message)
+
+            # message = highlight_names(caller, message)
+            tailored_msg(caller, message)
+
             # caller.location.msg_contents(
-            #     gm_msg, from_obj=caller, options={"is_pose": True}, gm_msg=True
+            #     message, from_obj=caller, options={"is_pose": True}
             # )
-
-            message = highlight_names(caller, message)
-
-            caller.location.msg_contents(
-                message, from_obj=caller, options={"is_pose": True}
-            )
 
             # If an event is running in the current room, then write to event log
             if caller.location.db.active_event:
                 event_manager = EventManager()
                 # event_manager = ScriptDB.objects.get(db_key="Event Manager")
                 event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + message)
-            # for ob in non_gms:
-            #     caller.location.msg_contents(
-            #     message,
-            #     # exclude=gms + non_gms,
-            #     from_obj=caller,
-            #     options={"is_pose": True},
-            #     )
-            #     ob.msg(message, from_obj=caller, options={"is_pose": True})
             return
         # send to all objects
         for objname in objnames:
@@ -1168,17 +1151,18 @@ class CmdSay(default_cmds.MuxCommand):
 
         speech = self.args
 
-        speech = highlight_names(caller, speech)
+        # speech = highlight_names(caller, speech)
 
         # Calling the at_before_say hook on the character
-        speech = caller.at_before_say(speech)
+        # speech = caller.at_before_say(speech)
+        tailored_msg(caller, speech)
 
         # If speech is empty, stop here
         if not speech:
             return
 
         # Call the at_after_say hook on the character
-        caller.at_say(speech, msg_self=True)
+        # caller.at_say(speech, msg_self=True)
 
         # If an event is running in the current room, then write to event log
         if caller.location.db.active_event:
