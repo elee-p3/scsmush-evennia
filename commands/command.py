@@ -95,6 +95,8 @@ def tailored_msg(caller, msg):
     # 2. For each character, check whether names should be colored
     # 3. And custom color the names so that the receiving character's name is highlighted a different color
     char_list = caller.location.contents_get(exclude=caller.location.exits)
+    for char in char_list:
+        caller.msg("{0}".format(char))
 
     for character in char_list:
         everyone_else = copy.deepcopy(char_list)
