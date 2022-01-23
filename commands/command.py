@@ -1154,15 +1154,15 @@ class CmdSay(default_cmds.MuxCommand):
         # speech = highlight_names(caller, speech)
 
         # Calling the at_before_say hook on the character
-        # speech = caller.at_before_say(speech)
-        tailored_msg(caller, speech)
+        speech = caller.at_before_say(speech)
+        # tailored_msg(caller, speech)
 
         # If speech is empty, stop here
         if not speech:
             return
 
         # Call the at_after_say hook on the character
-        # caller.at_say(speech, msg_self=True)
+        caller.at_say(speech, msg_self=True)
 
         # If an event is running in the current room, then write to event log
         if caller.location.db.active_event:
