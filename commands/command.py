@@ -99,13 +99,13 @@ def tailored_msg(caller, in_string):
         everyone_else = char_list.remove(character)
         name = character.key
         if character.db.pose_colors_on:
-            self.caller.location.msg_contents(text=(highlight_names(character, msg, character.db.pose_colors_self,
+            caller.location.msg_contents(text=(highlight_names(character, msg, character.db.pose_colors_self,
                                                                     character.db.pose_colors_others),
                                                     {"type": "pose"}),
                                               exclude=everyone_else,
                                               from_obj=self.caller)
         else:
-            self.caller.location.msg_contents(text=(msg, {"type": "pose"}),
+            caller.location.msg_contents(text=(msg, {"type": "pose"}),
                                               exclude=everyone_else,
                                               from_obj=self.caller)
     return
