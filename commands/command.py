@@ -18,6 +18,7 @@ from typeclasses.scripts.event_manager import EventManager
 from world.supplemental import *
 
 from datetime import datetime
+import copy
 
 # Danny was here, bitches.
 # text replacement function stolen from https://stackoverflow.com/questions/919056/case-insensitive-replace
@@ -94,17 +95,16 @@ def tailored_msg(caller, msg):
     # 2. For each character, check whether names should be colored
     # 3. And custom color the names so that the receiving character's name is highlighted a different color
     char_list = caller.location.contents_get(exclude=caller.location.exits)
-    for character in char_list:
-        caller.msg("{0}".format(character))
 
     for character in char_list:
-        everyone_else = char_list
+        everyone_else = copy.deepcopy(char_list)
         everyone_else.remove(character)
         for char in everyone_else:
             caller.msg("{0}".format(char))
-        caller.msg("pose_colors_self is {0}".format(character.db.pose_colors_self))
-        caller.msg("pose_colors_others is {0}".format(character.db.pose_colors_others))
-        name = character.key
+        caller.msg("pose_colors_self for {0} is {1}".format(character, character.db.pose_colors_self))
+        caller.msg("pose_colors_others for {0} is {1}".format(character, character.db.pose_colors_others))
+        caller.msg("pose_colors_others for {0} is {1}".format(character, character.db.pose_colors_on))
+
         if character.db.pose_colors_on:
             caller.location.msg_contents(text=(highlight_names(character, msg, character.db.pose_colors_self,
                                                                     character.db.pose_colors_others),
