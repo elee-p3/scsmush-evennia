@@ -48,29 +48,67 @@ def prune_sessions(session_list):
 
     return pruned_sessions
 
-def highlight_names(caller, in_string, color_string="055"):
+def highlight_names(source_character, in_string, self_color, others_color):
+
+    if self_color is None:
+        self_color = "|550"
+
+    if others_color  is None:
+        others_color = "|055"
+
     # find all characters in current room
-    char_list = caller.location.contents_get(exclude=caller.location.exits)
+    char_list = source_character.location.contents_get(exclude=source_character.location.exits)
     name_list = []
+    self_name_list = [] # These are necessary to color the source character's name separately
     full_list = []
+    self_full_list = []
 
     # generate a list of all names of said characters, including aliases
     for character in char_list:
         name_list.append(character.key)
         name_list += character.aliases.all()
+        if character == source_character:
+            self_name_list.append(character.key)
+            self_name_list += character.aliases.all()
 
     # generate a list of all occurrences of the name in the input string. This will allow us to print the names
     # exactly as they were written, without overriding case
     for name in name_list:
         full_list += re.findall(re.compile(re.escape(name), re.IGNORECASE), in_string)
+        if name in self_name_list:
+            self_full_list += re.findall(re.compile(re.escape(name), re.IGNORECASE), in_string)
 
     out_string = in_string
     # for each of the names in the list, replace the string with a colored version
     for name in full_list:
-        # caller.msg("{0}".format(name))
-        out_string = ireplace(name, "|"+color_string+name+"|n", out_string)
+        if name in self_full_list:
+            out_string = ireplace(name, self_color + name + "|n", out_string)
+        else:
+            out_string = ireplace(name, others_color + name + "|n", out_string)
 
     return out_string
+
+def tailored_msg(caller, in_string):
+    # the point of this function is to
+    # 1. Get a list of character objects in the room
+    # 2. For each character, check whether names should be colored
+    # 3. And custom color the names so that the receiving character's name is highlighted a different color
+    char_list = caller.location.contents_get(exclude=caller.location.exits)
+
+    for character in char_list:
+        everyone_else = char_list.remove(character)
+        name = character.key
+        if character.db.pose_colors_on:
+            self.caller.location.msg_contents(text=(highlight_names(character, msg, character.db.pose_colors_self,
+                                                                    character.db.pose_colors_others),
+                                                    {"type": "pose"}),
+                                              exclude=everyone_else,
+                                              from_obj=self.caller)
+        else:
+            self.caller.location.msg_contents(text=(msg, {"type": "pose"}),
+                                              exclude=everyone_else,
+                                              from_obj=self.caller)
+    return
 
 class CmdFinger(default_cmds.MuxCommand):
     """
@@ -178,8 +216,13 @@ class CmdPose(default_cmds.MuxCommand):
 
             msg = "%s%s" % (self.caller.name, self.args)
             msg = sub_old_ansi(msg)
-            msg = highlight_names(self.caller, msg)
-            self.caller.location.msg_contents(text=(msg, {"type": "pose"}), from_obj=self.caller)
+
+            tailored_msg(self.caller, msg)
+            # msg = highlight_names(self.caller, msg)
+            # if character.color_attribute == True
+            # self.caller.location.msg_contents(text=(highlight_names(msg), {"type": "pose"}), from_obj=self.caller)
+            # else
+            # self.caller.location.msg_contents(text=msg, {"type": "pose"}), from_obj=self.caller)
 
             # If an event is running in the current room, then write to event log
             if self.caller.location.db.active_event:
