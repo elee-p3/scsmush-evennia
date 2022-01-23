@@ -98,7 +98,8 @@ def tailored_msg(caller, msg):
         caller.msg("{0}".format(character))
 
     for character in char_list:
-        everyone_else = char_list.remove(character)
+        everyone_else = char_list
+        everyone_else.remove(character)
         for char in everyone_else:
             caller.msg("{0}".format(char))
         caller.msg("pose_colors_self is {0}".format(character.db.pose_colors_self))
