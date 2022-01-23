@@ -18,7 +18,6 @@ from typeclasses.scripts.event_manager import EventManager
 from world.supplemental import *
 
 from datetime import datetime
-import copy
 
 # Danny was here, bitches.
 # text replacement function stolen from https://stackoverflow.com/questions/919056/case-insensitive-replace
@@ -99,7 +98,7 @@ def tailored_msg(caller, msg):
         caller.msg("{0}".format(char))
 
     for character in char_list:
-        everyone_else = copy.deepcopy(char_list)
+        everyone_else = caller.location.contents_get(exclude=caller.location.exits)
         everyone_else.remove(character)
         for char in everyone_else:
             caller.msg("{0}".format(char))
