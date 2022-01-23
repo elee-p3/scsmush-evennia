@@ -12,6 +12,7 @@ from evennia.utils.evtable import EvTable
 # from commands.base import ArxCommand, ArxPlayerCommand
 from evennia import default_cmds
 from typeclasses.bulletin_board.bboard import BBoard
+from world.supplemental import *
 
 # limit symbol import for API
 __all__ = (
@@ -283,35 +284,6 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
     help_category = "Comms"
     locks = "cmd:not pperm(bboard_banned)"
 
-    def sub_old_ansi(self, text):
-        """Replacing old ansi with newer evennia markup strings"""
-        if not text:
-            return ""
-        text = text.replace("%r", "|/")
-        text = text.replace("%R", "|/")
-        text = text.replace("%t", "|-")
-        text = text.replace("%T", "|-")
-        text = text.replace("%b", "|_")
-        text = text.replace("%cr", "|r")
-        text = text.replace("%cR", "|[R")
-        text = text.replace("%cg", "|g")
-        text = text.replace("%cG", "|[G")
-        text = text.replace("%cy", "|!Y")
-        text = text.replace("%cY", "|[Y")
-        text = text.replace("%cb", "|!B")
-        text = text.replace("%cB", "|[B")
-        text = text.replace("%cm", "|!M")
-        text = text.replace("%cM", "|[M")
-        text = text.replace("%cc", "|!C")
-        text = text.replace("%cC", "|[C")
-        text = text.replace("%cw", "|!W")
-        text = text.replace("%cW", "|[W")
-        text = text.replace("%cx", "|!X")
-        text = text.replace("%cX", "|[X")
-        text = text.replace("%ch", "|h")
-        text = text.replace("%cn", "|n")
-        return text
-
     def func(self):
         """Implement the command"""
         caller = self.caller
@@ -460,7 +432,7 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
                 )) or caller.key.upper() != post.poster_name.upper():
                     caller.msg("You cannot edit someone else's post, only your own.")
                     return
-            if board.edit_post(self.caller, post, self.sub_old_ansi(self.rhs)):
+            if board.edit_post(self.caller, post, sub_old_ansi(self.rhs)):
                 self.msg("Post edited.")
                 # inform_staff(
                 #    "%s has edited post %s on board %s." % (caller, post_num, board)
@@ -480,7 +452,7 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
             if not board:
                 return
             message = self.rhs
-            message = self.sub_old_ansi(message)
+            message = sub_old_ansi(message)
             board.bb_post(caller, message, subject)
 
 

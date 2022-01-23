@@ -15,6 +15,7 @@ from evennia.comms.models import Msg
 from world.events.models import RPEvent
 from typeclasses.rooms import Room
 from typeclasses.scripts.event_manager import EventManager
+from world.supplemental import *
 
 from datetime import datetime
 
@@ -22,35 +23,6 @@ from datetime import datetime
 # text replacement function stolen from https://stackoverflow.com/questions/919056/case-insensitive-replace
 def ireplace(old, repl, text):
     return re.sub('(?i)'+re.escape(old), lambda m: repl, text)
-
-def sub_old_ansi(text):
-    """Replacing old ansi with newer evennia markup strings"""
-    if not text:
-        return ""
-    text = text.replace("%r", "|/")
-    text = text.replace("%R", "|/")
-    text = text.replace("%t", "|-")
-    text = text.replace("%T", "|-")
-    text = text.replace("%b", "|_")
-    text = text.replace("%cr", "|r")
-    text = text.replace("%cR", "|[R")
-    text = text.replace("%cg", "|g")
-    text = text.replace("%cG", "|[G")
-    text = text.replace("%cy", "|!Y")
-    text = text.replace("%cY", "|[Y")
-    text = text.replace("%cb", "|!B")
-    text = text.replace("%cB", "|[B")
-    text = text.replace("%cm", "|!M")
-    text = text.replace("%cM", "|[M")
-    text = text.replace("%cc", "|!C")
-    text = text.replace("%cC", "|[C")
-    text = text.replace("%cw", "|!W")
-    text = text.replace("%cW", "|[W")
-    text = text.replace("%cx", "|!X")
-    text = text.replace("%cX", "|[X")
-    text = text.replace("%ch", "|h")
-    text = text.replace("%cn", "|n")
-    return text
 
 def prune_sessions(session_list):
     session_accounts = [session.account.key for session in session_list]  # get a list of just the names
