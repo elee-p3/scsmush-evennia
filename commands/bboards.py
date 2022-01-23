@@ -460,7 +460,7 @@ class CmdBBReadOrPost(default_cmds.MuxCommand):
                 )) or caller.key.upper() != post.poster_name.upper():
                     caller.msg("You cannot edit someone else's post, only your own.")
                     return
-            if board.edit_post(self.caller, post, sub_old_ansi(self.rhs)):
+            if board.edit_post(self.caller, post, self.sub_old_ansi(self.rhs)):
                 self.msg("Post edited.")
                 # inform_staff(
                 #    "%s has edited post %s on board %s." % (caller, post_num, board)
