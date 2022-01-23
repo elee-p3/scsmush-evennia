@@ -80,6 +80,9 @@ def highlight_names(source_character, in_string, self_color, others_color):
 
     out_string = in_string
     # for each of the names in the list, replace the string with a colored version
+
+    source_character.msg("self_color is of type {0} and value {1}".format(type(self_color), self_color))
+    source_character.msg("others_color is of type {0} and value {1}".format(type(others_color), others_color))
     for name in full_list:
         if name in self_full_list:
             out_string = ireplace(name, "|" + self_color + name + "|n", out_string)
