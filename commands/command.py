@@ -1341,6 +1341,10 @@ class CmdPoseColors(default_cmds.MuxCommand):
         # add corner casing for bad switches
 
         if switches or args:
+            for switch in switches:
+                caller.msg("{0}".format(switch))
+            for arg in args:
+                caller.msg("{0}".format(arg))
             if "on" in switches:
                 caller.db.pose_colors_on = True
                 caller.msg("Name highlighting enabled")
