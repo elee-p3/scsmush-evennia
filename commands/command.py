@@ -1343,20 +1343,21 @@ class CmdPoseColors(default_cmds.MuxCommand):
         if switches or args:
             for switch in switches:
                 caller.msg("{0}".format(switch))
-            for arg in args:
-                caller.msg("{0}".format(arg))
-            if "on" in switches:
+            caller.msg("args type is {0}".format(type(args)))
+            # for arg in args:
+            #     caller.msg("{0}".format(arg))
+            if self.rhs == "on":
                 caller.db.pose_colors_on = True
                 caller.msg("Name highlighting enabled")
-            elif "off" in switches:
+            elif self.rhs == "off":
                 caller.db.pose_colors_on = False
                 caller.msg("Name highlighting disabled")
             elif "self" in switches:
-                if len(args[0]) != 3 and args[0].isdigit:
+                if len(args) != 3 and args.isdigit:
                     caller.db.pose_colors_self = str(args[0])
                     caller.msg("Player's name highlighting color updated")
             elif "others" in switches:
-                if len(args[0]) != 3 and args[0].isdigit:
+                if len(args) != 3 and args.isdigit:
                     caller.db.pose_colors_self = str(args[0])
                     caller.msg("Other's name highlighting color updated")
             else:
