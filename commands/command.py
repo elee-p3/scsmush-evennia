@@ -1344,12 +1344,13 @@ class CmdPoseColors(default_cmds.MuxCommand):
             for switch in switches:
                 caller.msg("{0}".format(switch))
             caller.msg("args type is {0}".format(type(args)))
+            caller.msg("self.rhs is {0}".format(self.rhs))
             # for arg in args:
             #     caller.msg("{0}".format(arg))
-            if self.rhs == "on":
+            if args == "on":
                 caller.db.pose_colors_on = True
                 caller.msg("Name highlighting enabled")
-            elif self.rhs == "off":
+            elif args == "off":
                 caller.db.pose_colors_on = False
                 caller.msg("Name highlighting disabled")
             elif "self" in switches:
