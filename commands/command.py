@@ -1295,3 +1295,51 @@ class CmdEvent(default_cmds.MuxCommand):
 
             caller.msg("Stopping Event")
             return
+
+
+class CmdPoseColors(default_cmds.MuxCommand):
+    """
+    Toggle colored names in poses. Posecolors/self and
+    posecolors/others are used to set the colors of one's
+    own name and other names, respectively. Type "color
+    xterm256" to see the list of eligible color codes.
+
+    Usage:
+      posecolors on/off
+      posecolors/self <xterm256 code>
+      posecolors/others <xterm256 code>
+
+    Examples:
+      posecolors on
+      posecolors/self 555
+      posecolors/others 155
+
+    """
+
+    key = "posecolors"
+    aliases = "+posecolors"
+    switch_options = ("self", "others")
+    locks = "cmd:all()"
+
+    def func(self):
+        """Changes pose colors"""
+
+        caller = self.caller
+        args = self.args
+        switches = self.switches
+
+        # setting switches
+        # tel_quietly = "quiet" in switches
+        # to_none = "tonone" in switches
+        # to_loc = "loc" in switches
+
+# posecolors on will turn pose_colors_on to True
+
+        if self.switches or self.args:
+
+
+# posecolors off will turn pose_colors_on to False
+# add corner casing for bad args
+# posecolors/self will change pose_colors_self value; convert to string, strip out |?
+# posecolors/others will changes pose_colors_others value; convert to string, strip out |?
+# add corner casing for bad switches
