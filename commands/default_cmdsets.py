@@ -39,7 +39,6 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         # any commands you add below will overload the default ones.
         #
         self.add(CmdOOC)
-        # self.add(dice.CmdDice())
         self.add(CmdSCSDice)
         self.add(CmdEmit)
         self.add(CmdSheet)
@@ -59,6 +58,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdObserve)
         self.add(CmdEvent)
         self.add(CmdWarp)
+        self.add(CmdPoseColors)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
