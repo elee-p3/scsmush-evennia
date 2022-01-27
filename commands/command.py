@@ -1333,13 +1333,28 @@ class CmdPoseColors(default_cmds.MuxCommand):
         # to_none = "tonone" in switches
         # to_loc = "loc" in switches
 
-# posecolors on will turn pose_colors_on to True
+        # posecolors on will turn pose_colors_on to True x
+        # posecolors off will turn pose_colors_on to False x
+        # add corner casing for bad args
+        # posecolors/self will change pose_colors_self value; convert to string, strip out |? x
+        # posecolors/others will changes pose_colors_others value; convert to string, strip out |? x
+        # add corner casing for bad switches
 
-        if self.switches or self.args:
-
-
-# posecolors off will turn pose_colors_on to False
-# add corner casing for bad args
-# posecolors/self will change pose_colors_self value; convert to string, strip out |?
-# posecolors/others will changes pose_colors_others value; convert to string, strip out |?
-# add corner casing for bad switches
+        if switches or args:
+            if "on" in switches:
+                caller.db.pose_colors_on = True
+                caller.msg("Name highlighting enabled")
+            elif "off" in switches:
+                caller.db.pose_colors_on = False
+                caller.msg("Name highlighting disabled")
+            elif "self" in switches:
+                if len(args[0]) != 3 and args[0].isdigit:
+                    caller.db.pose_colors_self = str(args[0])
+                    caller.msg("Player's name highlighting color updated")
+            elif "others" in switches:
+                if len(args[0]) != 3 and args[0].isdigit:
+                    caller.db.pose_colors_self = str(args[0])
+                    caller.msg("Other's name highlighting color updated")
+            else:
+                caller.msg("Unknown switch/argument!")
+                return
