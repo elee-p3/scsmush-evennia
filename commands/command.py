@@ -1341,7 +1341,6 @@ class CmdPoseColors(default_cmds.MuxCommand):
         # add corner casing for bad switches
 
         if switches or args:
-            caller.msg("args are {0}".format(args))
             if args == "on":
                 caller.db.pose_colors_on = True
                 caller.msg("Name highlighting enabled")
@@ -1349,11 +1348,11 @@ class CmdPoseColors(default_cmds.MuxCommand):
                 caller.db.pose_colors_on = False
                 caller.msg("Name highlighting disabled")
             elif "self" in switches:
-                if len(args) != 3 and args.isdigit:
+                if len(args) == 3 and args.isdigit:
                     caller.db.pose_colors_self = str(args)
                     caller.msg("Player's name highlighting color updated")
             elif "others" in switches:
-                if len(args) != 3 and args.isdigit:
+                if len(args) == 3 and args.isdigit:
                     caller.db.pose_colors_self = str(args)
                     caller.msg("Other's name highlighting color updated")
             else:
