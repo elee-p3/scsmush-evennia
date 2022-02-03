@@ -29,6 +29,8 @@ class RPEvent(SharedMemoryModel):
     is indicated by the celebration_tier.
     """
 
+
+
     db_name = models.CharField(max_length=255, db_index=True)
     db_desc = models.TextField(blank=True, null=True)
     db_location = models.ForeignKey(

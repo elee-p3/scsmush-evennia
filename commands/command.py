@@ -1215,19 +1215,6 @@ class CmdWarp(default_cmds.MuxCommand):
                 caller.move_to(destination)
                 caller.msg("Teleported to %s." % destination)
 
-        # try the teleport
-        # if obj_to_teleport.move_to(
-        #     destination, quiet=tel_quietly, emit_to_obj=caller, use_destination=use_destination
-        # ):
-        #     if obj_to_teleport == caller:
-        #         caller.msg("Teleported to %s." % destination)
-        #     else:
-        #         caller.msg("Teleported %s -> %s." % (obj_to_teleport, destination))
-
-# An event is fundamentally tied to a room
-# Whenever we start an event, fundamentally two things happen:
-# 1. We create an RPEvent to keep track of what scenes have happened
-# 2. We flag the current room with an active_event = True and the RPEvent's event id so signify an active event
 class CmdEvent(default_cmds.MuxCommand):
     """
     Usage:
@@ -1327,18 +1314,6 @@ class CmdPoseColors(default_cmds.MuxCommand):
         caller = self.caller
         args = self.args
         switches = self.switches
-
-        # setting switches
-        # tel_quietly = "quiet" in switches
-        # to_none = "tonone" in switches
-        # to_loc = "loc" in switches
-
-        # posecolors on will turn pose_colors_on to True x
-        # posecolors off will turn pose_colors_on to False x
-        # add corner casing for bad args
-        # posecolors/self will change pose_colors_self value; convert to string, strip out |? x
-        # posecolors/others will changes pose_colors_others value; convert to string, strip out |? x
-        # add corner casing for bad switches
 
         if switches or args:
             if args == "on":
