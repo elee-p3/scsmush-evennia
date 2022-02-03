@@ -7,7 +7,7 @@ urlpatterns = [
         views.MyFirstViewClass.as_view(),
         name='events_root',
     ),
-    path('/test',
-         views.MyFirstViewClass.as_view(),
-         name='secondtest'),
+    # path('/test',
+    #      views.MyFirstViewClass.as_view(),
+    #      name='secondtest'),
 ]
