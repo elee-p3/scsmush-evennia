@@ -1,10 +1,13 @@
-from django.conf.urls import url
+from django.urls import path
 from world.events import views
 
 urlpatterns = [
-    url(
-        r"^test/$",
+    path(
+        '',
         views.MyFirstViewClass.as_view(),
-        name="display_event",
+        name='events_root',
     ),
+    path('/test',
+         views.MyFirstViewClass.as_view(),
+         name='secondtest'),
 ]
