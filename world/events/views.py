@@ -3,7 +3,7 @@ from world.events.models import RPEvent
 
 class MyFirstViewClass(DetailView):
     model = RPEvent
-    template_name = "world/templates/test.html"
+    template_name = "test.html"
 
     def get_context_data(self, **kwargs):
         context = super(MyFirstViewClass, self).get_context_data(**kwargs)
