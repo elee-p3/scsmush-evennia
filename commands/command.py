@@ -717,12 +717,19 @@ class CmdWho(default_cmds.MuxCommand):
 
 class CmdPot(default_cmds.MuxCommand):
     """
-    Pose tracker
+    View the pose tracker (pot). The pose tracker displays the name,
+    time connected, time idle, and time since last posed of every
+    character in the room, ordered starting with whomever posed
+    longest ago. Thus, during an ongoing scene, the person whose
+    turn it is to pose will appear at the top of the list.
+
+    Those who have not posed are listed below all those who have.
+    To signify that you are leaving an ongoing scene, type +observe
+    to reset your pose timer and move to the bottom (see "help observe").
 
     Usage:
       +pot
 
-    This is the pose tracker. DEVIN IT IS YOUR DUTY TO FILL THIS OUT
     """
 
     key = "+pot"
@@ -797,12 +804,19 @@ class CmdPot(default_cmds.MuxCommand):
 
 class CmdObserve(default_cmds.MuxCommand):
     """
-        Observer mode
+        Enter observer mode. This signifies that you are observing,
+        and not participating, in a scene. In +pot, you will be
+        displayed at the bottom of the list with an "(O)" before
+        your name. If you have previously posed, your pose timer
+        will also be reset.
+
+        If your character is leaving an ongoing scene, +observe
+        will help to  prevent anyone accidentally waiting on a pose
+        from you.
 
         Usage:
           +observe
 
-        DEVIN THIS IS ALSO YOUR DUTY TO FILL THIS OUT
     """
 
     key = "+observe"

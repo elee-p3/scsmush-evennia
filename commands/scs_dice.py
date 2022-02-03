@@ -7,6 +7,37 @@ RE_COND = re.compile(r"(<=|>=|<|>|!=|==)")
 RE_COMMENT = re.compile(r"(#)")
 
 class CmdSCSDice(CmdDice):
+    """
+    roll dice
+
+    Usage:
+      dice[/switch] <nr>d<sides> [modifier] [success condition] #[comment]
+
+    Switch:
+      hidden - tell the room the roll is being done, but don't show the result
+      secret - don't inform the room about neither roll nor result
+
+    Examples:
+      dice 3d6 + 4
+      dice 1d100 - 2 < 50
+      dice 1d20#Reize rolls saving throw against seasickness
+
+    This will roll the given number of dice with given sides and modifiers.
+    So e.g. 2d6 + 3 means to 'roll a 6-sided die 2 times and add the result,
+    then add 3 to the total'.
+    Accepted modifiers are +, -, * and /.
+    A success condition is given as normal Python conditionals
+    (<,>,<=,>=,==,!=). So e.g. 2d6 + 3 > 10 means that the roll will succeed
+    only if the final result is above 8. If a success condition is given, the
+    outcome (pass/fail) will be echoed along with how much it succeeded/failed
+    with. The hidden/secret switches will hide all or parts of the roll from
+    everyone but the person rolling.
+
+    To add a comment string to be displayed to the room to contextualize
+    the roll, place a hashtag (#) at the end of the command and write a sentence.
+
+    """
+
     def func(self):
         """Mostly parsing for calling the dice roller function"""
 
