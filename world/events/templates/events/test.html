@@ -2,7 +2,14 @@
     <h1 RPEvent List>
         {% if rpevent_list %}
         <ul>
-            id: {{ rpevent.id }}, name: {{ rpevent.db_name }}, description {{ rpevent.db_desc }}
+            {% for event in rpevent_list %}
+                <li>
+                    id: {{ event.id }}, name: {{ event.db_name }}, description {{ event.db_desc }}
+                </li>
+            {% endfor %}
         </ul>
+        {% else %}
+            ...or maybe there really aren't any events
+        {% endif %}
     </h1>
 {% endblock %}
