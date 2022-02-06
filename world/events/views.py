@@ -1,8 +1,8 @@
-from django.views.generic import DetailView
+from django.views.generic import DetailView, ListView
 from world.events.models import RPEvent
 
-class MyFirstViewClass(DetailView):
-    # model = RPEvent
+class MyFirstViewClass(ListView):
+    model = RPEvent
     template_name = "events/test.html"
     #
     # def get_context_data(self, **kwargs):
