@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Hi, just testing</title>
-</head>
-<body>
-
-</body>
-</html>
+{% block content %}
+    <h1 RPEvent List>
+        {% if rpevent_list %}
+        <ul>
+            id: {{ rpevent.id }}, name: {{ rpevent.db_name }}, description {{ rpevent.db_desc }}
+        </ul>
+    </h1>
+{% endblock %}
