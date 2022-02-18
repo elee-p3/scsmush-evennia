@@ -53,15 +53,27 @@ class Scene(models.Model):
         related_name="scenes_participated",
     )
 
+    # Add the given log_text to the scene's corresponding Log object. If said log
+    # does not yet exist, one is created and the text is added to it.
+    def addLogText(self, log_text):
+        if not hasattr(self, 'log'):
+            log = Log(content="")
+            log.scene = self
+            log.save()
+        
+        log = self.log
+        log.content += log_text + "\n"
+        log.save()
+
+
 # Contains the complete log of every participant interaction throughout the lifetime
 # of a parent Scene.
 class Log(models.Model):
     # Stores relationship to parent scene.
-    scene = models.ForeignKey(
+    scene = models.OneToOneField(
         Scene,
         blank=True,
         null=True,
-        related_name="log",
         on_delete=models.SET_NULL,
     )
 
