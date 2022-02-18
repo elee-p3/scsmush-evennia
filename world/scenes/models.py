@@ -12,8 +12,28 @@ class Scene(models.Model):
     # but has not yet started.
     #
     # End time can be null, and that indicates that the event is still un-ended.
-    start_time = models.DateTimeField('Scene start time')
-    end_time = models.DateTimeField('Scene end time')
+    start_time = models.DateTimeField(
+        'Scene start time',
+        blank=True,
+        null=True)
+    end_time = models.DateTimeField(
+        'Scene end time',
+        blank=True,
+        null=True)
+
+    # A human-readable title / display name for the scene. Purely for hoomaahns.
+    name = models.CharField(
+        'Scene display name',
+        max_length=255,
+        blank=True,
+        null=True)
+
+    # A human-readable description of the scene. Used to set up the context and
+    # setting in which the scene takes place.
+    description = models.TextField(
+        'Scene description',
+        blank=True,
+        null=True)
 
     # Hosting location for the current scene. Location references a "room"
     # ObjectDB model in underlying evennia.
@@ -21,7 +41,7 @@ class Scene(models.Model):
         "objects.ObjectDB",
         blank=True,
         null=True,
-        related_name="scenes",
+        related_name="scenes_at_location",
         on_delete=models.SET_NULL,
     )
 
@@ -30,8 +50,7 @@ class Scene(models.Model):
     participants = models.ManyToManyField(
         "objects.ObjectDB",
         blank=True,
-        null=True,
-        related_name="scenes",
+        related_name="scenes_participated",
     )
 
 # Contains the complete log of every participant interaction throughout the lifetime
