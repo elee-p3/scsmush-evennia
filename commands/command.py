@@ -1348,7 +1348,7 @@ class CmdPoseColors(default_cmds.MuxCommand):
                 caller.msg("Unknown switch/argument!")
                 return
 
-class CmdPage(COMMAND_DEFAULT_CLASS):
+class CmdPage(default_cmds.MuxCommand):
     """
     send a private message to another account
 
