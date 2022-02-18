@@ -1504,9 +1504,9 @@ class CmdPage(default_cmds.MuxCommand):
         namelist = ""
         for count, pobj in enumerate(recobjs):
             if count == 0:
-                namelist += pobj.name
+                namelist += "|c{0}|n".format(pobj.name)
             else:
-                namelist += ", {0}".format(pobj.name)
+                namelist += ", |c{0}|n".format(pobj.name)
 
         for pobj in recobjs:
             if not pobj.access(caller, "msg"):
