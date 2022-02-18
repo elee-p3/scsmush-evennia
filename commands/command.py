@@ -1502,8 +1502,11 @@ class CmdPage(default_cmds.MuxCommand):
         received = []
         rstrings = []
         namelist = ""
-        for pobj in recobjs:
-            namelist += pobj.name
+        for count, pobj in enumerate(recobjs):
+            if count == 0:
+                namelist += pobj.name
+            else:
+                namelist += ", {0}".format(pobj.name)
 
         for pobj in recobjs:
             if not pobj.access(caller, "msg"):
