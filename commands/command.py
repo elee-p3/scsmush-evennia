@@ -6,7 +6,6 @@ Commands describe the input the account can do to the game.
 """
 from math import floor
 #from typing import AwaitableGenerator
-from xxlimited import foo
 from evennia.server.sessionhandler import SESSIONS
 import time
 import re
