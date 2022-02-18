@@ -5,6 +5,7 @@ Commands describe the input the account can do to the game.
 
 """
 from math import floor
+#from typing import AwaitableGenerator
 from evennia.server.sessionhandler import SESSIONS
 import time
 import re
@@ -12,9 +13,8 @@ from evennia import ObjectDB, AccountDB
 from evennia import default_cmds
 from evennia.utils import utils, create, evtable, make_iter, inherits_from, datetime_format
 from evennia.comms.models import Msg
-from world.events.models import RPEvent
+from world.scenes.models import Scene
 from typeclasses.rooms import Room
-from typeclasses.scripts.event_manager import EventManager
 from world.supplemental import *
 
 from datetime import datetime
@@ -213,8 +213,8 @@ class CmdPose(default_cmds.MuxCommand):
     def func(self):
         """Hook function"""
         if not self.args:
-            msg = "What do you want to do?"
-            self.caller.msg(msg)
+            message = "What do you want to do?"
+            self.caller.msg(message)
         else:
             # Update the pose timer if outside of OOC room
             # This assumes that the character's home is the OOC room, which it is by default
@@ -222,21 +222,20 @@ class CmdPose(default_cmds.MuxCommand):
                 self.caller.set_pose_time(time.time())
                 self.caller.set_obs_mode(False)
 
-            msg = "%s%s" % (self.caller.name, self.args)
-            msg = sub_old_ansi(msg)
+            message = "%s%s" % (self.caller.name, self.args)
+            message = sub_old_ansi(message)
 
-            tailored_msg(self.caller, msg)
+            tailored_msg(self.caller, message)
             # msg = highlight_names(self.caller, msg)
             # if character.color_attribute == True
             # self.caller.location.msg_contents(text=(highlight_names(msg), {"type": "pose"}), from_obj=self.caller)
             # else
             # self.caller.location.msg_contents(text=msg, {"type": "pose"}), from_obj=self.caller)
 
-            # If an event is running in the current room, then write to event log
+            # If an event is running in the current room, then write to event's log
             if self.caller.location.db.active_event:
-                event_manager = EventManager()
-                # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-                event_manager.add_msg(self.caller.location.db.event_id, self.caller.key + ": " + msg)
+                scene = Scene.objects.get(pk=self.caller.location.db.event_id)
+                scene.addLogText(self.caller.key + ": " + message)
 
 class CmdEmit(default_cmds.MuxCommand):
     """
@@ -357,9 +356,8 @@ class CmdEmit(default_cmds.MuxCommand):
 
             # If an event is running in the current room, then write to event log
             if caller.location.db.active_event:
-                event_manager = EventManager()
-                # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-                event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + message)
+                scene = Scene.objects.get(pk=self.caller.location.db.event_id)
+                scene.addLogText(self.caller.key + ": " + message)
             return
         # send to all objects
         for objname in objnames:
@@ -1180,9 +1178,8 @@ class CmdSay(default_cmds.MuxCommand):
 
         # If an event is running in the current room, then write to event log
         if caller.location.db.active_event:
-            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-            event_manager = EventManager()
-            event_manager.add_msg(caller.location.db.event_id, caller.key + ": " + speech)
+            scene = Scene.objects.get(pk=self.caller.location.db.event_id)
+            scene.addLogText(self.caller.key + ": " + speech)
 
 class CmdWarp(default_cmds.MuxCommand):
     """
@@ -1258,20 +1255,16 @@ class CmdEvent(default_cmds.MuxCommand):
             else:
                 caller.location.db.active_event = True
 
-            event = RPEvent.objects.create(
-                db_name='Unnamed Event',
-                db_date=datetime.now(),
-                db_desc='',
-                db_location=caller.location,
+            event = Scene.objects.create(
+                name='Unnamed Event',
+                start_time=datetime.now(),
+                description='Placeholder description of scene plz change k thx bai',
+                location=caller.location,
             )
 
-            caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}\nid = {3}".format(event.db_name, event.db_desc, event.db_location, event.id))
+            caller.msg("DEBUG: this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}\nid = {3}".format(event.name, event.description, event.location, event.id))
 
             caller.location.db.event_id = event.id
-
-            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-            # event_manager = EventManager()
-            # event_manager.start_event(event)
 
             caller.msg("Starting Event")
             return
@@ -1282,17 +1275,15 @@ class CmdEvent(default_cmds.MuxCommand):
                 caller.msg("There is no active event running in this room")
                 return
 
-            events = RPEvent.objects.filter(id=caller.location.db.event_id)
+            # Find the scene object that matches the scene/event reference on the
+            # location.
+            try:
+                events = Scene.objects.filter(id=caller.location.db.event_id).get()
+            except Exception as original:
+                raise Exception("Found zero or multiple Scenes :/") from original
 
-            # for event in events:
-            #     caller.msg("this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}".format(event.db_name, event.db_desc, event.db_location))
-
-            # Stop the Room's active event
-            caller.location.db.active_event = False
-
-            # event_manager = ScriptDB.objects.get(db_key="Event Manager")
-            # event_manager = EventManager()
-            # event_manager.finish_event(caller, event)
+            # Stop the Room's active event by removing the active event attribute.
+            del caller.location.db.active_event
 
             caller.msg("Stopping Event")
             return
