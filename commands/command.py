@@ -687,7 +687,7 @@ class CmdWho(default_cmds.MuxCommand):
                     utils.time_format(delta_conn, 0),
                     utils.time_format(delta_cmd, 1),
                     utils.crop(puppet.get_display_name(account) if puppet else "None", width=25),
-                    utils.crop(location, width=25),
+                    utils.crop(location, width=35),
                     session.cmd_total,
                     session.protocol_key,
                     isinstance(session.address, tuple) and session.address[0] or session.address,
@@ -707,7 +707,7 @@ class CmdWho(default_cmds.MuxCommand):
                     utils.crop(session_account.get_display_name(account), width=25),
                     utils.time_format(delta_conn, 0),
                     utils.time_format(delta_cmd, 1),
-                    utils.crop(location, width=25),
+                    utils.crop(location, width=35),
                 )
         is_one = naccounts == 1
         self.msg(
