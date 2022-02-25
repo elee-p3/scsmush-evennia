@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% load tz %}
+
+{% block titleblock %}Scene: {{ scene.name }}{% endblock %}
+
+{% block content %}
+<h1>{{ scene.name }}</h1>
+<h2>Scene details</h2>
+<ul>
+    <li>Start date: {{ scene.start_time|localtime }}</li>
+    <li>
+        End date:
+        {% if scene.end_time %}
+            {{ scene.end_time|localtime }}
+        {% else %}
+            <em>not yet finished</em>
+        {% endif %}
+    </li>
+    <li>Location: {{ scene.location.key }}</li>
+    <li>Participants:
+        {% for participant in participants %}
+            <a href={{ participant.web_get_detail_url }}>{{ participant.key }}</a>
+        {% endfor %}
+    </li>
+</ul>
+<p>
+    <em>Setting:</em> {{ scene.description }}
+</p>
+<h2>Log</h2>
+<p>
+    {{ scene.log.content }}
+</p>
+{% endblock %}

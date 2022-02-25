@@ -6,14 +6,15 @@ help.
 """
 from django.conf.urls import url, include
 
-# default evennia patterns
-from evennia.web.urls import urlpatterns
+# Default evennia URLs
+from evennia.web.urls import urlpatterns as evennia_urlpatterns
 from django.conf.urls import url, include
+from world.scenes.urls import urlpatterns as scene_urlpatterns
 
-# eventual custom patterns
-custom_patterns = [
-    url(r"^events/", include(("world.events.urls", "events"), namespace="events")),
+scsmush_urlpatterns = [
+    url('scenes/', include(("world.scenes.urls", "scenes"), namespace="scenes"))
 ]
 
-# this is required by Django.
-urlpatterns = custom_patterns + urlpatterns
+# Set the overall URL patterns for our website to be the union of our own URLs with
+# those provided by default in Evennia.
+urlpatterns = scsmush_urlpatterns + evennia_urlpatterns
