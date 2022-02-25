@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 
 # Represents one RP scene or "event".
 #
@@ -64,6 +65,9 @@ class Scene(models.Model):
         log = self.log
         log.content += log_text + "\n"
         log.save()
+
+    def web_get_detail_url(self):
+        return reverse('scenes:detail', kwargs={'scene_id': self.id})
 
 
 # Contains the complete log of every participant interaction throughout the lifetime

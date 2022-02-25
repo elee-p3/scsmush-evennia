@@ -1,21 +1,33 @@
 {% extends "base.html" %}
 
+{% load static %}
+{% load scene_filters %}
 {% load tz %}
 
 {% block titleblock %}All Scenes{% endblock %}
 
+{% block header_ext %}
+    <link rel="stylesheet" type="text/css" href="{% static 'scenes/scenes.css' %}">
+{% endblock %}
+
 {% block content %}
 {% for scene in all_scenes %}
 <article class="scene-summary">
-    <h1>{{ scene.name }}</h1>
-    <p>
-        Start time: {{ scene.start_time|localtime }}
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        End time: {{ scene.end_time|localtime }}
-    </p>
-    <p>Participants: TODO</p>
-    <p>Poses: TODO</p>
-    <p>Setting: {{ scene.description|truncatewords:100 }}</p>
+    <div class="scene-pose-count">17 poses</div>
+    <h1><a href={{ scene.web_get_detail_url }}>{{ scene.name }}</a></h1>
+    <div class="scene-times">
+        <span class="scene-time">
+            <span class="scene-attribute">Start time:</span> {{ scene.start_time|localtime }}
+        </span>
+        <span class="scene-time">
+            <span class="scene-attribute">End time:</span>
+            {{ scene.end_time|localtime|or_default:"still in progress" }}
+        </span>
+    </div>
+    <div class="scene-participants">
+        <span class="scene-attribute">Participants:</span> TODO
+    </div>
+    <p><span class="scene-attribute">Setting:</span> {{ scene.description|truncatewords:100 }}</p>
 </article>
 {% endfor %}
 {% endblock %}
