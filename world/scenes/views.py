@@ -6,10 +6,7 @@ from django.utils.timezone import localtime
 def detail(request, scene_id):
     scene = get_object_or_404(Scene, pk=scene_id)
     participants = list(scene.participants.all())
-    context = {
-        "scene": scene,
-        "participants": participants,
-    }
+    context = { "scene": scene }
     return render(request, "scenes/detail.html", context)
 
 def scenes(request):

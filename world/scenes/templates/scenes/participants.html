@@ -1,0 +1,5 @@
+{% for participant in participants %}
+    <a href={{ participant.web_get_detail_url }}>{{ participant.key }}</a>
+{% empty %}
+    <em>none</em> (womp womp)
+{% endfor %}

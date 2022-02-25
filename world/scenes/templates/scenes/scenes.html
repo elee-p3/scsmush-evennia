@@ -2,6 +2,7 @@
 
 {% load static %}
 {% load scene_filters %}
+{% load scene_tags %}
 {% load tz %}
 
 {% block titleblock %}All Scenes{% endblock %}
@@ -25,7 +26,7 @@
         </span>
     </div>
     <div class="scene-participants">
-        <span class="scene-attribute">Participants:</span> TODO
+        <span class="scene-attribute">Participants:</span> {% show_participants scene %}
     </div>
     <p><span class="scene-attribute">Setting:</span> {{ scene.description|truncatewords:100 }}</p>
 </article>

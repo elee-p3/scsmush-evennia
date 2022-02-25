@@ -3,6 +3,7 @@
 {% load static %}
 {% load tz %}
 {% load scene_filters %}
+{% load scene_tags %}
 
 {% block titleblock %}Scene: {{ scene.name }}{% endblock %}
 
@@ -20,11 +21,7 @@
         End date: {{ scene.end_time|localtime|or_default:"still in progress" }}
     </li>
     <li>Location: {{ scene.location.key }}</li>
-    <li>Participants:
-        {% for participant in participants %}
-            <a href={{ participant.web_get_detail_url }}>{{ participant.key }}</a>
-        {% endfor %}
-    </li>
+    <li>Participants: {% show_participants scene %}</li>
 </ul>
 <p>
     <em>Setting:</em> {{ scene.description }}
