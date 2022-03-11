@@ -13,7 +13,7 @@ from evennia import ObjectDB, AccountDB
 from evennia import default_cmds
 from evennia.utils import utils, create, evtable, make_iter, inherits_from, datetime_format
 from evennia.comms.models import Msg
-from world.scenes.models import Scene
+from world.scenes.models import Scene, LogEntry
 from typeclasses.rooms import Room
 from world.supplemental import *
 
@@ -235,7 +235,7 @@ class CmdPose(default_cmds.MuxCommand):
             # If an event is running in the current room, then write to event's log
             if self.caller.location.db.active_event:
                 scene = Scene.objects.get(pk=self.caller.location.db.event_id)
-                scene.addLogText(self.caller.key + ": " + message)
+                scene.addLogEntry(LogEntry.EntryType.POSE, self.args, self.caller)
 
 class CmdEmit(default_cmds.MuxCommand):
     """
@@ -357,7 +357,7 @@ class CmdEmit(default_cmds.MuxCommand):
             # If an event is running in the current room, then write to event log
             if caller.location.db.active_event:
                 scene = Scene.objects.get(pk=self.caller.location.db.event_id)
-                scene.addLogText(self.caller.key + ": " + message)
+                scene.addLogEntry(LogEntry.EntryType.EMIT, message, self.caller)
             return
         # send to all objects
         for objname in objnames:
@@ -1179,7 +1179,7 @@ class CmdSay(default_cmds.MuxCommand):
         # If an event is running in the current room, then write to event log
         if caller.location.db.active_event:
             scene = Scene.objects.get(pk=self.caller.location.db.event_id)
-            scene.addLogText(self.caller.key + ": " + speech)
+            scene.addLogEntry(LogEntry.EntryType.SAY, self.args, self.caller)
 
 class CmdWarp(default_cmds.MuxCommand):
     """

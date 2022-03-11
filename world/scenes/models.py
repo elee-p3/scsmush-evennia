@@ -54,17 +54,16 @@ class Scene(models.Model):
         related_name="scenes_participated",
     )
 
-    # Add the given log_text to the scene's corresponding Log object. If said log
-    # does not yet exist, one is created and the text is added to it.
-    def addLogText(self, log_text):
-        if not hasattr(self, 'log'):
-            log = Log(content="")
-            log.scene = self
-            log.save()
-        
-        log = self.log
-        log.content += log_text + "\n"
-        log.save()
+    # Given the type of a game entry (expects LogEntry.EntryType), the contents of the
+    # entry, and the character responsible, creates a corresponding new log entry and
+    # attaches to this scene.
+    def addLogEntry(self, type, text_content, character):
+        self.logentry_set.create(
+            scene=self,
+            content=text_content,
+            type=type,
+            character=character
+        )
 
     def web_get_detail_url(self):
         return reverse('scenes:detail', kwargs={'scene_id': self.id})
@@ -72,15 +71,37 @@ class Scene(models.Model):
 
 # Contains the complete log of every participant interaction throughout the lifetime
 # of a parent Scene.
-class Log(models.Model):
+class LogEntry(models.Model):
     # Stores relationship to parent scene.
-    scene = models.OneToOneField(
+    scene = models.ForeignKey(
         Scene,
         blank=True,
         null=True,
-        on_delete=models.SET_NULL,
-    )
+        on_delete=models.CASCADE)
 
     # The actual text content of the log (a concatenation of all poses during the
     # course of the event).
     content = models.TextField()
+
+    # An enum allowing us to keep track of the different types of entries. This will be
+    # used to determine what the presentation should be (if necessary). In the future,
+    # may also be used to figure out which additional/optional fields are use, should we
+    # add per-type fields.
+    class EntryType(models.IntegerChoices):
+        EMIT = 1
+        SAY = 2
+        POSE = 3
+        DICE = 4
+
+    # The type of operation captured in this log entry (see EntryType).
+    type = models.IntegerField(
+        choices = EntryType.choices
+    )
+
+    # The character responsible for this particularly heinous activity.
+    character = models.ForeignKey(
+        "objects.ObjectDB",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+    )

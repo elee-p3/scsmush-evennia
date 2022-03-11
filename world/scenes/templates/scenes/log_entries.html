@@ -1,0 +1,18 @@
+{% for entry in entries %}
+    <article class="scene-log-entry">
+        <ul class="entry-stats">
+            <li>
+                Character:
+                <a href={{ entry.character.web_get_detail_url }}>{{ entry.character.name }}</a>
+            </li>
+            <li>Type: {{ entry.type }}</li>
+        </ul>
+        <p>
+            {{ entry.content }}
+        </p>
+    </article>
+{% empty %}
+    <article class="scene-log-entry empty-log">
+        No entries so far in this scene.
+    </article>
+{% endfor %}
