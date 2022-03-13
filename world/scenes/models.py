@@ -87,15 +87,26 @@ class LogEntry(models.Model):
     # used to determine what the presentation should be (if necessary). In the future,
     # may also be used to figure out which additional/optional fields are use, should we
     # add per-type fields.
-    class EntryType(models.IntegerChoices):
+    # class EntryType(models.IntegerChoices):
+    #    EMIT = 1
+    #    SAY = 2
+    #    POSE = 3
+    #    DICE = 4
+    class EntryType(models.IntegerField):
         EMIT = 1
         SAY = 2
         POSE = 3
         DICE = 4
+        TYPE_CHOICES = (
+            (EMIT, 'Emit'),
+            (SAY, 'Say'),
+            (POSE, 'Pose'),
+            (DICE, 'Dice'),
+        )
 
     # The type of operation captured in this log entry (see EntryType).
     type = models.IntegerField(
-        choices = EntryType.choices
+        choices=EntryType.TYPE_CHOICES
     )
 
     # The character responsible for this particularly heinous activity.
