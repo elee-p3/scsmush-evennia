@@ -1,5 +1,6 @@
 from evennia.contrib.dice import CmdDice,roll_dice
 import re
+from world.scenes.models import Scene, LogEntry
 
 RE_PARTS = re.compile(r"(d|\+|-|/|\*|<=|>=|<|>|!=|==)")
 RE_MOD = re.compile(r"(\+|-|/|\*)")
@@ -152,3 +153,7 @@ class CmdSCSDice(CmdDice):
             string = resultstring % (rolls, result)
             string += outcomestring
             self.caller.location.msg_contents(string)
+            # If an event is running in the current room, then write to event's log
+            if self.caller.location.db.active_event:
+                scene = Scene.objects.get(pk=self.caller.location.db.event_id)
+                scene.addLogEntry(LogEntry.EntryType.DICE, self.args, self.caller)
