@@ -22,9 +22,12 @@ from datetime import datetime
 # Danny was here, bitches.
 # text replacement function stolen from https://stackoverflow.com/questions/919056/case-insensitive-replace
 def ireplace(old, repl, text):
+    # This function is used in highlight_names to replace names: it is not case sensitive but maintains case.
     return re.sub('(?i)'+re.escape(old), lambda m: repl, text)
 
 def prune_sessions(session_list):
+    # This function modifies the display of "who" and "+pot" so that, if the same player is connected from multiple
+    # devices, their character name is only displayed once to avoid confusion. Admin still see all connected sessions.
     session_accounts = [session.account.key for session in session_list]  # get a list of just the names
 
     unique_accounts = set(session_accounts)
@@ -49,7 +52,7 @@ def prune_sessions(session_list):
     return pruned_sessions
 
 def highlight_names(source_character, in_string, self_color, others_color):
-
+    # This function is used in tailored_msg.
     if self_color is None:
         self_color = "550"
 
@@ -287,111 +290,22 @@ class CmdEmit(default_cmds.MuxCommand):
             caller.set_pose_time(time.time())
             caller.set_obs_mode(False)
 
-        if caller.check_permstring(self.perm_for_switches):
-            args = self.args
-        else:
-            args = self.raw.lstrip(" ")
-
-        if not args:
+        if not self.args:
             string = "Usage: "
             string += "\n@emit[/switches] [<obj>, <obj>, ... =] <message>"
-            string += "\n@remit           [<obj>, <obj>, ... =] <message>"
-            string += "\n@pemit           [<obj>, <obj>, ... =] <message>"
             caller.msg(string)
             return
 
-        rooms_only = "rooms" in self.switches
-        players_only = "players" in self.switches
-        send_to_contents = "contents" in self.switches
-        perm = self.perm_for_switches
-        normal_emit = False
+        # normal emits by players are just sent to the room and tailored to add posecolors
+        message = self.args
+        message = sub_old_ansi(message)
+        tailored_msg(caller, message)
 
-        # we check which command was used to force the switches
-        if (
-            self.cmdstring == "@remit" or self.cmdstring == "@pemit"
-        ) and not caller.check_permstring(perm):
-            caller.msg("Those options are restricted to GMs only.")
-            return
-        # self.caller.posecount += 1
-        if self.cmdstring == "@remit":
-            rooms_only = True
-            send_to_contents = True
-        elif self.cmdstring == "@pemit":
-            players_only = True
-
-        if not caller.check_permstring(perm):
-            rooms_only = False
-            players_only = False
-
-        if not self.rhs or not caller.check_permstring(perm):
-            message = args
-            message = sub_old_ansi(message)
-            normal_emit = True
-            objnames = []
-            do_global = False
-        else:
-            do_global = True
-            message = self.rhs
-            message = sub_old_ansi(message)
-            if caller.check_permstring(perm):
-                objnames = self.lhslist
-            else:
-                objnames = [x.key for x in caller.location.contents if x.player]
-        if do_global:
-            do_global = caller.check_permstring(perm)
-        # normal emits by players are just sent to the room
-        if normal_emit:
-            non_gms = [
-                ob
-                for ob in caller.location.contents
-                if "emit_label" in ob.tags.all() and ob.player
-            ]
-
-            # message = highlight_names(caller, message)
-            tailored_msg(caller, message)
-
-            # caller.location.msg_contents(
-            #     message, from_obj=caller, options={"is_pose": True}
-            # )
-
-            # If an event is running in the current room, then write to event log
-            if caller.location.db.active_event:
-                scene = Scene.objects.get(pk=self.caller.location.db.event_id)
-                scene.addLogEntry(LogEntry.EntryType.EMIT, message, self.caller)
-            return
-        # send to all objects
-        for objname in objnames:
-            if players_only:
-                obj = caller.player.search(objname)
-                if obj:
-                    obj = obj.character
-            else:
-                obj = caller.search(objname, global_search=do_global)
-            if not obj:
-                caller.msg("Could not find %s." % objname)
-                continue
-            if rooms_only and obj.location:
-                caller.msg("%s is not a room. Ignored." % objname)
-                continue
-            if players_only and not obj.player:
-                caller.msg("%s has no active player. Ignored." % objname)
-                continue
-            if obj.access(caller, "tell"):
-                if obj.check_permstring(perm):
-                    bmessage = "{w[Emit by: {c%s{w]{n %s" % (caller.name, message)
-                    obj.msg(bmessage, options={"is_pose": True})
-                else:
-                    obj.msg(message, options={"is_pose": True})
-                if send_to_contents and hasattr(obj, "msg_contents"):
-                    obj.msg_contents(
-                        message, from_obj=caller, kwargs={"options": {"is_pose": True}}
-                    )
-                    caller.msg("Emitted to %s and contents:\n%s" % (objname, message))
-                elif caller.check_permstring(perm):
-                    caller.msg("Emitted to %s:\n%s" % (objname, message))
-            else:
-                caller.msg("You are not allowed to emit to %s." % objname)
-
+        # If an event is running in the current room, then write to event log
+        if caller.location.db.active_event:
+            scene = Scene.objects.get(pk=self.caller.location.db.event_id)
+            scene.addLogEntry(LogEntry.EntryType.EMIT, message, self.caller)
+        return
 
 class CmdOOC(default_cmds.MuxCommand):
     """
@@ -459,7 +373,7 @@ class CmdSheet(default_cmds.MuxCommand):
 
         def func(self):
             "implements the actual functionality"
-
+            # TODO: We did this before we knew about the evtable function. This needs to be refactored.
             char = self.caller.get_abilities()
             # name, sex, race, occupation, group, domain, element, origin, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
             # power, knowledge, parry, barrier, speed = self.caller.get_abilities()
@@ -588,8 +502,6 @@ class CmdSheet(default_cmds.MuxCommand):
         #
         #     return rowString
 
-# Here I overwrite "setdesc" from the Evennia master so it has an alias, "@desc."
-
 class CmdSetDesc(default_cmds.MuxCommand):
     """
     describe yourself
@@ -607,6 +519,7 @@ class CmdSetDesc(default_cmds.MuxCommand):
     locks = "cmd:all()"
     arg_regex = r"\s|$"
 
+    # Here I overwrite "setdesc" from the Evennia master so it has an alias, "@desc."
     def func(self):
         """add the description"""
 
@@ -640,6 +553,8 @@ class CmdWho(default_cmds.MuxCommand):
     # this is used by the parent
     account_caller = True
 
+    # Here we have modified "who" to display the locations of players to other players
+    # and to add "where" as an alias.
     def func(self):
         """
         Get all connected accounts by polling session.
@@ -826,12 +741,6 @@ class CmdObserve(default_cmds.MuxCommand):
         self.caller.set_obs_mode(True)
         self.msg("Entering observer mode.")
 
-# The mail command from contrib
-
-_HEAD_CHAR = "|015-|n"
-_SUB_HEAD_CHAR = "-"
-_WIDTH = 78
-
 class CmdMail(default_cmds.MuxAccountCommand):
     """
     Communicate with others by sending mail.
@@ -866,6 +775,12 @@ class CmdMail(default_cmds.MuxAccountCommand):
     lock = "cmd:all()"
     help_category = "General"
 
+    # These used to be global settings in the original code, but nothing else needs access to them.
+    _HEAD_CHAR = "|015-|n"
+    _SUB_HEAD_CHAR = "-"
+    _WIDTH = 78
+
+    # This is the @mail command from contrib. We have added MUSH parsing to sending @mail.
     def parse(self):
         """
         Add convenience check to know if caller is an Account or not since this cmd
@@ -1131,7 +1046,6 @@ class CmdMail(default_cmds.MuxAccountCommand):
             else:
                 self.caller.msg("There are no messages in your inbox.")
 
-# Overloading default CmdSay class to add post timer updating functionality
 class CmdSay(default_cmds.MuxCommand):
     """
     speak as your character
@@ -1146,6 +1060,8 @@ class CmdSay(default_cmds.MuxCommand):
     aliases = ['"', "'"]
     locks = "cmd:all()"
 
+    # Here we overwrite the default "say" command so that it updates the pose timer for +pot,
+    # as well as for LogEntry, etc.
     def func(self):
         """Run the say command"""
 
@@ -1161,20 +1077,18 @@ class CmdSay(default_cmds.MuxCommand):
             caller.msg("Say what?")
             return
 
-        speech = self.args
-
-        # speech = highlight_names(caller, speech)
+        message = self.args
 
         # Calling the at_before_say hook on the character
-        speech = caller.at_before_say(speech)
-        # tailored_msg(caller, speech)
+        message = caller.at_before_say(message)
+        tailored_msg(caller, message)
 
         # If speech is empty, stop here
-        if not speech:
+        if not message:
             return
 
         # Call the at_after_say hook on the character
-        caller.at_say(speech, msg_self=True)
+        caller.at_say(message, msg_self=True)
 
         # If an event is running in the current room, then write to event log
         if caller.location.db.active_event:
@@ -1195,30 +1109,24 @@ class CmdWarp(default_cmds.MuxCommand):
 
     key = "warp"
     aliases = "+warp"
-    # switch_options = ("quiet", "intoexit", "tonone", "loc")
-    # rhs_split = ("=", " to ")  # Prefer = delimiter, but allow " to " usage.
     locks = "cmd:all()"
 
+    # This is a copy-paste of @tel (or teleport) with reduced functions. @tel is an admin
+    # command that takes objects as args, allowing you to teleport objects to places.
+    # Warp only allows you to teleport yourself. I chose to make a new command rather than
+    # expand on @tel with different permission sets because the docstring/help file is
+    # expansive for @tel, as it has many switches in its admin version.
     def func(self):
         """Performs the teleport"""
 
         caller = self.caller
         args = self.args
-        # lhs, rhs = self.lhs, self.rhs
-        # switches = self.switches
-
-        # setting switches
-        # tel_quietly = "quiet" in switches
-        # to_none = "tonone" in switches
-        # to_loc = "loc" in switches
 
         destination = caller.search(args, global_search=True)
         if not destination:
             caller.msg("Destination not found.")
             return
         if destination:
-            # caller.msg("Your destination is: {0}".format(destination))
-            # caller.msg("Your destination typeclass is: {0}".format(type(destination)))
             if not isinstance(destination, Room):
                 caller.msg("Destination is not a room.")
                 return
@@ -1239,8 +1147,6 @@ class CmdEvent(default_cmds.MuxCommand):
     locks = "cmd:all()"
 
     def func(self):
-        """Run the say command"""
-
         caller = self.caller
 
         if not self.switches:
@@ -1361,6 +1267,10 @@ class CmdPage(default_cmds.MuxCommand):
     switch_options = ("last", "list")
     locks = "cmd:not pperm(page_banned)"
     help_category = "Comms"
+    # This is a modified version of the page command that notifies recipients of pages
+    # when there are multiple recipients, i.e., when you are in a group conversation.
+    # By default, Evennia's page command doesn't inform you that multiple people have
+    # received a page that you have received, for some very strange reason!
 
     # this is used by the COMMAND_DEFAULT_CLASS parent
     account_caller = True
