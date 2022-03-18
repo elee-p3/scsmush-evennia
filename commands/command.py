@@ -1081,7 +1081,8 @@ class CmdSay(default_cmds.MuxCommand):
 
         # Calling the at_before_say hook on the character
         message = caller.at_before_say(message)
-        tailored_msg(caller, message)
+        # tailored_msg(caller, message)
+        # TODO: Apply tailored_msg to the first person/third person distinction in say display.
 
         # If speech is empty, stop here
         if not message:
