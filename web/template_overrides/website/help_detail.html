@@ -26,7 +26,7 @@
         <div class="row">
           <!-- left column -->
           <div class="col-lg-9 col-sm-12">
-            <p>{{ entry_text|convert_newlines|linebreaksbr }}</p>
+            <p>{{ entry_text|convert_newlines }}</p>
             
             {% if topic_previous or topic_next %}
             <hr />
