@@ -142,18 +142,23 @@ class CmdSCSDice(CmdDice):
             self.caller.msg(string)
         else:
             # normal roll
+            logstring = ""
+            # logstring collects all the log-relevant dice roll strings
             string = yourollstring % (roll_string, "")
             self.caller.msg(string)
             string = roomrollstring % (self.caller.key, roll_string, "")
             self.caller.location.msg_contents(string, exclude=self.caller)
+            logstring = string
             # print only if comment exists
             if comment:
                 string = "|214Comment:|n {0}".format(comment)
                 self.caller.location.msg_contents(string)
+                logstring += "\n" + string
             string = resultstring % (rolls, result)
             string += outcomestring
             self.caller.location.msg_contents(string)
+            logstring += "\n" + string
             # If an event is running in the current room, then write to event's log
             if self.caller.location.db.active_event:
                 scene = Scene.objects.get(pk=self.caller.location.db.event_id)
-                scene.addLogEntry(LogEntry.EntryType.DICE, self.args, self.caller)
+                scene.addLogEntry(LogEntry.EntryType.DICE, logstring, self.caller)
