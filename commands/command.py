@@ -1232,6 +1232,7 @@ class CmdEvent(default_cmds.MuxCommand):
                 raise Exception("Found zero or multiple Scenes :/") from original
 
             Scene.objects.filter(id=caller.location.db.event_id).update(name=self.args)
+            caller.msg("Scene name set.")
 
         elif "desc" in self.switches:
             # First, check that there is a log running.
@@ -1252,6 +1253,7 @@ class CmdEvent(default_cmds.MuxCommand):
                 raise Exception("Found zero or multiple Scenes :/") from original
 
             Scene.objects.filter(id=caller.location.db.event_id).update(description=self.args)
+            caller.msg("Scene description set.")
 
 class CmdPoseColors(default_cmds.MuxCommand):
     """
