@@ -130,6 +130,7 @@ class CmdFinger(default_cmds.MuxCommand):
         """
 
     key = '+finger'
+    aliases = ["finger", "oocfinger", "+oocfinger"]
     locks = "cmd:all()"
 
     def func(self):
