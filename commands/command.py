@@ -1193,7 +1193,7 @@ class CmdEvent(default_cmds.MuxCommand):
                 raise Exception("Found zero or multiple Scenes :/") from original
 
             # Stop the Room's active event by removing the active event attribute.
-            events.objects.update(end_time=datetime.now())
+            Scene.objects.filter(id=caller.location.db.event_id).update(end_time=datetime.now())
             self.caller.location.msg_contents("|y<SCENE>|n A log has been stopped in this room with scene ID {0}.".format(events.id))
             del caller.location.db.active_event
             return
@@ -1231,7 +1231,7 @@ class CmdEvent(default_cmds.MuxCommand):
             except Exception as original:
                 raise Exception("Found zero or multiple Scenes :/") from original
 
-            events.objects.update(name=self.args)
+            Scene.objects.filter(id=caller.location.db.event_id).update(name=self.args)
 
         elif "desc" in self.switches:
             # First, check that there is a log running.
@@ -1251,7 +1251,7 @@ class CmdEvent(default_cmds.MuxCommand):
             except Exception as original:
                 raise Exception("Found zero or multiple Scenes :/") from original
 
-            events.objects.update(description=self.args)
+            Scene.objects.filter(id=caller.location.db.event_id).update(description=self.args)
 
 class CmdPoseColors(default_cmds.MuxCommand):
     """
