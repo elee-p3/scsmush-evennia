@@ -741,6 +741,8 @@ class CmdObserve(default_cmds.MuxCommand):
         self.caller.set_pose_time(0.0)
         self.caller.set_obs_mode(True)
         self.msg("Entering observer mode.")
+        self.caller.location.msg_contents(
+            "|y<SCENE>|n {0} is now an observer.".format(self.caller.name))
 
 class CmdMail(default_cmds.MuxAccountCommand):
     """
