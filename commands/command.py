@@ -1193,7 +1193,7 @@ class CmdEvent(default_cmds.MuxCommand):
                 raise Exception("Found zero or multiple Scenes :/") from original
 
             # Stop the Room's active event by removing the active event attribute.
-            events.update(end_time=datetime.now())
+            events.end_time = datetime.now()
             self.caller.location.msg_contents("|y<SCENE>|n A log has been stopped in this room with scene ID {0}.".format(events.id))
             del caller.location.db.active_event
             return
@@ -1231,27 +1231,7 @@ class CmdEvent(default_cmds.MuxCommand):
             except Exception as original:
                 raise Exception("Found zero or multiple Scenes :/") from original
 
-            events.update(name=self.args)
-
-        elif "name" in self.switches:
-            # First, check that there is a log running.
-            if not caller.location.db.active_event:
-                caller.msg("There is no active event running in this room.")
-                return
-
-            # Then, check that the user has inputted a string.
-            if not self.args:
-                caller.msg("Name the log what?")
-                return
-
-            # Find the scene object that matches the scene/event reference on the
-            # location.
-            try:
-                events = Scene.objects.filter(id=caller.location.db.event_id).get()
-            except Exception as original:
-                raise Exception("Found zero or multiple Scenes :/") from original
-
-            events.update(name=self.args)
+            events.name = self.args
 
         elif "desc" in self.switches:
             # First, check that there is a log running.
@@ -1271,7 +1251,7 @@ class CmdEvent(default_cmds.MuxCommand):
             except Exception as original:
                 raise Exception("Found zero or multiple Scenes :/") from original
 
-            events.update(description=self.args)
+            events.description = self.args
 
 class CmdPoseColors(default_cmds.MuxCommand):
     """
