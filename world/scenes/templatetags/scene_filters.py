@@ -7,3 +7,7 @@ def or_default(input, default_value):
     """Shows the given input or, if input is None, the given default value"""
     return input or default_value
 
+def convert_newlines(input):
+    # converts evennia newlines and the automatically generated xhtml line breaks to \n
+    output = input.replace("|/", "<br>").replace("<br />", "<br>")
+    return output

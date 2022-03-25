@@ -7,9 +7,11 @@
             </li>
             <li>Type: {{ entry.type }}</li>
         </ul>
+        {% autoescape off %}
         <p>
-            {{ entry.content|linebreaksbr }}
+            {{ entry.content|convert_newlines }}
         </p>
+        {% endautoescape %}
     </article>
 {% empty %}
     <article class="scene-log-entry empty-log">
