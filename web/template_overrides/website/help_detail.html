@@ -27,7 +27,7 @@
           <!-- left column -->
           <div class="col-lg-9 col-sm-12">
             {% autoescape off %}
-            <p>{{ entry_text|convert_newlines }}</p>
+            <p>{{ entry_text|convert_texttags }}</p>
             {% endautoescape %}
             
             {% if topic_previous or topic_next %}

@@ -10,7 +10,7 @@
         </ul>
         {% autoescape off %}
         <p>
-            {{ entry.content|convert_newlines }}
+            {{ entry.content|convert_texttags }}
         </p>
         {% endautoescape %}
     </article>
