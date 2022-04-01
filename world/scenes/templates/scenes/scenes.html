@@ -30,7 +30,11 @@
     <div class="scene-participants">
         <span class="scene-attribute">Participants:</span> {% show_participants scene %}
     </div>
-    <p><span class="scene-attribute">Setting:</span> {{ scene.description|truncatewords:100 }}</p>
+    <p>
+        {% autoescape off %}
+        <span class="scene-attribute">Setting:</span> {{ scene.description|convert_texttags|truncatewords:100 }}
+        {% endautoescape %}
+    </p>
 </article>
 {% endfor %}
 {% endblock %}
