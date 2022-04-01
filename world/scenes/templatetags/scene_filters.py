@@ -20,13 +20,17 @@ def convert_texttags(input):
     # actual color in the style sheet
     # the reason that we're not doing this now is because players _might_ include arbitrary colors in their poses as
     # well
-    # color_tuple_list = re.findall(re.compile("\|(\d{3}|[A-Za-z])(.*)\|n", re.IGNORECASE), output)
-    color_tuple_list = re.findall(re.compile("(\|(\d{3})(.*)\|n)", re.IGNORECASE), output)
+    color_tuple_list = re.findall(re.compile("(\|(\d{3}|[A-Za-z])(.*)\|n)", re.IGNORECASE), output)
+    # color_tuple_list = re.findall(re.compile("(\|(\d{3})(.*)\|n)", re.IGNORECASE), output)
 
     # for each of the names in the list, replace the string with a colored version
     for color_tuple in color_tuple_list:
         # deal with ansi later
-        rgb = short2rgb(color_tuple[1])
+        if str(color_tuple[1]).isnumeric():
+            rgb = short2rgb(color_tuple[1])
+        else:
+            rgb = ansi2rgb(color_tuple[1])
+
         new_color_string = '<span style="color:#{0}">'.format(rgb) + color_tuple[2] + '</span>'
         output = output.replace(color_tuple[0], new_color_string)
     return output

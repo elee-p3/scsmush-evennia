@@ -268,6 +268,16 @@ CLUT = [  # color look-up table
     ('255', 'eeeeee'),
 ]
 
+ANSI = [
+    ('r', 'cc0000'),
+    ('g', '4e9a06'),
+    ('y', 'c4a000'),
+    ('b', '729fcf'),
+    ('m', '75507b'),
+    ('c', '06989a'),
+    ('w', 'd3d7cf')
+]
+
 def _str2hex(hexstr):
     return int(hexstr, 16)
 
@@ -279,13 +289,17 @@ def _strip_hash(rgb):
 
 def _create_dicts():
     short2rgb_dict = dict(CLUT)
+    ansi2rgb_dict = dict(ANSI)
     rgb2short_dict = {}
     for k, v in short2rgb_dict.items():
         rgb2short_dict[v] = k
-    return rgb2short_dict, short2rgb_dict
+    return rgb2short_dict, short2rgb_dict, ansi2rgb_dict
 
 def short2rgb(short):
     return SHORT2RGB_DICT[short]
+
+def ansi2rgb(ansi):
+    return ANSI2RGB_DICT[ansi]
 
 # def print_all():
 #     """ Print all 256 xterm color codes.
@@ -335,4 +349,4 @@ def rgb2short(rgb):
 def ansi2rgb(ansi):
     return
 
-RGB2SHORT_DICT, SHORT2RGB_DICT = _create_dicts()
+RGB2SHORT_DICT, SHORT2RGB_DICT, ANSI2RGB_DICT = _create_dicts()
