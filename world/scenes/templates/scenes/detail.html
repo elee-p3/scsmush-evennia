@@ -24,7 +24,7 @@
     <li>Participants: {% show_participants scene %}</li>
 </ul>
 <p>
-    <em>Setting:</em> {{ scene.description }}
+    <em>Setting:</em> {{ scene.description|convert_texttags }}
 </p>
 <h2>Log</h2>
 <p>
