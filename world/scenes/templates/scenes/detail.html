@@ -13,6 +13,11 @@
 
 {% block content %}
 <a href={% url 'scenes:list' %} class="back-button">Back to list</a>
+
+{% if user.is_superuser or user.is_staff %}
+    <a href={% url 'admin:scenes_scene_change' scene.id %} class="edit-button">Edit</a>
+{% endif %}
+
 <h1>{{ scene.name }}</h1>
 <h2>Scene details</h2>
 <ul>

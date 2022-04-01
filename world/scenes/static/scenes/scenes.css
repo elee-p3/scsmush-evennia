@@ -37,7 +37,7 @@
 
 .back-button {
     display: inline-block;
-    margin: 5px 0;
+    margin: 5px 0 5px 5px;
     border: 1px solid #3d5c7a;
     border-radius: 5px;
     padding: 0.25em;
@@ -45,6 +45,19 @@
 
 .back-button::before {
     content: "←";
+    padding-right: 0.5rem;
+}
+
+.edit-button {
+    display: inline-block;
+    margin: 5px 0 5px 5px;
+    border: 1px solid #3d5c7a;
+    border-radius: 5px;
+    padding: 0.25em;
+}
+
+.edit-button::before {
+    content: "✎";
     padding-right: 0.5rem;
 }
 
