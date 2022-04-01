@@ -10,5 +10,5 @@ def or_default(input, default_value):
 @register.filter
 def convert_texttags(input):
     # converts evennia newlines and the automatically generated xhtml line breaks to \n
-    output = input.replace("|/", "<br>").replace("<br />", "<br>").replace("|-", "&emsp;").replace("|n", "<br>")
+    output = input.replace("|/", "<br>").replace("<br />", "<br>").replace("|-", "&emsp;")
     return output
