@@ -20,7 +20,7 @@ def convert_texttags(input):
     # actual color in the style sheet
     # the reason that we're not doing this now is because players _might_ include arbitrary colors in their poses as
     # well
-    color_tuple_list = re.findall(re.compile("(\|(\d{3}|[A-Za-z])(.*)\|n)", re.IGNORECASE), output)
+    color_tuple_list = re.findall(re.compile("(\|(\d{3}|[A-Za-z])(.*?)\|n)", re.IGNORECASE), output)
     # color_tuple_list = re.findall(re.compile("(\|(\d{3})(.*)\|n)", re.IGNORECASE), output)
 
     # for each of the names in the list, replace the string with a colored version
