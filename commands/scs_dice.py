@@ -153,11 +153,11 @@ class CmdSCSDice(CmdDice):
             if comment:
                 string = "|214Comment:|n {0}".format(comment)
                 self.caller.location.msg_contents(string)
-                logstring += "\n" + string
+                logstring += "|/" + string
             string = resultstring % (rolls, result)
             string += outcomestring
             self.caller.location.msg_contents(string)
-            logstring += "\n" + string
+            logstring += "|/" + string
             # If an event is running in the current room, then write to event's log
             if self.caller.location.db.active_event:
                 scene = Scene.objects.get(pk=self.caller.location.db.event_id)
