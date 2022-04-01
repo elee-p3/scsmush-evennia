@@ -151,7 +151,7 @@ class CmdSCSDice(CmdDice):
             logstring = string
             # print only if comment exists
             if comment:
-                string = "|214Comment:|n {0}".format(comment)
+                string = "|MComment:|n {0}".format(comment)
                 self.caller.location.msg_contents(string)
                 logstring += "|/" + string
             string = resultstring % (rolls, result)
