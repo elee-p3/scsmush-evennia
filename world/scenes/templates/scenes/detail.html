@@ -23,9 +23,11 @@
     <li>Location: {{ scene.location.key }}</li>
     <li>Participants: {% show_participants scene %}</li>
 </ul>
+{% autoescape off %}
 <p>
     <em>Setting:</em> {{ scene.description|convert_texttags }}
 </p>
+{% endautoescape %}
 <h2>Log</h2>
 <p>
     {% render_scene_log scene %}
