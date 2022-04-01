@@ -19,6 +19,17 @@ from world.supplemental import *
 
 from datetime import datetime
 
+def add_participant_to_scene(character, scene):
+    '''
+    Given a character, checks the given scene's participants for that character and, if
+    NOT present, adds the character as a participant to the scene.
+    '''
+
+    if scene.participants.filter(pk=character.id):
+        return
+
+    scene.participants.add(character)
+
 # Danny was here, bitches.
 # text replacement function stolen from https://stackoverflow.com/questions/919056/case-insensitive-replace
 def ireplace(old, repl, text):
@@ -240,6 +251,7 @@ class CmdPose(default_cmds.MuxCommand):
             if self.caller.location.db.active_event:
                 scene = Scene.objects.get(pk=self.caller.location.db.event_id)
                 scene.addLogEntry(LogEntry.EntryType.POSE, self.args, self.caller)
+                add_participant_to_scene(self.caller, scene)
 
 class CmdEmit(default_cmds.MuxCommand):
     """
@@ -306,6 +318,7 @@ class CmdEmit(default_cmds.MuxCommand):
         if caller.location.db.active_event:
             scene = Scene.objects.get(pk=self.caller.location.db.event_id)
             scene.addLogEntry(LogEntry.EntryType.EMIT, message, self.caller)
+            add_participant_to_scene(self.caller, scene)
         return
 
 class CmdOOC(default_cmds.MuxCommand):
@@ -1098,6 +1111,7 @@ class CmdSay(default_cmds.MuxCommand):
         if caller.location.db.active_event:
             scene = Scene.objects.get(pk=self.caller.location.db.event_id)
             scene.addLogEntry(LogEntry.EntryType.SAY, self.args, self.caller)
+            add_participant_to_scene(self.caller, scene)
 
 class CmdWarp(default_cmds.MuxCommand):
     """
