@@ -83,6 +83,9 @@ class LogEntry(models.Model):
     # course of the event).
     content = models.TextField()
 
+    # Automatically note the creation time when the model is first saved.
+    created_at = models.DateTimeField(auto_now_add=True)
+
     # An enum allowing us to keep track of the different types of entries. This will be
     # used to determine what the presentation should be (if necessary). In the future,
     # may also be used to figure out which additional/optional fields are use, should we

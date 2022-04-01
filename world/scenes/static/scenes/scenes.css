@@ -79,10 +79,10 @@
 }
 
 .scene-log-entry .entry-stats li {
-    margin-bottom: 0.5rem;
-    font-weight: bold;
+    margin-right: 1rem;
+    display: inline-block;
 }
 
 .scene-log-entry p {
-    font-style: italic;
+    margin-top: 2rem;
 }

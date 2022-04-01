@@ -36,7 +36,13 @@ SERVERNAME = "Star Chaser Story MUSH"
 GAME_SLOGAN = '"Until the star we follow brings us back to you."'
 WEBSERVER_PORTS = [(80, 4005)]
 
-INSTALLED_APPS += ["world.msgs", "world.events", "world.scenes", "web.template_overrides"]
+INSTALLED_APPS += [
+    "django.contrib.humanize",
+    "world.msgs",
+    "world.events",
+    "world.scenes",
+    "web.template_overrides"
+]
 MULTISESSION_MODE = 1
 ######################################################################
 # Settings given in secret_settings.py override those in this file.
