@@ -354,7 +354,4 @@ def rgb2short(rgb):
     #print '***', res, equiv
     return equiv, res
 
-def ansi2rgb(ansi):
-    return
-
 RGB2SHORT_DICT, SHORT2RGB_DICT, ANSI2RGB_DICT = _create_dicts()
