@@ -1,7 +1,5 @@
 import sys, re
-from django import template
 
-register = template.Library()
 CLUT = [  # color look-up table
 #    8-bit, RGB hex
 
@@ -286,7 +284,6 @@ def _create_dicts():
         rgb2short_dict[v] = k
     return rgb2short_dict, short2rgb_dict
 
-@register.filter
 def short2rgb(short):
     return SHORT2RGB_DICT[short]
 
@@ -301,7 +298,6 @@ def short2rgb(short):
 #     print "Printed all codes."
 #     print "You can translate a hex or 0-255 code by providing an argument."
 
-@register.filter
 def rgb2short(rgb):
     """ Find the closest xterm-256 approximation to the given RGB value.
     @param rgb: Hex code representing an RGB value, eg, 'abcdef'
@@ -336,7 +332,6 @@ def rgb2short(rgb):
     #print '***', res, equiv
     return equiv, res
 
-@register.filter
 def ansi2rgb(ansi):
     return
 

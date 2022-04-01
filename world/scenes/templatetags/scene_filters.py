@@ -1,6 +1,6 @@
 import re
 from django import template
-from convert_color import short2rgb, ansi2rgb
+from world.scenes.templatetags.convert_color import short2rgb, ansi2rgb
 
 register = template.Library()
 
