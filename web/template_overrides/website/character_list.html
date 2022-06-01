@@ -16,8 +16,8 @@
 
           <ul>
               <h1>THIS ARE MY GUEST</h1>
-              {% for guest in object.guest_list %}
-              <li><a href=""{{ guest.web_get_detail_url }}">{{ object }}</a></li>
+              {% for guest in object_list.guest_list %}
+              <li><a href="{{ guest.web_get_detail_url }}">{{ guest }}</a></li>
               {% endfor %}
           </ul>
           
