@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block titleblock %}
+{{ view.page_title }}
+{% endblock %}
+
+{% block content %}
+
+{% load addclass %}
+<div class="row">
+  <div class="col">
+    <div class="card">
+      <div class="card-body">
+        <h1 class="card-title">{{ view.page_title }}</h1>
+        <hr />
+
+          <ul>
+              <h1>THIS ARE MY GUEST</h1>
+              {% for guest in object.guest_list %}
+              <li><a href=""{{ guest.web_get_detail_url }}">{{ object }}</a></li>
+              {% endfor %}
+          </ul>
+          
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
