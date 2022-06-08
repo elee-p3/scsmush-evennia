@@ -43,26 +43,26 @@ class CharacterListView(ListView):
     def get_context_data(self, **kwargs):
         context = super(CharacterListView, self).get_context_data(**kwargs)
 
-        account = self.request.user
-
-        # account_list = type(account).objects.all()
-        account_list = self.typeclass.objects.all()
-        guest_list = []
-        player_list = []
-        admin_list = []
-
-        for account in account_list:
-            if len(account.db_tags.all()) > 1:
-                if account.db_tags.all()[1].db_key == 'developer':
-                    admin_list.append(account.name)
-                elif account.db_tags.all()[1].db_key == 'guest':
-                    guest_list.append(account.name)
-            else:
-                player_list.append(account.name)
-
-        context['guest_list'] = guest_list
-        context['player_list'] = player_list
-        context['admin_list'] = admin_list
+        # account = self.request.user
+        #
+        # # account_list = type(account).objects.all()
+        # account_list = self.typeclass.objects.all()
+        # guest_list = []
+        # player_list = []
+        # admin_list = []
+        #
+        # for account in account_list:
+        #     if len(account.db_tags.all()) > 1:
+        #         if account.db_tags.all()[1].db_key == 'developer':
+        #             admin_list.append(account.name)
+        #         elif account.db_tags.all()[1].db_key == 'guest':
+        #             guest_list.append(account.name)
+        #     else:
+        #         player_list.append(account.name)
+        #
+        # context['guest_list'] = guest_list
+        # context['player_list'] = player_list
+        # context['admin_list'] = admin_list
         context['test'] = 'my test string'
 
         # context = {
