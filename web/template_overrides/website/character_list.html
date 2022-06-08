@@ -14,6 +14,12 @@
         <h1 class="card-title">{{ view.page_title }}</h1>
         <hr />
           <ul>
+              {% if some_other_object %}
+              does this even do anything
+              {% else %}
+              or does this error
+              {% endif %}
+
               {% if guest_list %}
               <h1>THIS ARE MY GUEST</h1>
               {% else %}
