@@ -44,7 +44,8 @@ class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
 
         account = self.request.user
 
-        account_list = type(account).objects.all()
+        # account_list = type(account).objects.all()
+        account_list = self.typeclass.objects.all()
         guest_list = []
         player_list = []
         admin_list = []
