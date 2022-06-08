@@ -1,6 +1,7 @@
 from evennia.web.website.views import *
 
-class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
+# class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
+class CharacterListView(LoginRequiredMixin, ListView):
     """
         This view provides a mechanism by which a logged-in player can view a list
         of all other characters.
