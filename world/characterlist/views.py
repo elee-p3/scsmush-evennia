@@ -17,7 +17,7 @@ class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
     paginate_by = 100
 
     # -- Evennia constructs --
-    page_title = "shoulda kept the new title"
+    page_title = "Character List"
     access_type = "view"
 
     def get_queryset(self):
