@@ -13,14 +13,22 @@
       <div class="card-body">
         <h1 class="card-title">{{ view.page_title }}</h1>
         <hr />
-
           <ul>
               <h1>THIS ARE MY GUEST</h1>
-              {% for guest in object_list.guest_list %}
+              {% for guest in guest_list %}
               <li><a href="{{ guest.web_get_detail_url }}">{{ guest }}</a></li>
               {% endfor %}
+
+              <h1>THIS ARE MY ADMIN</h1>
+              {% for admin in admin_list %}
+              <li><a href="{{ guest.web_get_detail_url }}">{{ admin }}</a></li>
+              {% endfor %}
+
+              <h1>THIS ARE MY PLAYERS</h1>
+              {% for player in player_list %}
+              <li><a href="{{ guest.web_get_detail_url }}">{{ player }}</a></li>
+              {% endfor %}
           </ul>
-          
       </div>
     </div>
   </div>

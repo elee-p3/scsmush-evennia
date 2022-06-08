@@ -30,6 +30,18 @@ class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
         """
         account = self.request.user
 
+        # Return a queryset consisting of characters the user is allowed to
+        # see.
+        ids = [
+            obj.id for obj in self.typeclass.objects.all() if obj.access(account, self.access_type)
+        ]
+
+        return self.typeclass.objects.filter(id__in=ids).order_by(Lower("db_key"))
+
+
+    def get_context_data(self, **kwargs):
+        account = self.request.user
+
         account_list = type(account).objects.all()
         guest_list = []
         player_list = []
@@ -49,14 +61,5 @@ class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
             'player_list': player_list,
             'admin_list': admin_list
         }
-
-
-        # # Return a queryset consisting of characters the user is allowed to
-        # # see.
-        # ids = [
-        #     obj.id for obj in self.typeclass.objects.all() if obj.access(account, self.access_type)
-        # ]
-        #
-        # return self.typeclass.objects.filter(id__in=ids).order_by(Lower("db_key"))
 
         return context
