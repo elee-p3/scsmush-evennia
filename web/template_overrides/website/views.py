@@ -63,6 +63,12 @@ class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
         context['player_list'] = player_list
         context['admin_list'] = admin_list
 
+        if guest_list:
+            for guest in guest_list:
+                account.msg(guest)
+        else:
+            account.msg("no guests")
+
         # context = {
         #     'guest_list': guest_list,
         #     'player_list': player_list,
