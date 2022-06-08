@@ -40,6 +40,8 @@ class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
 
 
     def get_context_data(self, **kwargs):
+        context = super(CharacterListView, self).get_context_data(**kwargs)
+
         account = self.request.user
 
         account_list = type(account).objects.all()
@@ -56,10 +58,14 @@ class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
             else:
                 player_list.append(account.name)
 
-        context = {
-            'guest_list': guest_list,
-            'player_list': player_list,
-            'admin_list': admin_list
-        }
+        context['guest_list'] = guest_list
+        context['player_list'] = player_list
+        context['admin_list'] = admin_list
+
+        # context = {
+        #     'guest_list': guest_list,
+        #     'player_list': player_list,
+        #     'admin_list': admin_list
+        # }
 
         return context
