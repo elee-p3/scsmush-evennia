@@ -16,7 +16,7 @@ class CharacterListView(ListView):
     paginate_by = 100
 
     # -- Evennia constructs --
-    page_title = "Character List"
+    page_title = "my testing title"
     access_type = "view"
 
     def get_queryset(self):
