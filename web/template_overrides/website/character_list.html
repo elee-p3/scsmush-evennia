@@ -14,11 +14,14 @@
         <h1 class="card-title">{{ view.page_title }}</h1>
         <hr />
           <ul>
+              {% if guest_list %}
               <h1>THIS ARE MY GUEST</h1>
-              {% for guest in guest_list %}
+              {% else %}
+              <h1>we have no guests mew...</h1>
+<!--              {% for guest in guest_list %}-->
 <!--              <li><a href="{{ guest.web_get_detail_url }}">{{ guest }}</a></li>-->
-              <li>{{ guest }}</li>
-              {% endfor %}
+<!--              <li>{{ guest }}</li>-->
+<!--              {% endfor %}-->
 
               <h1>THIS ARE MY ADMIN</h1>
               {% for admin in admin_list %}
