@@ -62,6 +62,7 @@ class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
         context['guest_list'] = guest_list
         context['player_list'] = player_list
         context['admin_list'] = admin_list
+        context['test'] = 'my test string'
 
         # context = {
         #     'guest_list': guest_list,
