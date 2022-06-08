@@ -1,4 +1,6 @@
-from evennia.web.website.views import *
+from evennia.web.website.views import CharacterMixin, LoginRequiredMixin
+from django.views.generic import ListView
+from django.db.models.functions import Lower
 
 class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
     """
@@ -11,7 +13,7 @@ class CharacterListView(LoginRequiredMixin, CharacterMixin, ListView):
         """
 
     # -- Django constructs --
-    template_name = "website/character_list.html"
+    template_name = "website/character_list_new.html"
     paginate_by = 100
 
     # -- Evennia constructs --

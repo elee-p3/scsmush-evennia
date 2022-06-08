@@ -41,7 +41,8 @@ INSTALLED_APPS += [
     "world.msgs",
     "world.events",
     "world.scenes",
-    "web.template_overrides"
+    "web.template_overrides",
+    "world.characterlist",
 ]
 MULTISESSION_MODE = 1
 ######################################################################
