@@ -1,6 +1,5 @@
 # server/ 
 
-# Devin was here, bitches!
 This directory holds files used by and configuring the Evennia server 
 itself.
 
