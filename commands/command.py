@@ -1175,7 +1175,9 @@ class CmdEvent(default_cmds.MuxCommand):
         if not caller.location.db.active_event:
             caller.msg("There is no active event running in this room.")
             is_running = False
-            return is_running
+        caller.msg("I'm in is_running")
+        caller.msg(caller.location.db.active_event)
+        return is_running
 
     def are_args(self):
         # Check that the user has inputted a string.
@@ -1184,7 +1186,9 @@ class CmdEvent(default_cmds.MuxCommand):
         if not self.args:
             caller.msg("Name the log description what?")
             are_args = False
-            return are_args
+        caller.msg("I'm in are_args")
+        caller.msg(self.args)
+        return are_args
 
     def find_event(self):
         # Find the scene object that matches the scene/event reference on the
@@ -1194,6 +1198,8 @@ class CmdEvent(default_cmds.MuxCommand):
             events = Scene.objects.filter(id=caller.location.db.event_id).get()
         except Exception as original:
             raise Exception("Found zero or multiple Scenes :/") from original
+        caller.msg("I'm in find_event")
+        caller.msg(self.caller.name)
         return events
 
     def func(self):
