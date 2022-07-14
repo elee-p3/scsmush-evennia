@@ -1168,6 +1168,34 @@ class CmdEvent(default_cmds.MuxCommand):
     aliases = ["event", "@scene", "scene"]
     locks = "cmd:all()"
 
+    def is_running(self):
+        # Check that there is a log running.
+        caller = self.caller
+        is_running = True
+        if not caller.location.db.active_event:
+            caller.msg("There is no active event running in this room.")
+            is_running = False
+            return is_running
+
+    def are_args(self):
+        # Check that the user has inputted a string.
+        caller = self.caller
+        are_args = True
+        if not self.args:
+            caller.msg("Name the log description what?")
+            are_args = False
+            return are_args
+
+    def find_event(self):
+        # Find the scene object that matches the scene/event reference on the
+        # location.
+        caller = self.caller
+        try:
+            events = Scene.objects.filter(id=caller.location.db.event_id).get()
+        except Exception as original:
+            raise Exception("Found zero or multiple Scenes :/") from original
+        return events
+
     def func(self):
         caller = self.caller
 
@@ -1197,16 +1225,10 @@ class CmdEvent(default_cmds.MuxCommand):
 
         elif "stop" in self.switches:
             # Make sure the current room's event hasn't already been stopped
-            if not caller.location.db.active_event:
-                caller.msg("There is no active event running in this room.")
+            if not self.is_running():
                 return
 
-            # Find the scene object that matches the scene/event reference on the
-            # location.
-            try:
-                events = Scene.objects.filter(id=caller.location.db.event_id).get()
-            except Exception as original:
-                raise Exception("Found zero or multiple Scenes :/") from original
+            events = self.find_event()
 
             # Stop the Room's active event by removing the active event attribute.
             Scene.objects.filter(id=caller.location.db.event_id).update(end_time=datetime.now())
@@ -1215,58 +1237,29 @@ class CmdEvent(default_cmds.MuxCommand):
             return
 
         elif "info" in self.switches:
-            # First, check that there is a log running.
-            if not caller.location.db.active_event:
-                caller.msg("There is no active event running in this room.")
+            if not self.is_running():
                 return
 
-            # Find the scene object that matches the scene/event reference on the
-            # location.
-            try:
-                events = Scene.objects.filter(id=caller.location.db.event_id).get()
-            except Exception as original:
-                raise Exception("Found zero or multiple Scenes :/") from original
+            events = self.find_event()
 
             caller.msg("This event has the following information:\nName = {0}\nDescription = {1}\nLocation = {2}\nID = {3}".format(events.name, events.description, events.location, events.id))
 
         elif "name" in self.switches:
-            # First, check that there is a log running.
-            if not caller.location.db.active_event:
-                caller.msg("There is no active event running in this room.")
+            if not self.is_running():
                 return
 
-            # Then, check that the user has inputted a string.
-            if not self.args:
-                caller.msg("Name the log what?")
+            if not self.are_args():
                 return
-
-            # Find the scene object that matches the scene/event reference on the
-            # location.
-            try:
-                events = Scene.objects.filter(id=caller.location.db.event_id).get()
-            except Exception as original:
-                raise Exception("Found zero or multiple Scenes :/") from original
 
             Scene.objects.filter(id=caller.location.db.event_id).update(name=self.args)
             caller.msg("Scene name set.")
 
         elif "desc" in self.switches:
-            # First, check that there is a log running.
-            if not caller.location.db.active_event:
-                caller.msg("There is no active event running in this room.")
+            if not self.is_running():
                 return
 
-            # Then, check that the user has inputted a string.
-            if not self.args:
-                caller.msg("Name the log description what?")
+            if not self.are_args():
                 return
-
-            # Find the scene object that matches the scene/event reference on the
-            # location.
-            try:
-                events = Scene.objects.filter(id=caller.location.db.event_id).get()
-            except Exception as original:
-                raise Exception("Found zero or multiple Scenes :/") from original
 
             Scene.objects.filter(id=caller.location.db.event_id).update(description=self.args)
             caller.msg("Scene description set.")
