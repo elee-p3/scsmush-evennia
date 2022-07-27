@@ -12,7 +12,8 @@ from django.conf.urls import url, include
 from world.scenes.urls import urlpatterns as scene_urlpatterns
 
 scsmush_urlpatterns = [
-    url('scenes/', include(("world.scenes.urls", "scenes"), namespace="scenes"))
+    url('scenes/', include(("world.scenes.urls", "scenes"), namespace="scenes")),
+    url('character/', include(("world.character.urls", "character"), namespace="character"))
 ]
 
 # Set the overall URL patterns for our website to be the union of our own URLs with

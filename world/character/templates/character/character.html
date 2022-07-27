@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block titleblock %}
+{{ view.page_title }}
+{% endblock %}
+
+{% block content %}
+
+{% load addclass %}
+<div class="row">
+  <div class="col">
+    <div class="card">
+      <div class="card-body">
+        <h1 class="card-title">{{ view.page_title }}</h1>
+        <hr />
+          <ul>
+              <h1>Players</h1>
+              {% for player in player_list %}
+              <li><a href="{{ player.web_get_detail_url }}">{{ player }}</a></li>
+              {% endfor %}
+
+              <h1>Admins</h1>
+              {% for admin in admin_list %}
+              <li><a href="{{ admin.web_get_detail_url }}">{{ admin }}</a></li>
+              {% endfor %}
+
+              <h1>Guests</h1>
+              {% for guest in guest_list %}
+              <li><a href="{{ guest.web_get_detail_url }}">{{ guest }}</a></li>
+              {% endfor %}
+          </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
