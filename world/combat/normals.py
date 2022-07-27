@@ -1,0 +1,1 @@
+NORMALS = ["Quick Attack", "Heavy Attack", "Medium Attack"]
