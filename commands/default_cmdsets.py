@@ -20,6 +20,7 @@ from commands.scs_dice import *
 import commands.command
 from commands.command import *
 from commands.bboards import *
+from commands.combat_commands import *
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
     """
@@ -60,6 +61,9 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdWarp)
         self.add(CmdPoseColors)
         self.add(CmdPage)
+        self.add(CmdAttack)
+        self.add(CmdQueue)
+        self.add(CmdDodge)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
