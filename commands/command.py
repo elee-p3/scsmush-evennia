@@ -1549,3 +1549,24 @@ class CmdRoulette(default_cmds.MuxCommand):
             self.caller.location.msg_contents("The party's luck will be |ggood.|n Something exciting and beneficial will happen.")
         else:
             self.caller.location.msg_contents("The party's luck will be |wextraordinarily good.|n An event akin to a miracle will occur!")
+
+class CmdGridscan(default_cmds.MuxCommand):
+    """
+    This is a command to print all of the room names and descs
+    to check if I have repeated any turns of phrase. I just want
+    to be able to read all my room descs in one place.
+
+    Usage:
+      +gridscan
+    """
+    key = "+gridscan"
+    aliases = ["gridscan"]
+    locks = "cmd:perm(Admin)"
+
+    def func(self):
+        caller = self.caller
+        # Create a list of Room objects that are not the OOC Room, Sparring Room, or World Map.
+        ic_locations = [obj for obj in ObjectDB.objects.all() if (obj.id not in [2, 8, 11] and "Room" in obj.db_typeclass_path)]
+        for location in ic_locations:
+            caller.msg("ID: " + str(location.id) + " --- Name: " + location.db_key)
+            caller.msg("Desc: " + location.db.desc + "\n")
