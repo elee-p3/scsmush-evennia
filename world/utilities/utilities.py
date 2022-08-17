@@ -1,3 +1,5 @@
+from evennia import ObjectDB
+
 def location_character_search(location):
     location_objects = location.contents
     characters = []

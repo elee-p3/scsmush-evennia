@@ -64,6 +64,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdAttack)
         self.add(CmdQueue)
         self.add(CmdDodge)
+        self.add(CmdRoulette)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
