@@ -21,6 +21,7 @@ import commands.command
 from commands.command import *
 from commands.bboards import *
 from commands.combat_commands import *
+from commands.chargen_commands import *
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
     """
@@ -67,6 +68,8 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdRoulette)
         self.add(CmdGridscan)
         self.add(CmdBlock)
+        self.add(CmdAddArt)
+        self.add(CmdArts)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """

@@ -204,3 +204,24 @@ class CmdBlock(default_cmds.MuxCommand):
             caller.db.lf -= final_damage
 
         del caller.db.queue[id_list.index(input_id)]
+
+class CmdArts(default_cmds.MuxCommand):
+    """
+        List your character's Arts.
+
+        Usage:
+          +arts
+
+    """
+
+    key = "+arts"
+    aliases = ["arts"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        arts = caller.db.arts
+        if arts is None:
+            return caller.msg("Your character has no Arts. Use +addart to create some.")
+        for art in arts:
+            caller.msg(art)

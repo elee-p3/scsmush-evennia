@@ -56,6 +56,7 @@ class Character(DefaultCharacter):
         self.db.speed = 100
         self.db.pose_time = 0.0
         self.db.obs_mode = False
+        self.db.arts = []
 
     def get_abilities(self):
         return {"name":self.key, "sex":self.db.sex, "race":self.db.race, "occupation":self.db.occupation,
