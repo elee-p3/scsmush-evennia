@@ -2,7 +2,7 @@ from world.combat.normals import NORMALS
 from evennia import default_cmds
 from world.utilities.utilities import location_character_search
 import random
-from world.combat.combat_math import damage_calc
+from world.combat.combat_math import *
 
 def append_to_queue(caller, target, attack):
     # Find the actual attack object using the input attack string
@@ -16,9 +16,13 @@ def append_to_queue(caller, target, attack):
             break
 
     # append a tuple per attack: (id, attack)
-    # TODO: have a think about what happens when a player removes an attack out of order. e.g if you have three attacks and remove #2, then the next time you append another attack you'll have two attacks labelled (3, something)
-    # TODO: one possible way would be to stick the id generation in a while loop and make sure that the id is unique by incrementing until it is
-    target.db.queue.append({"id":len(target.db.queue)+1, "attack":attack_object})
+    # theoretically, you should always resolve all attacks in your queue before having more people attack you
+    # this code should always just tack on at the end of the list even if that doesn't happen
+    if not target.db.queue:
+        last_id = 0
+    else:
+        last_id = max((attack["id"] for attack in target.db.queue))
+    target.db.queue.append({"id":last_id+1, "attack":attack_object})
 
 class CmdAttack(default_cmds.MuxCommand):
     """
@@ -64,8 +68,11 @@ class CmdAttack(default_cmds.MuxCommand):
                 target_object = obj
 
         # Now check that the action is an attack, which for now is just normals.
+        action_clean = ""
         if action not in NORMALS:
             return caller.msg("Your selected action cannot be found.")
+        else:
+            action_clean = NORMALS[NORMALS.index(action)]    # found action with correct capitalization
 
         # If the target is here and the action exists, then we add the attack to the target's queue.
         # The attack should be assigned an ID based on its place in the queue.
@@ -74,8 +81,8 @@ class CmdAttack(default_cmds.MuxCommand):
         if target_object.db.queue is None:
             target_object.db.queue = []
 
-        append_to_queue(caller, target_object, action)
-        caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action))
+        append_to_queue(caller, target_object, action_clean)
+        caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
 
 class CmdQueue(default_cmds.MuxCommand):
     """
@@ -97,18 +104,26 @@ class CmdQueue(default_cmds.MuxCommand):
     # For now, this just prints what you're allowed to react to.
 
     def func(self):
+        # 1. Medium Attack -- Power -- D: 50%
+        # 2. Heavy Art -- Knowledge -- D: 65%
         caller = self.caller
-        if not caller.db.queue is None:
-            caller.msg([attack["attack"].name for attack in self.caller.db.queue]) # ignore the ids, only print out the attacks
-        else:
+        if not caller.db.queue:
             caller.msg("Nothing in queue")
+        else:
+            for atk_obj in caller.db.queue:
+                attack = atk_obj["attack"]
+                id = atk_obj["id"]
+                modified_acc = dodge_calc(attack.acc, caller.db.speed)
+                dodge_pct = 100 - modified_acc
+                caller.msg("{0}. {1} -- {2} -- D: {3}%".format(id, attack.name, attack.base_stat, dodge_pct))
+
 
 class CmdDodge(default_cmds.MuxCommand):
     """
         Avoid Mad Dog. Though you cannot.
 
         Usage:
-          +dodge
+          +dodge <dodge id>
 
     """
 
@@ -119,29 +134,28 @@ class CmdDodge(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         args = self.args
-        idx = 0
+        id_list = [attack["id"] for attack in caller.db.queue]
+
 
         # Syntax is just "dodge <id>".
-        if not isinstance(args, str):
-            return caller.msg("Please input the attack name as a string.")
-        else:
-            idx = int(args)-1
-            if idx < 0:
-                caller.msg("That ID is not in the queue")
-                return
+        if not args.isdigit():
+            return caller.msg("Please input the attack ID as an integer.")
 
-        if int(args) not in [attack["id"] for attack in caller.db.queue]:
+        input_id = int(args)
+
+        if input_id not in id_list:
             return caller.msg("Cannot find that attack in your queue.")
 
         # The attack is a string in the queue. Flip a coin and remove the attack from the queue.
-        attack = caller.db.queue[idx]["attack"] # -1 since we're using normal person indices here
+        attack = caller.db.queue[id_list.index(input_id)]["attack"]
         random100 = random.randint(1, 100)
-        if attack.acc > random100:
+        modified_acc = dodge_calc(attack.acc, caller.db.speed)
+        if modified_acc > random100:
             final_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
-            caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=args))
+            caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
             caller.msg("You took {dmg} damage".format(dmg=final_damage))
             caller.db.lf -= final_damage
         else:
             caller.msg("You have successfully dodged. Good for you.")
 
-        del caller.db.queue[idx]
+        del caller.db.queue[id_list.index(input_id)]
