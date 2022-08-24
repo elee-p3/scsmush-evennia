@@ -113,9 +113,11 @@ class CmdQueue(default_cmds.MuxCommand):
             for atk_obj in caller.db.queue:
                 attack = atk_obj["attack"]
                 id = atk_obj["id"]
-                modified_acc = dodge_calc(attack.acc, caller.db.speed)
-                dodge_pct = 100 - modified_acc
-                caller.msg("{0}. {1} -- {2} -- D: {3}%".format(id, attack.name, attack.base_stat, dodge_pct))
+                modified_acc_for_dodge = dodge_calc(attack.acc, caller.db.speed)
+                dodge_pct = 100 - modified_acc_for_dodge
+                modified_acc_for_block = block_chance_calc(attack.acc, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier)
+                block_pct = 100 - modified_acc_for_block
+                caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}%".format(id, attack.name, attack.base_stat, dodge_pct, block_pct))
 
 
 class CmdDodge(default_cmds.MuxCommand):
@@ -123,7 +125,7 @@ class CmdDodge(default_cmds.MuxCommand):
         Avoid Mad Dog. Though you cannot.
 
         Usage:
-          +dodge <dodge id>
+          +dodge <queue id>
 
     """
 
@@ -136,6 +138,46 @@ class CmdDodge(default_cmds.MuxCommand):
         args = self.args
         id_list = [attack["id"] for attack in caller.db.queue]
 
+        # Syntax is just "dodge <id>".
+        if not args.isdigit():
+            return caller.msg("Please input the attack ID as an integer.")
+
+        input_id = int(args)
+
+        if input_id not in id_list:
+            return caller.msg("Cannot find that attack in your queue.")
+
+        # The attack is a string in the queue. Roll the die and remove the attack from the queue.
+        attack = caller.db.queue[id_list.index(input_id)]["attack"]
+        random100 = random.randint(1, 100)
+        modified_acc = dodge_calc(attack.acc, caller.db.speed)
+        if modified_acc > random100:
+            final_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
+            caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
+            caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+            caller.db.lf -= final_damage
+        else:
+            caller.msg("You have successfully dodged. Good for you.")
+
+        del caller.db.queue[id_list.index(input_id)]
+
+class CmdBlock(default_cmds.MuxCommand):
+    """
+        Block Mad Dog. If you dare.
+
+        Usage:
+          +block <queue id>
+
+    """
+
+    key = "+block"
+    aliases = ["block"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        args = self.args
+        id_list = [attack["id"] for attack in caller.db.queue]
 
         # Syntax is just "dodge <id>".
         if not args.isdigit():
@@ -146,16 +188,19 @@ class CmdDodge(default_cmds.MuxCommand):
         if input_id not in id_list:
             return caller.msg("Cannot find that attack in your queue.")
 
-        # The attack is a string in the queue. Flip a coin and remove the attack from the queue.
+        # The attack is a string in the queue. Roll the die and remove the attack from the queue.
         attack = caller.db.queue[id_list.index(input_id)]["attack"]
         random100 = random.randint(1, 100)
-        modified_acc = dodge_calc(attack.acc, caller.db.speed)
+        modified_acc = block_chance_calc(attack.acc, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier)
+        modified_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
         if modified_acc > random100:
-            final_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
             caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
-            caller.msg("You took {dmg} damage".format(dmg=final_damage))
-            caller.db.lf -= final_damage
+            caller.msg("You took {dmg} damage.".format(dmg=modified_damage))
+            caller.db.lf -= modified_damage
         else:
-            caller.msg("You have successfully dodged. Good for you.")
+            final_damage = block_damage_calc(modified_damage)
+            caller.msg("You have successfully blocked. Good for you.")
+            caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+            caller.db.lf -= final_damage
 
         del caller.db.queue[id_list.index(input_id)]
