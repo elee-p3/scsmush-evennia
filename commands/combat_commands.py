@@ -224,4 +224,42 @@ class CmdArts(default_cmds.MuxCommand):
         if arts is None:
             return caller.msg("Your character has no Arts. Use +addart to create some.")
         for art in arts:
-            caller.msg(art)
+            name = art.name
+            dmg = art.dmg
+            acc = art.acc
+            base_stat = art.base_stat
+            effects = art.effects
+            caller.msg("{0} -- Damage: {1} -- Accuracy: {2} -- {3} -- {4}".format(name, dmg, acc, base_stat, effects))
+
+class CmdAttacks(default_cmds.MuxCommand):
+    """
+        List all attacks available to your character,
+        including Arts and Normals.
+
+        Usage:
+          +attacks
+
+    """
+
+    key = "+attacks"
+    aliases = ["attacks"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        args = self.args
+        arts = caller.db.arts
+        if args:
+            return caller.msg("The command +attacks should be input without arguments.")
+        caller.msg("-- Normals --")
+        for normal in NORMALS:
+            caller.msg("{0} -- Damage: {1} -- Accuracy: {2} -- {3}".format(normal.name, normal.dmg, normal.acc, normal.base_stat))
+        if arts:
+            caller.msg("-- Arts --")
+            for art in arts:
+                name = art.name
+                dmg = art.dmg
+                acc = art.acc
+                base_stat = art.base_stat
+                effects = art.effects
+                caller.msg("{0} -- Damage: {1} -- Accuracy: {2} -- {3} -- {4}".format(name, dmg, acc, base_stat, effects))
