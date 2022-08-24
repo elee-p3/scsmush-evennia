@@ -1,11 +1,11 @@
 class Attack:
     # TODO: we don't guarantee attack name uniqueness anywhere. This check shouldn't happen here - it should happen in the future command where you're adding attacks to your character
-    def __init__(self, name: str, dmg: int, acc: int, flags="", attack_type=""):
+    def __init__(self, name: str, dmg: int, acc: int, base_stat="", flags=""):
         self.name = name.lower() # make case-insensitive # TODO: maybe keep the case here for pretty printing purposes, but do a lower() on check
         self.dmg = dmg
         self.acc = acc
+        self.base_stat = base_stat
         self.flags = flags
-        self.attack_type = attack_type
 
     def __str__(self):
         return self.name

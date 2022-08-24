@@ -2,7 +2,7 @@ from world.combat.normals import NORMALS
 from evennia import default_cmds
 from world.utilities.utilities import location_character_search
 import random
-
+from world.combat.combat_math import damage_calc
 
 def append_to_queue(caller, target, attack):
     # Find the actual attack object using the input attack string
@@ -46,7 +46,12 @@ class CmdAttack(default_cmds.MuxCommand):
         caller.msg(target)
         caller.msg(action)
 
-        # First, check that the target is a character in the room using utility
+        # First, check that the character attacking has more than 0 LF
+        char = self.caller.get_abilities()
+        if char["lf"] <= 0:
+            return caller.msg("Your character is KOed and cannot attack!")
+
+        # Then check that the target is a character in the room using utility
         characters_in_room = location_character_search(location)
         caller.msg(characters_in_room)
         if target not in [character.name.lower() for character in characters_in_room]:
@@ -132,8 +137,10 @@ class CmdDodge(default_cmds.MuxCommand):
         attack = caller.db.queue[idx]["attack"] # -1 since we're using normal person indices here
         random100 = random.randint(1, 100)
         if attack.acc > random100:
+            final_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
             caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=args))
-            caller.msg("You took {dmg} damage".format(dmg=attack.dmg))
+            caller.msg("You took {dmg} damage".format(dmg=final_damage))
+            caller.db.lf -= final_damage
         else:
             caller.msg("You have successfully dodged. Good for you.")
 
