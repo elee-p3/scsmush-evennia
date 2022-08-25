@@ -55,6 +55,9 @@ class CmdAddArt(default_cmds.MuxCommand):
             if not effect_ok:
                 return caller.msg("Error: at least one of your Effects is not a valid Effect.")
         # Having confirmed the Art is well-formed, add it to the character's list of Arts.
-        new_art = Attack(name, damage, (100 - int(damage)), base_stat, split_effects)
+        if "EX" in split_effects:
+            new_art = Attack(name, damage, (140 - int(damage)), base_stat, split_effects)
+        else:
+            new_art = Attack(name, damage, (120 - int(damage)), base_stat, split_effects)
         caller.db.arts.append(new_art)
         caller.msg("{0} has been added to your list of Arts.".format(name))

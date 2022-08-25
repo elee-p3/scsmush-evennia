@@ -390,6 +390,7 @@ class CmdSheet(default_cmds.MuxCommand):
             "implements the actual functionality"
             # TODO: We did this before we knew about the evtable function. This needs to be refactored.
             char = self.caller.get_abilities()
+            arts = self.caller.db.arts
             # name, sex, race, occupation, group, domain, element, origin, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
             # power, knowledge, parry, barrier, speed = self.caller.get_abilities()
             sheetMsg = ""
@@ -471,7 +472,6 @@ class CmdSheet(default_cmds.MuxCommand):
 
             # ARTTSSSSS
             sheetMsg += "|===================================ARTS=====================================|\n"
-
 
             # Bottom border
             sheetMsg += "/\\" + 74 * "_" + "/\\" + "\n"

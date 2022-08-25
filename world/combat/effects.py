@@ -16,6 +16,8 @@ sweep = Effect("Sweep", 10)
 # 1) Lower opponent's dodge chance. 2) Increase chance of Glancing Blow (partial damage) if dodged.
 priority = Effect("Priority", 15)
 # 1) Lower opponent's interrupt chance. 2) Increase interrupt chance if used as an interrupt.
+ex_move = Effect("EX", -15)
+# An EX attack costs 0 AP but 100% EX.
 rush = Effect("Rush", 5)
 # 1) Increase accuracy if not used as interrupt. 2) Decrease all reaction chances until next action.
 # This is a hybrid current/next turn effect.
@@ -30,4 +32,4 @@ bait = Effect("Bait", 5)
 
 # List of all Effects
 
-EFFECTS = [crush, sweep, priority, rush, weave, brace, bait]
+EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait]
