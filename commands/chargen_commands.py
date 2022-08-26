@@ -21,6 +21,7 @@ class CmdAddArt(default_cmds.MuxCommand):
     locks = "cmd:all()"
 
     def func(self):
+        # TODO: Check if a art of the same name already exists and, if so, modify it instead of creating a new one.
         caller = self.caller
         args = self.args
         # Create a list of Arts if the character does not yet have one.
@@ -72,3 +73,44 @@ class CmdAddArt(default_cmds.MuxCommand):
             new_art = Attack(name, true_ap_change, damage, (120 - int(damage)), base_stat)
         caller.db.arts.append(new_art)
         caller.msg("{0} has been added to your list of Arts.".format(name))
+
+class CmdChargen(default_cmds.MuxCommand):
+    """
+        A character generation command used to set your five stats: Power,
+        Knowledge, Parry, Barrier, and Speed. The total must be equal to
+        your character's Stat Total. By default, this is 625, or 125 per stat.
+
+        Remember to place commas and spaces between each stat assignment.
+
+        Usage:
+          +chargen <power>, <knowledge>, <parry>, <barrier>, <speed>
+
+    """
+
+    key = "+chargen"
+    aliases = ["chargen"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        args = self.args
+        split_args = args.split(", ")
+        # Check and make sure the result is a list that's five entries long.
+        if not len(split_args) == 5:
+            return caller.msg("Please input five stats, separated by a comma and a space.")
+        # Loop through the list to turn the inputs into integers and sum up the total.
+        split_args_sum = 0
+        for i in split_args:
+            split_args_sum += int(i)
+        # For now, all player characters will have a Stat Total of 625.
+        stat_total = 625
+        # Compare the sum of the input numbers with the Stat Total.
+        if split_args_sum != stat_total:
+            return caller.msg("Please ensure your total stat value is equal to {0}.".format(stat_total))
+        # Set the stats accordingly.
+        caller.db.power = int(split_args[0])
+        caller.db.knowledge = int(split_args[1])
+        caller.db.parry = int(split_args[2])
+        caller.db.barrier = int(split_args[3])
+        caller.db.speed = int(split_args[4])
+        caller.msg("Your stats have been set. Confirm them with +sheet.")

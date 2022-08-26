@@ -4,9 +4,8 @@ from world.utilities.utilities import location_character_search
 import random
 from world.combat.combat_math import *
 
-def append_to_queue(caller, target, attack):
+def append_to_queue(caller, target, attack, attacker):
     # Find the actual attack object using the input attack string
-    # TODO: it's just the normals for now, but we'll concatenate a full list of attacks once characters have their own custom attacks
     # TODO: the caller isn't used yet, but in the future we might modify attacks by the current character's equipment/stats
     attack_object = None
     for normal in NORMALS:
@@ -17,7 +16,6 @@ def append_to_queue(caller, target, attack):
         if attack == art:
             attack_object = art
 
-
     # append a tuple per attack: (id, attack)
     # theoretically, you should always resolve all attacks in your queue before having more people attack you
     # this code should always just tack on at the end of the list even if that doesn't happen
@@ -25,7 +23,7 @@ def append_to_queue(caller, target, attack):
         last_id = 0
     else:
         last_id = max((attack["id"] for attack in target.db.queue))
-    target.db.queue.append({"id":last_id+1, "attack":attack_object})
+    target.db.queue.append({"id":last_id+1, "attack":attack_object, "attacker":attacker})
 
 class CmdAttack(default_cmds.MuxCommand):
     """
@@ -96,8 +94,26 @@ class CmdAttack(default_cmds.MuxCommand):
             true_damage += int(caller.db.knowledge)
         action_clean.dmg = true_damage
 
-        append_to_queue(caller, target_object, action_clean)
+        # If the character has insufficient AP to use that move, cancel the attack.
+        # Otherwise, set their EX from 100 to 0.
+        if int(caller.db.ap) + int(action_clean.ap_change) < 0:
+            return caller.msg("You do not have enough AP to do that.")
+        if "EX" in action_clean.effects:
+            if caller.db.ex - 100 < 0:
+                return caller.msg("You do not have enough EX to do that.")
+            caller.db.ex = 0
+        # If the character has insufficient EX to use that move, cancel the attack.
+        # Modify the character's AP based on the attack's AP cost.
+        new_ap = int(caller.db.ap)
+        new_ap += int(action_clean.ap_change)
+        caller.db.ap = new_ap
+
+        # Append the attack to the target's queue and announce the attack.
+        attacker = caller
+        append_to_queue(caller, target_object, action_clean, attacker)
         caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
+        caller.location.msg_contents("|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
+            attacker=attacker.key, target=target_object, action=action_clean))
 
 class CmdQueue(default_cmds.MuxCommand):
     """
@@ -164,15 +180,29 @@ class CmdDodge(default_cmds.MuxCommand):
 
         # The attack is a string in the queue. Roll the die and remove the attack from the queue.
         attack = caller.db.queue[id_list.index(input_id)]["attack"]
+        attacker = caller.db.queue[id_list.index(input_id)]["attacker"]
         random100 = random.randint(1, 100)
         modified_acc = dodge_calc(attack.acc, caller.db.speed)
         if modified_acc > random100:
             final_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
             caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
             caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+            self.caller.location.msg_contents(
+                "|y<COMBAT>|n {target} has been hit by {attacker}'s {attack}.".format(target=caller.key, attacker=attacker.key,
+                                                                                      attack=attack.name))
             caller.db.lf -= final_damage
+            # Modify EX based on damage taken.
+            # Modify the character's EX based on the damage inflicted.
+            new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
+            caller.db.ex = new_ex
+            # Modify the attacker's EX based on the damage inflicted.
+            new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
+            attacker.db.ex = new_attacker_ex
         else:
             caller.msg("You have successfully dodged. Good for you.")
+            self.caller.location.msg_contents(
+                "|y<COMBAT>|n {target} has dodged {attacker}'s {attack}.".format(target=caller.key, attacker=attacker.key,
+                                                                                      attack=attack.name))
 
         del caller.db.queue[id_list.index(input_id)]
 
@@ -205,19 +235,40 @@ class CmdBlock(default_cmds.MuxCommand):
 
         # The attack is a string in the queue. Roll the die and remove the attack from the queue.
         attack = caller.db.queue[id_list.index(input_id)]["attack"]
+        attacker = caller.db.queue[id_list.index(input_id)]["attacker"]
         random100 = random.randint(1, 100)
         modified_acc = block_chance_calc(attack.acc, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier)
         modified_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
+        # caller.msg("Base damage is: " + str(attack.dmg))
+        # caller.msg("Modified damage is: " + str(modified_damage))
         if modified_acc > random100:
             caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
             caller.msg("You took {dmg} damage.".format(dmg=modified_damage))
             caller.db.lf -= modified_damage
+            self.caller.location.msg_contents(
+                "|y<COMBAT>|n {target} has been hit by {attacker}'s {attack}.".format(target=caller.key, attacker=attacker.key,
+                                                                                      attack=attack.name))
+            # Modify the character's EX based on the damage inflicted.
+            new_ex = ex_gain_on_defense(modified_damage, caller.db.ex, caller.db.maxex)
+            caller.db.ex = new_ex
+            # Modify the attacker's EX based on the damage inflicted.
+            new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
+            attacker.db.ex = new_attacker_ex
         else:
             final_damage = block_damage_calc(modified_damage)
+            # caller.msg("Final damage is: " + str(final_damage))
             caller.msg("You have successfully blocked. Good for you.")
             caller.msg("You took {dmg} damage.".format(dmg=final_damage))
             caller.db.lf -= final_damage
-
+            self.caller.location.msg_contents(
+                "|y<COMBAT>|n {target} has blocked {attacker}'s {attack}.".format(target=caller.key, attacker=attacker.key,
+                                                                                      attack=attack.name))
+            # Modify the character's EX based on the damage inflicted.
+            new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
+            caller.db.ex = new_ex
+            # Modify the attacker's EX based on the damage inflicted.
+            new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
+            attacker.db.ex = new_attacker_ex
         del caller.db.queue[id_list.index(input_id)]
 
 class CmdArts(default_cmds.MuxCommand):
@@ -280,6 +331,7 @@ class CmdAttacks(default_cmds.MuxCommand):
             caller.msg("{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4}".format(normal.name, normal.ap_change,
                                                                                       normal.dmg, normal.acc,
                                                                                       normal.base_stat))
+        # If the character has arts, list them.
         if arts:
             caller.msg("-- Arts --")
             for art in arts:
@@ -289,6 +341,7 @@ class CmdAttacks(default_cmds.MuxCommand):
                 base_stat = art.base_stat
                 effects = art.effects
                 ap_change = art.ap_change
+                # AP costs are displayed in cyan; otherwise, the number is displayed in green.
                 if int(ap_change) >= 0:
                     caller.msg(
                     "{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc, base_stat,

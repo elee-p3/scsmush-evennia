@@ -23,3 +23,19 @@ def block_chance_calc(attack_acc, base_stat, speed, parry, barrier):
 
 def block_damage_calc(base_damage):
     return base_damage / 2
+
+
+def ex_gain_on_attack(damage_inflicted, current_ex, max_ex):
+    ex_gain = int(damage_inflicted) / 10
+    new_ex = current_ex + ex_gain
+    if new_ex > max_ex:
+        new_ex = max_ex
+    return new_ex
+
+
+def ex_gain_on_defense(damage_taken, current_ex, max_ex):
+    ex_gain = int(damage_taken) / 5
+    new_ex = current_ex + ex_gain
+    if new_ex > max_ex:
+        new_ex = max_ex
+    return new_ex

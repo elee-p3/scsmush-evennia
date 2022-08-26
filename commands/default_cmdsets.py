@@ -71,6 +71,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdAddArt)
         self.add(CmdArts)
         self.add(CmdAttacks)
+        self.add(CmdChargen)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """
