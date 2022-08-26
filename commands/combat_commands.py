@@ -12,8 +12,11 @@ def append_to_queue(caller, target, attack):
     for normal in NORMALS:
         if attack == normal:
             attack_object = normal
-            caller.msg(normal)
             break
+    for art in caller.db.arts:
+        if attack == art:
+            attack_object = art
+
 
     # append a tuple per attack: (id, attack)
     # theoretically, you should always resolve all attacks in your queue before having more people attack you
@@ -43,12 +46,13 @@ class CmdAttack(default_cmds.MuxCommand):
         caller = self.caller
         location = caller.location
         args = self.args
+        arts = caller.db.arts
         split_args = args.split('=')
         target = split_args[0].lower() # make everything case-insensitive
         action = split_args[1].lower()
 
-        caller.msg(target)
-        caller.msg(action)
+        # caller.msg(target)
+        # caller.msg(action)
 
         # First, check that the character attacking has more than 0 LF
         char = self.caller.get_abilities()
@@ -57,7 +61,7 @@ class CmdAttack(default_cmds.MuxCommand):
 
         # Then check that the target is a character in the room using utility
         characters_in_room = location_character_search(location)
-        caller.msg(characters_in_room)
+        # caller.msg(characters_in_room)
         if target not in [character.name.lower() for character in characters_in_room]:
             return caller.msg("Your target is not a character in this room.")
 
@@ -70,9 +74,12 @@ class CmdAttack(default_cmds.MuxCommand):
         # Now check that the action is an attack, which for now is just normals.
         action_clean = ""
         if action not in NORMALS:
-            return caller.msg("Your selected action cannot be found.")
-        else:
+            if action not in arts:
+                return caller.msg("Your selected action cannot be found.")
+        if action in NORMALS:
             action_clean = NORMALS[NORMALS.index(action)]    # found action with correct capitalization
+        else:
+            action_clean = arts[arts.index(action)]
 
         # If the target is here and the action exists, then we add the attack to the target's queue.
         # The attack should be assigned an ID based on its place in the queue.
@@ -80,6 +87,14 @@ class CmdAttack(default_cmds.MuxCommand):
         # Check if the "queue" attribute exists and, if not, create an empty list first.
         if target_object.db.queue is None:
             target_object.db.queue = []
+
+        # Modify the attack damage based on the relevant stat.
+        true_damage = int(action_clean.dmg)
+        if action_clean.base_stat == "Power":
+            true_damage += int(caller.db.power)
+        if action_clean.base_stat == "Knowledge":
+            true_damage += int(caller.db.knowledge)
+        action_clean.dmg = true_damage
 
         append_to_queue(caller, target_object, action_clean)
         caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
