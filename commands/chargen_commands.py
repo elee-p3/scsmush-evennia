@@ -43,21 +43,32 @@ class CmdAddArt(default_cmds.MuxCommand):
         # Checking that the base stat is either Power or Knowledge.
         if base_stat.lower() not in ["power", "knowledge"]:
             return caller.msg("Error: your Art's base stat must be either Power or Knowledge.")
-        effects = art_list[3]
-        # Split up the effects at the space bar.
-        split_effects = effects.split()
-        # Now, for each effect in the split_effects list, confirm that it is in EFFECTS.
-        for art_effect in split_effects:
-            effect_ok = False
-            for real_effect in EFFECTS:
-                if art_effect in real_effect.name:
-                    effect_ok = True
-            if not effect_ok:
-                return caller.msg("Error: at least one of your Effects is not a valid Effect.")
+        # Set the baseline AP cost for an art at 15.
+        true_ap_change = -15
+        if len(art_list) == 4:
+            effects = art_list[3]
+            # Split up the effects at the space bar.
+            split_effects = effects.split()
+            # Now, for each effect in the split_effects list, confirm that it is in EFFECTS.
+            # If so, modify the art's AP cost based on the data in EFFECTS.
+            ex_move = False
+            for art_effect in split_effects:
+                effect_ok = False
+                for real_effect in EFFECTS:
+                    if art_effect in real_effect.name:
+                        effect_ok = True
+                        true_ap_change += int(real_effect.ap_change)
+                    if real_effect.name == "EX":
+                        ex_move = True
+                if not effect_ok:
+                    return caller.msg("Error: at least one of your Effects is not a valid Effect.")
         # Having confirmed the Art is well-formed, add it to the character's list of Arts.
-        if "EX" in split_effects:
-            new_art = Attack(name, damage, (140 - int(damage)), base_stat, split_effects)
+        # Check if it is regular Art (120 points between Damage/Acc) or EX (140 points).
+            if ex_move:
+                new_art = Attack(name, true_ap_change, damage, (140 - int(damage)), base_stat, split_effects)
+            else:
+                new_art = Attack(name, true_ap_change, damage, (120 - int(damage)), base_stat, split_effects)
         else:
-            new_art = Attack(name, damage, (120 - int(damage)), base_stat, split_effects)
+            new_art = Attack(name, true_ap_change, damage, (120 - int(damage)), base_stat)
         caller.db.arts.append(new_art)
         caller.msg("{0} has been added to your list of Arts.".format(name))

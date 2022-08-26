@@ -229,8 +229,17 @@ class CmdArts(default_cmds.MuxCommand):
             acc = art.acc
             base_stat = art.base_stat
             effects = art.effects
-            caller.msg("{0} -- Damage: {1} -- Accuracy: {2} -- {3} -- {4}".format(name, dmg, acc, base_stat, effects))
-
+            ap_change = art.ap_change
+            if int(ap_change) >= 0:
+                caller.msg(
+                    "{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc,
+                                                                                              base_stat,
+                                                                                              effects))
+            else:
+                caller.msg(
+                    "{0} -- AP: |c{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc,
+                                                                                              base_stat,
+                                                                                              effects))
 class CmdAttacks(default_cmds.MuxCommand):
     """
         List all attacks available to your character,
@@ -253,7 +262,9 @@ class CmdAttacks(default_cmds.MuxCommand):
             return caller.msg("The command +attacks should be input without arguments.")
         caller.msg("-- Normals --")
         for normal in NORMALS:
-            caller.msg("{0} -- Damage: {1} -- Accuracy: {2} -- {3}".format(normal.name, normal.dmg, normal.acc, normal.base_stat))
+            caller.msg("{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4}".format(normal.name, normal.ap_change,
+                                                                                      normal.dmg, normal.acc,
+                                                                                      normal.base_stat))
         if arts:
             caller.msg("-- Arts --")
             for art in arts:
@@ -262,4 +273,12 @@ class CmdAttacks(default_cmds.MuxCommand):
                 acc = art.acc
                 base_stat = art.base_stat
                 effects = art.effects
-                caller.msg("{0} -- Damage: {1} -- Accuracy: {2} -- {3} -- {4}".format(name, dmg, acc, base_stat, effects))
+                ap_change = art.ap_change
+                if int(ap_change) >= 0:
+                    caller.msg(
+                    "{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc, base_stat,
+                                                                                              effects))
+                else:
+                    caller.msg(
+                    "{0} -- AP: |c{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc, base_stat,
+                                                                                              effects))
