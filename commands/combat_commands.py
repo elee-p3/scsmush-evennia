@@ -252,7 +252,7 @@ class CmdBlock(default_cmds.MuxCommand):
             new_ex = ex_gain_on_defense(modified_damage, caller.db.ex, caller.db.maxex)
             caller.db.ex = new_ex
             # Modify the attacker's EX based on the damage inflicted.
-            new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
+            new_attacker_ex = ex_gain_on_attack(modified_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
         else:
             final_damage = block_damage_calc(modified_damage)
