@@ -70,8 +70,10 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdBlock)
         self.add(CmdAddArt)
         self.add(CmdArts)
-        self.add(CmdAttacks)
+        self.add(CmdListAttacks)
         self.add(CmdChargen)
+        self.add(CmdAim)
+        self.add(CmdFeint)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """

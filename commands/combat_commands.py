@@ -3,8 +3,9 @@ from evennia import default_cmds
 from world.utilities.utilities import location_character_search
 import random
 from world.combat.combat_math import *
+from world.combat.effects import AimOrFeint
 
-def append_to_queue(caller, target, attack, attacker):
+def append_to_queue(caller, target, attack, attacker, aim_or_feint):
     # Find the actual attack object using the input attack string
     # TODO: the caller isn't used yet, but in the future we might modify attacks by the current character's equipment/stats
     attack_object = None
@@ -12,9 +13,10 @@ def append_to_queue(caller, target, attack, attacker):
         if attack == normal:
             attack_object = normal
             break
-    for art in caller.db.arts:
-        if attack == art:
-            attack_object = art
+    if caller.db.arts:
+        for art in caller.db.arts:
+            if attack == art:
+                attack_object = art
 
     # append a tuple per attack: (id, attack)
     # theoretically, you should always resolve all attacks in your queue before having more people attack you
@@ -23,7 +25,7 @@ def append_to_queue(caller, target, attack, attacker):
         last_id = 0
     else:
         last_id = max((attack["id"] for attack in target.db.queue))
-    target.db.queue.append({"id":last_id+1, "attack":attack_object, "attacker":attacker})
+    target.db.queue.append({"id":last_id+1, "attack":attack_object, "attacker":attacker, "aim_or_feint":aim_or_feint})
 
 class CmdAttack(default_cmds.MuxCommand):
     """
@@ -87,16 +89,19 @@ class CmdAttack(default_cmds.MuxCommand):
             target_object.db.queue = []
 
         # Modify the attack damage based on the relevant stat.
-        true_damage = int(action_clean.dmg)
+        true_damage = action_clean.dmg
         if action_clean.base_stat == "Power":
-            true_damage += int(caller.db.power)
+            true_damage += caller.db.power
         if action_clean.base_stat == "Knowledge":
-            true_damage += int(caller.db.knowledge)
+            true_damage += caller.db.knowledge
         action_clean.dmg = true_damage
 
         # If the character has insufficient AP to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
-        if int(caller.db.ap) + int(action_clean.ap_change) < 0:
+        total_ap_change = action_clean.ap_change
+        if caller.db.is_aiming or caller.db.is_feinting:
+            total_ap_change -= 10
+        if caller.db.ap + total_ap_change < 0:
             return caller.msg("You do not have enough AP to do that.")
         if "EX" in action_clean.effects:
             if caller.db.ex - 100 < 0:
@@ -104,16 +109,23 @@ class CmdAttack(default_cmds.MuxCommand):
             caller.db.ex = 0
         # If the character has insufficient EX to use that move, cancel the attack.
         # Modify the character's AP based on the attack's AP cost.
-        new_ap = int(caller.db.ap)
-        new_ap += int(action_clean.ap_change)
-        caller.db.ap = new_ap
+        caller.db.ap += total_ap_change
 
         # Append the attack to the target's queue and announce the attack.
         attacker = caller
-        append_to_queue(caller, target_object, action_clean, attacker)
+        if caller.db.is_aiming:
+            append_to_queue(caller, target_object, action_clean, attacker, AimOrFeint.AIM)
+        elif caller.db.is_feinting:
+            append_to_queue(caller, target_object, action_clean, attacker, AimOrFeint.FEINT)
+        else:
+            append_to_queue(caller, target_object, action_clean, attacker, AimOrFeint.NEUTRAL)
+
         caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
         caller.location.msg_contents("|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
             attacker=attacker.key, target=target_object, action=action_clean))
+
+        caller.db.is_aiming = False
+        caller.db.is_feinting = False
 
 class CmdQueue(default_cmds.MuxCommand):
     """
@@ -178,18 +190,30 @@ class CmdDodge(default_cmds.MuxCommand):
         if input_id not in id_list:
             return caller.msg("Cannot find that attack in your queue.")
 
-        # The attack is a string in the queue. Roll the die and remove the attack from the queue.
-        attack = caller.db.queue[id_list.index(input_id)]["attack"]
-        attacker = caller.db.queue[id_list.index(input_id)]["attacker"]
+        # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
+        action = caller.db.queue[id_list.index(input_id)]
+        attack = action["attack"]
+        attacker = action["attacker"]
+        aim_or_feint = action["aim_or_feint"]
         random100 = random.randint(1, 100)
         modified_acc = dodge_calc(attack.acc, caller.db.speed)
+
+        # do the aiming/feinting modification here since we don't want to show the modified value in the queue
+        if aim_or_feint == AimOrFeint.AIM:
+            modified_acc += 15
+        elif aim_or_feint == AimOrFeint.FEINT:
+            modified_acc -= 15
+
+
+        msg = ""
+
         if modified_acc > random100:
             final_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
             caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
             caller.msg("You took {dmg} damage.".format(dmg=final_damage))
-            self.caller.location.msg_contents(
-                "|y<COMBAT>|n {target} has been hit by {attacker}'s {attack}.".format(target=caller.key, attacker=attacker.key,
-                                                                                      attack=attack.name))
+
+            msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
+
             caller.db.lf -= final_damage
             # Modify EX based on damage taken.
             # Modify the character's EX based on the damage inflicted.
@@ -200,9 +224,23 @@ class CmdDodge(default_cmds.MuxCommand):
             attacker.db.ex = new_attacker_ex
         else:
             caller.msg("You have successfully dodged. Good for you.")
-            self.caller.location.msg_contents(
-                "|y<COMBAT>|n {target} has dodged {attacker}'s {attack}.".format(target=caller.key, attacker=attacker.key,
-                                                                                      attack=attack.name))
+            msg = "|y<COMBAT>|n {target} has dodged {attacker}'s {modifier}{attack}."
+
+        if aim_or_feint == AimOrFeint.AIM:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="Aimed ",
+                                                         attack=attack.name))
+        elif aim_or_feint == AimOrFeint.FEINT:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="Feinting ",
+                                                         attack=attack.name))
+        else:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="",
+                                                         attack=attack.name))
 
         del caller.db.queue[id_list.index(input_id)]
 
@@ -234,20 +272,31 @@ class CmdBlock(default_cmds.MuxCommand):
             return caller.msg("Cannot find that attack in your queue.")
 
         # The attack is a string in the queue. Roll the die and remove the attack from the queue.
-        attack = caller.db.queue[id_list.index(input_id)]["attack"]
-        attacker = caller.db.queue[id_list.index(input_id)]["attacker"]
+        action = caller.db.queue[id_list.index(input_id)]
+        attack = action["attack"]
+        attacker = action["attacker"]
+        aim_or_feint = action["aim_or_feint"]
         random100 = random.randint(1, 100)
         modified_acc = block_chance_calc(attack.acc, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier)
         modified_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
         # caller.msg("Base damage is: " + str(attack.dmg))
         # caller.msg("Modified damage is: " + str(modified_damage))
+
+        # do the aiming/feinting modification here since we don't want to show the modified value in the queue
+        if aim_or_feint == AimOrFeint.AIM:
+            modified_acc += 15
+        elif aim_or_feint == AimOrFeint.FEINT:
+            modified_acc -= 15
+
+        msg = ""
+
         if modified_acc > random100:
             caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
             caller.msg("You took {dmg} damage.".format(dmg=modified_damage))
             caller.db.lf -= modified_damage
-            self.caller.location.msg_contents(
-                "|y<COMBAT>|n {target} has been hit by {attacker}'s {attack}.".format(target=caller.key, attacker=attacker.key,
-                                                                                      attack=attack.name))
+
+            msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
+
             # Modify the character's EX based on the damage inflicted.
             new_ex = ex_gain_on_defense(modified_damage, caller.db.ex, caller.db.maxex)
             caller.db.ex = new_ex
@@ -260,15 +309,32 @@ class CmdBlock(default_cmds.MuxCommand):
             caller.msg("You have successfully blocked. Good for you.")
             caller.msg("You took {dmg} damage.".format(dmg=final_damage))
             caller.db.lf -= final_damage
-            self.caller.location.msg_contents(
-                "|y<COMBAT>|n {target} has blocked {attacker}'s {attack}.".format(target=caller.key, attacker=attacker.key,
-                                                                                      attack=attack.name))
+
+            msg = "|y<COMBAT>|n {target} has blocked {attacker}'s {modifier}{attack}."
+
             # Modify the character's EX based on the damage inflicted.
             new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
             caller.db.ex = new_ex
             # Modify the attacker's EX based on the damage inflicted.
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
+
+        if aim_or_feint == AimOrFeint.AIM:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="Aimed ",
+                                                         attack=attack.name))
+        elif aim_or_feint == AimOrFeint.FEINT:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="Feinting ",
+                                                         attack=attack.name))
+        else:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="",
+                                                         attack=attack.name))
+
         del caller.db.queue[id_list.index(input_id)]
 
 class CmdArts(default_cmds.MuxCommand):
@@ -306,7 +372,7 @@ class CmdArts(default_cmds.MuxCommand):
                     "{0} -- AP: |c{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc,
                                                                                               base_stat,
                                                                                               effects))
-class CmdAttacks(default_cmds.MuxCommand):
+class CmdListAttacks(default_cmds.MuxCommand):
     """
         List all attacks available to your character,
         including Arts and Normals.
@@ -350,3 +416,57 @@ class CmdAttacks(default_cmds.MuxCommand):
                     caller.msg(
                     "{0} -- AP: |c{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc, base_stat,
                                                                                               effects))
+
+
+# Note: you can never be aiming and feinting at the same time. There's no explicit check that guarantees this,
+# but the logic should make it impossible to get into that state
+class CmdAim(default_cmds.MuxCommand):
+    """
+        Apply/remove aim effect to your next attack.
+
+        Usage:
+          +aim
+
+    """
+
+    key = "+aim"
+    aliases = ["aim"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        if caller.db.is_aiming:
+            caller.db.is_aiming = False
+            caller.msg("You are no longer aiming.")
+        else:
+            if caller.db.is_feinting:
+                caller.db.is_feinting = False
+                caller.msg("You are no longer feinting.")
+            caller.db.is_aiming = True
+            caller.msg("You have begun aiming.")
+
+
+class CmdFeint(default_cmds.MuxCommand):
+    """
+        Apply/remove feint effect to your next attack.
+
+        Usage:
+          +feint
+
+    """
+
+    key = "+feint"
+    aliases = ["feint"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        if caller.db.is_feinting:
+            caller.db.is_feinting = False
+            caller.msg("You are no longer feinting.")
+        else:
+            if caller.db.is_aiming:
+                caller.db.is_aiming = False
+                caller.msg("You are no longer aiming.")
+            caller.db.is_feinting = True
+            caller.msg("You have begun feinting.")

@@ -1,3 +1,10 @@
+from enum import Enum
+
+class AimOrFeint(Enum):
+    AIM = 1
+    FEINT = 2
+    NEUTRAL = 3
+
 class Effect:
     def __init__(self, name: str, ap_change: int):
         self.name = name
