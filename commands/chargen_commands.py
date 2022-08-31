@@ -107,6 +107,10 @@ class CmdChargen(default_cmds.MuxCommand):
         # Compare the sum of the input numbers with the Stat Total.
         if split_args_sum != stat_total:
             return caller.msg("Please ensure your total stat value is equal to {0}.".format(stat_total))
+        # Make sure that no stat is above 255.
+        for stat in split_args:
+            if int(stat) > 255:
+                return caller.msg("Please ensure that no stat is above the maximum of 255.")
         # Set the stats accordingly.
         caller.db.power = int(split_args[0])
         caller.db.knowledge = int(split_args[1])
