@@ -5,7 +5,7 @@ import random
 from world.combat.combat_math import *
 from world.combat.effects import AimOrFeint
 
-def append_to_queue(caller, target, attack, attacker, aim_or_feint):
+def append_to_queue(caller, target, attack, attack_damage, attacker, aim_or_feint):
     # Find the actual attack object using the input attack string
     # TODO: the caller isn't used yet, but in the future we might modify attacks by the current character's equipment/stats
     attack_object = None
@@ -17,6 +17,7 @@ def append_to_queue(caller, target, attack, attacker, aim_or_feint):
         for art in caller.db.arts:
             if attack == art:
                 attack_object = art
+                break
 
     # append a tuple per attack: (id, attack)
     # theoretically, you should always resolve all attacks in your queue before having more people attack you
@@ -25,7 +26,7 @@ def append_to_queue(caller, target, attack, attacker, aim_or_feint):
         last_id = 0
     else:
         last_id = max((attack["id"] for attack in target.db.queue))
-    target.db.queue.append({"id":last_id+1, "attack":attack_object, "attacker":attacker, "aim_or_feint":aim_or_feint})
+    target.db.queue.append({"id":last_id+1, "attack":attack_object, "modified_damage":attack_damage, "attacker":attacker, "aim_or_feint":aim_or_feint})
 
 class CmdAttack(default_cmds.MuxCommand):
     """
@@ -89,12 +90,12 @@ class CmdAttack(default_cmds.MuxCommand):
             target_object.db.queue = []
 
         # Modify the attack damage based on the relevant stat.
-        true_damage = action_clean.dmg
+        modified_damage = 0
+        modified_damage += action_clean.dmg
         if action_clean.base_stat == "Power":
-            true_damage += caller.db.power
+            modified_damage += caller.db.power
         if action_clean.base_stat == "Knowledge":
-            true_damage += caller.db.knowledge
-        action_clean.dmg = true_damage
+            modified_damage += caller.db.knowledge
 
         # If the character has insufficient AP to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
@@ -114,11 +115,11 @@ class CmdAttack(default_cmds.MuxCommand):
         # Append the attack to the target's queue and announce the attack.
         attacker = caller
         if caller.db.is_aiming:
-            append_to_queue(caller, target_object, action_clean, attacker, AimOrFeint.AIM)
+            append_to_queue(caller, target_object, action_clean, modified_damage, attacker, AimOrFeint.AIM)
         elif caller.db.is_feinting:
-            append_to_queue(caller, target_object, action_clean, attacker, AimOrFeint.FEINT)
+            append_to_queue(caller, target_object, action_clean, modified_damage, attacker, AimOrFeint.FEINT)
         else:
-            append_to_queue(caller, target_object, action_clean, attacker, AimOrFeint.NEUTRAL)
+            append_to_queue(caller, target_object, action_clean, modified_damage, attacker, AimOrFeint.NEUTRAL)
 
         caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
         caller.location.msg_contents("|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
@@ -193,6 +194,7 @@ class CmdDodge(default_cmds.MuxCommand):
         # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
         attack = action["attack"]
+        attack_damage = action["modified_damage"]
         attacker = action["attacker"]
         aim_or_feint = action["aim_or_feint"]
         random100 = random.randint(1, 100)
@@ -206,11 +208,21 @@ class CmdDodge(default_cmds.MuxCommand):
 
 
         msg = ""
-
+        is_glancing_blow = False
         if modified_acc > random100:
-            final_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
-            caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
-            caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+            # Since the attack has hit, check for glancing blow.
+            attack_with_effects = check_for_effects(attack)
+            sweep_boolean = hasattr(attack_with_effects, "has_sweep")
+            is_glancing_blow = glancing_blow_calc(random100, modified_acc, sweep_boolean)
+            if is_glancing_blow:
+                # For now, halving the damage of glancing blows.
+                final_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier) / 2
+                caller.msg("You have been glanced by {attack}! Mad... Mad Dog?".format(attack=attack.name))
+                caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+            else:
+                final_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
+                caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
+                caller.msg("You took {dmg} damage.".format(dmg=final_damage))
 
             msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
 
@@ -241,7 +253,10 @@ class CmdDodge(default_cmds.MuxCommand):
                                                          attacker=attacker.key,
                                                          modifier="",
                                                          attack=attack.name))
-
+        # To avoid overcomplicating the above messaging code, I'm adding the "glancing blow"
+        # location message as an additional separate string.
+        if is_glancing_blow:
+            self.caller.location.msg_contents("|y<COMBAT>|n ** Glancing Blow **")
         del caller.db.queue[id_list.index(input_id)]
 
 class CmdBlock(default_cmds.MuxCommand):
@@ -470,3 +485,30 @@ class CmdFeint(default_cmds.MuxCommand):
                 caller.msg("You are no longer aiming.")
             caller.db.is_feinting = True
             caller.msg("You have begun feinting.")
+
+
+class CmdRestore(default_cmds.MuxCommand):
+    """
+        Sets your LF to 1000, your AP to 50, and your EX to 0,
+        and normalizes your status (e.g., sets block penalty to 0).
+
+        Usage:
+          +restore
+
+    """
+
+    key = "+restore"
+    aliases = ["restore"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        # Set LF to maximum.
+        caller.db.lf = caller.db.maxlf
+        # Set AP to 50.
+        caller.db.ap = 50
+        # Set EX to 0.
+        caller.db.ex = 0
+        # Run the normalize_status function.
+        normalize_status(caller)
+        caller.msg("Your LF, AP, EX, and status effects have been reset.")
