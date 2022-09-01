@@ -84,7 +84,6 @@ class CmdAttack(default_cmds.MuxCommand):
 
         # If the target is here and the action exists, then we add the attack to the target's queue.
         # The attack should be assigned an ID based on its place in the queue.
-        # I figure a queue should be a list and the ID should be the attack's index +1.
         # Check if the "queue" attribute exists and, if not, create an empty list first.
         if target_object.db.queue is None:
             target_object.db.queue = []
@@ -112,18 +111,23 @@ class CmdAttack(default_cmds.MuxCommand):
         # Modify the character's AP based on the attack's AP cost.
         caller.db.ap += total_ap_change
 
+        # The attack is now confirmed. First, "tick" to have a round pass, progressing/clearing prior status effects.
+        combat_tick(caller)
+
+        # Now apply any persistent effects that will affect the attacker regardless of the attack's future success.
+        caller = apply_attacker_effects(caller, action_clean)
+
         # Append the attack to the target's queue and announce the attack.
-        attacker = caller
         if caller.db.is_aiming:
-            append_to_queue(caller, target_object, action_clean, modified_damage, attacker, AimOrFeint.AIM)
+            append_to_queue(caller, target_object, action_clean, modified_damage, caller, AimOrFeint.AIM)
         elif caller.db.is_feinting:
-            append_to_queue(caller, target_object, action_clean, modified_damage, attacker, AimOrFeint.FEINT)
+            append_to_queue(caller, target_object, action_clean, modified_damage, caller, AimOrFeint.FEINT)
         else:
-            append_to_queue(caller, target_object, action_clean, modified_damage, attacker, AimOrFeint.NEUTRAL)
+            append_to_queue(caller, target_object, action_clean, modified_damage, caller, AimOrFeint.NEUTRAL)
 
         caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
         caller.location.msg_contents("|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
-            attacker=attacker.key, target=target_object, action=action_clean))
+            attacker=caller.key, target=target_object, action=action_clean))
 
         caller.db.is_aiming = False
         caller.db.is_feinting = False
@@ -157,9 +161,28 @@ class CmdQueue(default_cmds.MuxCommand):
             for atk_obj in caller.db.queue:
                 attack = atk_obj["attack"]
                 id = atk_obj["id"]
-                modified_acc_for_dodge = dodge_calc(attack.acc, caller.db.speed)
+                weave_boole = False
+                brace_boole = False
+                crush_boole = False
+                sweep_boole = False
+                # Checking for persistent status effects on the defender.
+                if hasattr(caller.db, "is_weaving"):
+                    if caller.db.is_weaving:
+                        weave_boole = True
+                if hasattr(caller.db, "is_bracing"):
+                    if caller.db.is_bracing:
+                        brace_boole = True
+                # Checking for relevant effects on the attack.
+                attack = check_for_effects(attack)
+                if hasattr(attack, "has_crush"):
+                    if attack.has_crush:
+                        crush_boole = True
+                if hasattr(attack, "has_sweep"):
+                    if attack.has_sweep:
+                        sweep_boole = True
+                modified_acc_for_dodge = dodge_calc(attack.acc, caller.db.speed, sweep_boole, weave_boole)
                 dodge_pct = 100 - modified_acc_for_dodge
-                modified_acc_for_block = block_chance_calc(attack.acc, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier)
+                modified_acc_for_block = block_chance_calc(attack.acc, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier, crush_boole, brace_boole)
                 block_pct = 100 - modified_acc_for_block
                 caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}%".format(id, attack.name, attack.base_stat, dodge_pct, block_pct))
 
@@ -198,7 +221,17 @@ class CmdDodge(default_cmds.MuxCommand):
         attacker = action["attacker"]
         aim_or_feint = action["aim_or_feint"]
         random100 = random.randint(1, 100)
-        modified_acc = dodge_calc(attack.acc, caller.db.speed)
+        sweep_boole = False
+        weave_boole = False
+        # Checking if the attack has the Sweep effect.
+        if hasattr(attack, "has_sweep"):
+            if attack.has_sweep:
+                sweep_boole = True
+        # Checking if the defender's previous attack had the Weave effect.
+        if hasattr(caller.db, "is_weaving"):
+            if caller.db.is_weaving:
+                weave_boole = True
+        modified_acc = dodge_calc(attack.acc, caller.db.speed, sweep_boole, weave_boole)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         if aim_or_feint == AimOrFeint.AIM:
@@ -292,7 +325,15 @@ class CmdBlock(default_cmds.MuxCommand):
         attacker = action["attacker"]
         aim_or_feint = action["aim_or_feint"]
         random100 = random.randint(1, 100)
-        modified_acc = block_chance_calc(attack.acc, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier)
+        crush_boole = False
+        brace_boole = False
+        if hasattr(attack, "has_crush"):
+            if attack.has_crush:
+                crush_boole = True
+        if hasattr(caller.db, "is_bracing"):
+            if caller.db.is_bracing:
+                brace_boole = True
+        modified_acc = block_chance_calc(attack.acc, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier, crush_boole, brace_boole)
         modified_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
         # caller.msg("Base damage is: " + str(attack.dmg))
         # caller.msg("Modified damage is: " + str(modified_damage))
@@ -512,3 +553,24 @@ class CmdRestore(default_cmds.MuxCommand):
         # Run the normalize_status function.
         normalize_status(caller)
         caller.msg("Your LF, AP, EX, and status effects have been reset.")
+
+
+class CmdPass(default_cmds.MuxCommand):
+    """
+        In combat, passes your turn instead of attacking.
+        This will not recover LF or AP but will, e.g., reduce block penalty
+        as though your character had attacked.
+
+        Usage:
+          +pass
+
+    """
+
+    key = "+pass"
+    aliases = ["pass"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        combat_tick(caller)
+        caller.location.msg_contents("|y<COMBAT>|n {0} takes no action.".format(caller.name))

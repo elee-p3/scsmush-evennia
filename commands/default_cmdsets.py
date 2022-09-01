@@ -75,6 +75,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdAim)
         self.add(CmdFeint)
         self.add(CmdRestore)
+        self.add(CmdPass)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """

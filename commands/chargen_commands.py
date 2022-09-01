@@ -59,8 +59,8 @@ class CmdAddArt(default_cmds.MuxCommand):
                     if art_effect in real_effect.name:
                         effect_ok = True
                         true_ap_change += int(real_effect.ap_change)
-                    if real_effect.name == "EX":
-                        ex_move = True
+                        if real_effect.name == "EX":
+                            ex_move = True
                 if not effect_ok:
                     return caller.msg("Error: at least one of your Effects is not a valid Effect.")
             # Having confirmed the Art is well-formed, add it to the character's list of Arts.
