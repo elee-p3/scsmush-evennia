@@ -59,7 +59,7 @@ class CmdAttack(default_cmds.MuxCommand):
         # First, check that the character attacking is not KOed
         if hasattr(caller.db, "KOed"):
             if caller.db.KOed:
-                return caller.msg("Your character is KOed and cannot attack!")
+                return caller.msg("Your character is KOed and cannot act!")
 
         # Then check that the target is a character in the room using utility
         characters_in_room = location_character_search(location)
@@ -610,5 +610,16 @@ class CmdPass(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
+        # First, check that the character acting is not KOed
+        if hasattr(caller.db, "KOed"):
+            if caller.db.KOed:
+                return caller.msg("Your character is KOed and cannot act!")
         combat_tick(caller)
         caller.location.msg_contents("|y<COMBAT>|n {0} takes no action.".format(caller.name))
+        # If this was the attacker's final action, they are now KOed.
+        if hasattr(caller.db, "final_action"):
+            if caller.db.final_action:
+                caller.db.final_action = False
+                caller.db.KOed = True
+                caller.msg("You have taken your final action and can no longer fight.")
+                caller.location.msg_contents("|y<COMBAT>|n {0} can no longer fight.".format(caller.name))
