@@ -20,19 +20,21 @@ def dodge_calc(attack_acc, speed, sweep_boole, weave_boole):
     return accuracy
 
 
-def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole, brace_boole):
+def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole, brace_boole, block_penalty):
     def_stat = 0
     if base_stat == "Power":
         def_stat = parry
     if base_stat == "Knowledge":
         def_stat = barrier
-    averaged_def = (def_stat + speed)/2
+    averaged_def = (def_stat + speed)/2 + 50
     accuracy = int(int(attack_acc) / (averaged_def/100))
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
     if crush_boole:
         accuracy += 10
     if brace_boole:
         accuracy -= 10
+    # Incorporating block penalty.
+    accuracy += block_penalty
     return accuracy
 
 
@@ -65,6 +67,8 @@ def normalize_status(character):
     character.db.is_bracing = False
     character.db.is_baiting = False
     character.db.block_penalty = 0
+    character.db.final_action = False
+    character.db.KOed = False
 
 
 def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
@@ -137,3 +141,37 @@ def apply_attacker_effects(attacker, attack):
             if effect == "Bait":
                 attacker.db.is_baiting = True
     return attacker
+
+
+def accrue_block_penalty(character, damage, block_boole, crush_boole):
+    # If the block succeeds, accrue full block penalty. If the block fails, accrue a minor block penalty.
+    # Crush makes the block penalty a lot worse if you block and a little worse if you fail to block.
+    if block_boole:
+        if crush_boole:
+            character.db.block_penalty += (damage / 5)
+        else:
+            character.db.block_penalty += (damage / 15)
+    else:
+        if crush_boole:
+            character.db.block_penalty += (damage / 15)
+        else:
+            character.db.block_penalty += (damage / 30)
+    return character.db.block_penalty
+
+
+def final_action_check(character):
+    # After any reaction in which the character takes damage, check if their LF has dropped to 0 or below.
+    if character.db.lf <= 0:
+        character.db.final_action = True
+        character.msg("You have been reduced to 0 LF or below. Your next action will be your last. Any attacks will"
+                      " suffer a penalty to your accuracy.")
+    return character
+
+
+def final_action_penalty(character):
+    # Final action currently reduces accuracy by 30.
+    accuracy_mod = 0
+    if hasattr(character.db, "final_action"):
+        if character.db.final_action:
+            accuracy_mod -= 30
+    return accuracy_mod

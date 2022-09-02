@@ -5,7 +5,7 @@ import random
 from world.combat.combat_math import *
 from world.combat.effects import AimOrFeint
 
-def append_to_queue(caller, target, attack, attack_damage, attacker, aim_or_feint):
+def append_to_queue(caller, target, attack, attack_damage, modified_accuracy, attacker, aim_or_feint):
     # Find the actual attack object using the input attack string
     # TODO: the caller isn't used yet, but in the future we might modify attacks by the current character's equipment/stats
     attack_object = None
@@ -26,7 +26,8 @@ def append_to_queue(caller, target, attack, attack_damage, attacker, aim_or_fein
         last_id = 0
     else:
         last_id = max((attack["id"] for attack in target.db.queue))
-    target.db.queue.append({"id":last_id+1, "attack":attack_object, "modified_damage":attack_damage, "attacker":attacker, "aim_or_feint":aim_or_feint})
+    target.db.queue.append({"id":last_id+1, "attack":attack_object, "modified_damage":attack_damage, "modified_accuracy":
+        modified_accuracy, "attacker":attacker, "aim_or_feint":aim_or_feint})
 
 class CmdAttack(default_cmds.MuxCommand):
     """
@@ -55,10 +56,10 @@ class CmdAttack(default_cmds.MuxCommand):
         # caller.msg(target)
         # caller.msg(action)
 
-        # First, check that the character attacking has more than 0 LF
-        char = self.caller.get_abilities()
-        if char["lf"] <= 0:
-            return caller.msg("Your character is KOed and cannot attack!")
+        # First, check that the character attacking is not KOed
+        if hasattr(caller.db, "KOed"):
+            if caller.db.KOed:
+                return caller.msg("Your character is KOed and cannot attack!")
 
         # Then check that the target is a character in the room using utility
         characters_in_room = location_character_search(location)
@@ -96,6 +97,11 @@ class CmdAttack(default_cmds.MuxCommand):
         if action_clean.base_stat == "Knowledge":
             modified_damage += caller.db.knowledge
 
+        # Modify the attack accuracy if it is the attacker's final action.
+        modified_accuracy = 0
+        modified_accuracy += action_clean.acc
+        modified_accuracy += final_action_penalty(caller)
+
         # If the character has insufficient AP to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
         total_ap_change = action_clean.ap_change
@@ -119,11 +125,11 @@ class CmdAttack(default_cmds.MuxCommand):
 
         # Append the attack to the target's queue and announce the attack.
         if caller.db.is_aiming:
-            append_to_queue(caller, target_object, action_clean, modified_damage, caller, AimOrFeint.AIM)
+            append_to_queue(caller, target_object, action_clean, modified_damage, modified_accuracy, caller, AimOrFeint.AIM)
         elif caller.db.is_feinting:
-            append_to_queue(caller, target_object, action_clean, modified_damage, caller, AimOrFeint.FEINT)
+            append_to_queue(caller, target_object, action_clean, modified_damage, modified_accuracy, caller, AimOrFeint.FEINT)
         else:
-            append_to_queue(caller, target_object, action_clean, modified_damage, caller, AimOrFeint.NEUTRAL)
+            append_to_queue(caller, target_object, action_clean, modified_damage, modified_accuracy, caller, AimOrFeint.NEUTRAL)
 
         caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
         caller.location.msg_contents("|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
@@ -131,6 +137,13 @@ class CmdAttack(default_cmds.MuxCommand):
 
         caller.db.is_aiming = False
         caller.db.is_feinting = False
+        # If this was the attacker's final action, they are now KOed.
+        if hasattr(caller.db, "final_action"):
+            if caller.db.final_action:
+                caller.db.final_action = False
+                caller.db.KOed = True
+                caller.msg("You have taken your final action and can no longer fight.")
+                caller.location.msg_contents("|y<COMBAT>|n {0} can no longer fight.".format(caller.name))
 
 class CmdQueue(default_cmds.MuxCommand):
     """
@@ -161,6 +174,7 @@ class CmdQueue(default_cmds.MuxCommand):
             for atk_obj in caller.db.queue:
                 attack = atk_obj["attack"]
                 id = atk_obj["id"]
+                accuracy = atk_obj["modified_accuracy"]
                 weave_boole = False
                 brace_boole = False
                 crush_boole = False
@@ -180,9 +194,15 @@ class CmdQueue(default_cmds.MuxCommand):
                 if hasattr(attack, "has_sweep"):
                     if attack.has_sweep:
                         sweep_boole = True
-                modified_acc_for_dodge = dodge_calc(attack.acc, caller.db.speed, sweep_boole, weave_boole)
+                # Checking for block penalty. Using hasattr to avoid erroring out if the attribute doesn't exist yet.
+                current_block_penalty = 0
+                if hasattr(caller.db, "block_penalty"):
+                    current_block_penalty = caller.db.block_penalty
+                modified_acc_for_dodge = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole)
                 dodge_pct = 100 - modified_acc_for_dodge
-                modified_acc_for_block = block_chance_calc(attack.acc, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier, crush_boole, brace_boole)
+                modified_acc_for_block = block_chance_calc(accuracy, attack.base_stat, caller.db.speed,
+                                                           caller.db.parry, caller.db.barrier, crush_boole, brace_boole,
+                                                           current_block_penalty)
                 block_pct = 100 - modified_acc_for_block
                 caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}%".format(id, attack.name, attack.base_stat, dodge_pct, block_pct))
 
@@ -218,6 +238,7 @@ class CmdDodge(default_cmds.MuxCommand):
         action = caller.db.queue[id_list.index(input_id)]
         attack = action["attack"]
         attack_damage = action["modified_damage"]
+        accuracy = action["modified_accuracy"]
         attacker = action["attacker"]
         aim_or_feint = action["aim_or_feint"]
         random100 = random.randint(1, 100)
@@ -231,7 +252,7 @@ class CmdDodge(default_cmds.MuxCommand):
         if hasattr(caller.db, "is_weaving"):
             if caller.db.is_weaving:
                 weave_boole = True
-        modified_acc = dodge_calc(attack.acc, caller.db.speed, sweep_boole, weave_boole)
+        modified_acc = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         if aim_or_feint == AimOrFeint.AIM:
@@ -290,6 +311,8 @@ class CmdDodge(default_cmds.MuxCommand):
         # location message as an additional separate string.
         if is_glancing_blow:
             self.caller.location.msg_contents("|y<COMBAT>|n ** Glancing Blow **")
+        # Checking after the combat location messages if the attack has put the defender at 0 LF or below.
+        caller = final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
 
 class CmdBlock(default_cmds.MuxCommand):
@@ -322,19 +345,27 @@ class CmdBlock(default_cmds.MuxCommand):
         # The attack is a string in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
         attack = action["attack"]
+        attack_damage = action["modified_damage"]
+        accuracy = action["modified_accuracy"]
         attacker = action["attacker"]
         aim_or_feint = action["aim_or_feint"]
         random100 = random.randint(1, 100)
         crush_boole = False
         brace_boole = False
-        if hasattr(attack, "has_crush"):
-            if attack.has_crush:
+        attack_with_effects = check_for_effects(attack)
+        if hasattr(attack_with_effects, "has_crush"):
+            if attack_with_effects.has_crush:
                 crush_boole = True
         if hasattr(caller.db, "is_bracing"):
             if caller.db.is_bracing:
                 brace_boole = True
-        modified_acc = block_chance_calc(attack.acc, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier, crush_boole, brace_boole)
-        modified_damage = damage_calc(attack.dmg, attack.base_stat, caller.db.parry, caller.db.barrier)
+        # Checking for block penalty. Using hasattr to avoid erroring out if the attribute doesn't exist yet.
+        current_block_penalty = 0
+        if hasattr(caller.db, "block_penalty"):
+            current_block_penalty = caller.db.block_penalty
+        modified_acc = block_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry,
+                                         caller.db.barrier, crush_boole, brace_boole, current_block_penalty)
+        modified_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
         # caller.msg("Base damage is: " + str(attack.dmg))
         # caller.msg("Modified damage is: " + str(modified_damage))
 
@@ -359,9 +390,12 @@ class CmdBlock(default_cmds.MuxCommand):
             # Modify the attacker's EX based on the damage inflicted.
             new_attacker_ex = ex_gain_on_attack(modified_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
+            # Modify the defender's block penalty (a little, since the block failed).
+            block_boole = False
+            new_block_penalty = accrue_block_penalty(caller, modified_damage, block_boole, crush_boole)
+            caller.db.block_penalty = new_block_penalty
         else:
             final_damage = block_damage_calc(modified_damage)
-            # caller.msg("Final damage is: " + str(final_damage))
             caller.msg("You have successfully blocked. Good for you.")
             caller.msg("You took {dmg} damage.".format(dmg=final_damage))
             caller.db.lf -= final_damage
@@ -374,7 +408,10 @@ class CmdBlock(default_cmds.MuxCommand):
             # Modify the attacker's EX based on the damage inflicted.
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
-
+            # Modify the defender's block penalty (a lot, since the block succeeded). Based on modified, not final, dmg.
+            block_boole = True
+            new_block_penalty = accrue_block_penalty(caller, modified_damage, block_boole, crush_boole)
+            caller.db.block_penalty = new_block_penalty
         if aim_or_feint == AimOrFeint.AIM:
             self.caller.location.msg_contents(msg.format(target=caller.key,
                                                          attacker=attacker.key,
@@ -390,7 +427,8 @@ class CmdBlock(default_cmds.MuxCommand):
                                                          attacker=attacker.key,
                                                          modifier="",
                                                          attack=attack.name))
-
+        # Checking after the combat location message if the attack has put the defender at 0 LF or below.
+        caller = final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
 
 class CmdArts(default_cmds.MuxCommand):
