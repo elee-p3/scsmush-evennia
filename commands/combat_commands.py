@@ -73,7 +73,7 @@ class CmdAttack(default_cmds.MuxCommand):
             if target in obj.db_key.lower():
                 target_object = obj
 
-        # Now check that the action is an attack, which for now is just normals.
+        # Now check that the action is an attack.
         action_clean = ""
         if action not in NORMALS:
             if action not in arts:
@@ -108,7 +108,7 @@ class CmdAttack(default_cmds.MuxCommand):
         if "Rush" in action_clean.effects:
             modified_accuracy += 7
 
-        # If the character has insufficient AP to use that move, cancel the attack.
+        # If the character has insufficient AP or EX to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
         total_ap_change = action_clean.ap_change
         if caller.db.is_aiming or caller.db.is_feinting:
@@ -554,6 +554,180 @@ class CmdEndure(default_cmds.MuxCommand):
         caller = final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
 
+
+class CmdInterrupt(default_cmds.MuxCommand):
+    """
+            Interrupt Mad Dog. But what can interrupt madness?
+
+            Usage:
+              +interrupt <queue id>=<name of attack>
+
+        """
+
+    key = "+interrupt"
+    aliases = ["interrupt"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        args = self.args
+        arts = caller.db.arts
+        id_list = [attack["id"] for attack in caller.db.queue]
+        # Like +attack, +interrupt requires two arguments: a incoming attack and an outgoing interrupt.
+        if "=" not in args:
+            return caller.msg("Please use proper syntax: interrupt <id>=<name of interrupt>.")
+        split_args = args.split("=")
+        incoming_attack_arg = split_args[0]
+        outgoing_interrupt_arg = split_args[1].lower()
+        caller.msg(outgoing_interrupt_arg)
+
+        # Syntax of the first argument is "interrupt <id>".
+        if not incoming_attack_arg.isdigit():
+            return caller.msg("Please input the attack ID as an integer.")
+
+        if int(incoming_attack_arg) not in id_list:
+            return caller.msg("Cannot find that attack in your queue.")
+
+        # Make sure that the outgoing interrupt is an available Art/Normal.
+        interrupt_clean = ""
+        if outgoing_interrupt_arg not in NORMALS:
+            if outgoing_interrupt_arg not in arts:
+                return caller.msg("Your selected interrupt action cannot be found.")
+        if outgoing_interrupt_arg in NORMALS:
+            caller.msg("Made it into normals if statement.")
+            interrupt_clean = NORMALS[NORMALS.index(outgoing_interrupt_arg)]  # found action with correct capitalization
+            caller.msg(NORMALS.index(outgoing_interrupt_arg))
+        else:
+            caller.msg("Made it into arts else statement.")
+            interrupt_clean = arts[arts.index(outgoing_interrupt_arg)]
+            caller.msg(arts.index(outgoing_interrupt_arg))
+        # If the character has insufficient AP or EX to use that move, cancel the interrupt.
+        # Otherwise, if EX move, set their EX from 100 to 0.
+        total_ap_change = interrupt_clean.ap_change
+        if caller.db.ap + total_ap_change < 0:
+            return caller.msg("You do not have enough AP to do that.")
+        if "EX" in interrupt_clean.effects:
+            if caller.db.ex - 100 < 0:
+                return caller.msg("You do not have enough EX to do that.")
+            caller.db.ex = 0
+        caller.db.ap += total_ap_change
+
+        # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
+        incoming_action = caller.db.queue[id_list.index(int(incoming_attack_arg))]
+        incoming_attack = incoming_action["attack"]
+        incoming_damage = incoming_action["modified_damage"]
+        incoming_accuracy = incoming_action["modified_accuracy"]
+        attacker = incoming_action["attacker"]
+        aim_or_feint = incoming_action["aim_or_feint"]
+        outgoing_interrupt = interrupt_clean
+        outgoing_damage = interrupt_clean.dmg
+        outgoing_accuracy = interrupt_clean.acc
+        random100 = random.randint(1, 100)
+        bait_boole = False
+        rush_boole = False
+        incoming_priority_boole = False
+        outgoing_priority_boole = False
+        # Checking if the attacker's attack has the Priority effect.
+        if hasattr(incoming_attack, "has_priority"):
+            if incoming_attack.has_priority:
+                incoming_priority_boole = True
+        # Checking if the defender's previous attack had the Bait or Rush effect.
+        if hasattr(caller.db, "is_baiting"):
+            if caller.db.is_bracing:
+                bait_boole = True
+        if hasattr(caller.db, "is_rushing"):
+            if caller.db.is_rushing:
+                rush_boole = True
+        # Checking if the defender's interrupt has the Priority effect.
+        if hasattr(outgoing_interrupt, "has_priority"):
+            if outgoing_interrupt.has_priority:
+                outgoing_priority_boole = True
+        modified_acc = interrupt_chance_calc(incoming_accuracy, outgoing_accuracy, bait_boole, rush_boole,
+                                             incoming_priority_boole, outgoing_priority_boole)
+
+        # do the aiming/feinting modification here since we don't want to show the modified value in the queue
+        if aim_or_feint == AimOrFeint.AIM:
+            modified_acc -= 15
+        elif aim_or_feint == AimOrFeint.FEINT:
+            modified_acc += 15
+
+        msg = ""
+        if modified_acc > random100:
+            # attack_with_effects = check_for_effects(attack)
+            final_damage = damage_calc(incoming_damage, incoming_attack.base_stat, caller.db.parry, caller.db.barrier)
+            caller.msg("You have failed to interrupt {attack}! Oh, God! Mad Dog!!!!!".format(attack=incoming_attack.name))
+            caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+
+            msg = "|y<COMBAT>|n {target} has failed to interrupt {attacker}'s {modifier}{attack} with {interrupt}."
+
+            caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
+            caller.db.lf -= final_damage
+            # Modify EX based on damage taken.
+            # Modify the character's EX based on the damage inflicted.
+            new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
+            caller.db.ex = new_ex
+            # Modify the attacker's EX based on the damage inflicted.
+            new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
+            attacker.db.ex = new_attacker_ex
+        else:
+            # Modify damage of outgoing interrupt based on relevant attack stat.
+            modified_int_damage = 0
+            modified_int_damage += interrupt_clean.dmg
+            if interrupt_clean.base_stat == "Power":
+                modified_int_damage += caller.db.power
+            if interrupt_clean.base_stat == "Knowledge":
+                modified_int_damage += caller.db.knowledge
+            # If the interrupt succeeds, halve incoming damage for now.
+            final_incoming_damage = damage_calc(incoming_damage, incoming_attack.base_stat, caller.db.parry, caller.db.barrier) / 2
+            final_outgoing_damage = damage_calc(outgoing_damage, outgoing_interrupt.base_stat, attacker.db.parry, attacker.db.barrier)
+            caller.msg("You interrupt {attack} with {interrupt}.".format(attack=incoming_attack.name, interrupt=outgoing_interrupt.name))
+            caller.msg("You took {dmg} damage.".format(dmg=final_incoming_damage))
+            msg = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}."
+            caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
+            caller.db.lf -= final_incoming_damage
+            attacker.db.lf -= final_outgoing_damage
+            attacker.msg("You took {dmg} damage.".format(dmg=final_outgoing_damage))
+            # Modify EX based on damage taken.
+            # Modify the character's EX based on the damage dealt AND inflicted.
+            new_ex_first = ex_gain_on_defense(final_incoming_damage, caller.db.ex, caller.db.maxex)
+            caller.db.ex = new_ex_first
+            new_ex_second = ex_gain_on_attack(final_outgoing_damage, caller.db.ex, caller.db.maxex)
+            caller.db.ex = new_ex_second
+            # Modify the attacker's EX based on the damage dealt AND inflicted.
+            new_attacker_ex_first = ex_gain_on_attack(final_incoming_damage, attacker.db.ex, attacker.db.maxex)
+            attacker.db.ex = new_attacker_ex_first
+            new_attacker_ex_second = ex_gain_on_defense(final_outgoing_damage, attacker.db.ex, attacker.db.maxex)
+            attacker.db.ex = new_attacker_ex_second
+
+        if aim_or_feint == AimOrFeint.AIM:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="Aimed ",
+                                                         attack=incoming_attack.name,
+                                                         interrupt=outgoing_interrupt.name))
+        elif aim_or_feint == AimOrFeint.FEINT:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="Feinting ",
+                                                         attack=incoming_attack.name,
+                                                         interrupt=outgoing_interrupt.name))
+        else:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="",
+                                                         attack=incoming_attack.name,
+                                                         interrupt=outgoing_interrupt.name))
+        # If interrupting puts you at 0 LF or below, instead of the usual final action/KO check, combine them.
+        if caller.db.lf <= 0:
+            caller.db.KOed = True
+            caller.msg("You have taken your final action and can no longer fight.")
+            caller.location.msg_contents("|y<COMBAT>|n {0} can no longer fight.".format(caller.name))
+        # If the defender survives the interrupt, do a combat tick to clear status, as with +attack and +pass.
+        else:
+            combat_tick(caller)
+        del caller.db.queue[id_list.index(int(incoming_attack_arg))]
+
+
 class CmdArts(default_cmds.MuxCommand):
     """
         List your character's Arts.
@@ -652,6 +826,8 @@ class CmdAim(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
+        if caller.db.queue:
+            return caller.msg("Your queue must be empty before you Aim or Feint.")
         if caller.db.is_aiming:
             caller.db.is_aiming = False
             caller.msg("You are no longer aiming.")
@@ -678,6 +854,8 @@ class CmdFeint(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
+        if caller.db.queue:
+            return caller.msg("Your queue must be empty before you Aim or Feint.")
         if caller.db.is_feinting:
             caller.db.is_feinting = False
             caller.msg("You are no longer feinting.")

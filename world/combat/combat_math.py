@@ -62,6 +62,20 @@ def endure_chance_calc(attack_acc, base_stat, speed, parry, barrier, brace_boole
     return accuracy
 
 
+def interrupt_chance_calc(incoming_accuracy, outgoing_accuracy, bait_boole, rush_boole, incoming_priority_boole,
+                          outgoing_priority_boole):
+    interrupt_chance = 40 + int(outgoing_accuracy) - int(incoming_accuracy)
+    if bait_boole:
+        interrupt_chance += 10
+    if rush_boole:
+        interrupt_chance -= 5
+    if incoming_priority_boole:
+        interrupt_chance -= 15
+    if outgoing_priority_boole:
+        interrupt_chance += 15
+    return interrupt_chance
+
+
 def endure_bonus_calc(damage_taken):
     # Calculate the accuracy bonus to your next attack from enduring. Should be capped at around 10 to 15.
     accuracy_bonus = int(damage_taken) / 15
