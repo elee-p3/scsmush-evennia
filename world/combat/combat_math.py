@@ -159,8 +159,8 @@ def combat_tick(character):
     # This function represents a "tick" or the end of a turn. Any "action," like +attack or +pass, counts as a tick.
     # The attack command should cause a tick, then apply any new effects associated with the attack.
     # E.g., if last turn's attack had Brace and this turn's has Weave, tick to remove is_bracing, then apply is_weaving.
-    character.db.is_aiming = False
-    character.db.is_feinting = False
+    # Update 9-7-22: Combat_tick no longer sets Aim or Feint to False. This was preempting their application to +attack.
+    # Instead, Aim and Feint are set false at the end of the +attack command itself.
     character.db.is_rushing = False
     character.db.is_weaving = False
     character.db.is_bracing = False
