@@ -209,6 +209,8 @@ class CmdQueue(default_cmds.MuxCommand):
                 current_block_penalty = 0
                 if hasattr(caller.db, "block_penalty"):
                     current_block_penalty = caller.db.block_penalty
+                else:
+                    caller.db.block_penalty = current_block_penalty
                 modified_acc_for_dodge = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
                 dodge_pct = 100 - modified_acc_for_dodge
                 modified_acc_for_block = block_chance_calc(accuracy, attack.base_stat, caller.db.speed,
