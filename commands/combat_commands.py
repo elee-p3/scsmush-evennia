@@ -103,7 +103,8 @@ class CmdAttack(default_cmds.MuxCommand):
         modified_accuracy += final_action_penalty(caller)
         # Also modify the attack accuracy if the attacker has an endure bonus from their reaction.
         if hasattr(caller.db, "endure_bonus"):
-            modified_accuracy += caller.db.endure_bonus
+            if caller.db.endure_bonus:
+                modified_accuracy += caller.db.endure_bonus
         # Modify the attack accuracy if the attack has the Rush effect. Apply_attacker_effects will apply is_rushing.
         if "Rush" in action_clean.effects:
             modified_accuracy += 7
