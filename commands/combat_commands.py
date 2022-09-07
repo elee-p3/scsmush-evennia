@@ -101,6 +101,9 @@ class CmdAttack(default_cmds.MuxCommand):
         modified_accuracy = 0
         modified_accuracy += action_clean.acc
         modified_accuracy += final_action_penalty(caller)
+        # Also modify the attack accuracy if the attacker has an endure bonus from their reaction.
+        if hasattr(caller.db, "endure_bonus"):
+            modified_accuracy += caller.db.endure_bonus
 
         # If the character has insufficient AP to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
@@ -204,7 +207,11 @@ class CmdQueue(default_cmds.MuxCommand):
                                                            caller.db.parry, caller.db.barrier, crush_boole, brace_boole,
                                                            current_block_penalty)
                 block_pct = 100 - modified_acc_for_block
-                caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}%".format(id, attack.name, attack.base_stat, dodge_pct, block_pct))
+                modified_acc_for_endure = endure_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry,
+                                                             caller.db.barrier, brace_boole)
+                endure_pct = 100 - modified_acc_for_endure
+                caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.base_stat,
+                                                                               dodge_pct, block_pct, endure_pct))
 
 
 class CmdDodge(default_cmds.MuxCommand):
@@ -428,6 +435,103 @@ class CmdBlock(default_cmds.MuxCommand):
                                                          modifier="",
                                                          attack=attack.name))
         # Checking after the combat location message if the attack has put the defender at 0 LF or below.
+        caller = final_action_check(caller)
+        del caller.db.queue[id_list.index(input_id)]
+
+
+class CmdEndure(default_cmds.MuxCommand):
+    """
+            Endure Mad Dog. Only one madder than he would try.
+
+            Usage:
+              +endure <queue id>
+
+        """
+
+    key = "+endure"
+    aliases = ["endure"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        args = self.args
+        id_list = [attack["id"] for attack in caller.db.queue]
+
+        # Syntax is just "endure <id>".
+        if not args.isdigit():
+            return caller.msg("Please input the attack ID as an integer.")
+
+        input_id = int(args)
+
+        if input_id not in id_list:
+            return caller.msg("Cannot find that attack in your queue.")
+
+        # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
+        action = caller.db.queue[id_list.index(input_id)]
+        attack = action["attack"]
+        attack_damage = action["modified_damage"]
+        accuracy = action["modified_accuracy"]
+        attacker = action["attacker"]
+        aim_or_feint = action["aim_or_feint"]
+        random100 = random.randint(1, 100)
+        brace_boole = False
+        # Checking if the defender's previous attack had the Brace effect.
+        if hasattr(caller.db, "is_bracing"):
+            if caller.db.is_bracing:
+                brace_boole = True
+        modified_acc = endure_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier,
+                                          brace_boole)
+
+        # do the aiming/feinting modification here since we don't want to show the modified value in the queue
+        if aim_or_feint == AimOrFeint.AIM:
+            modified_acc -= 15
+        elif aim_or_feint == AimOrFeint.FEINT:
+            modified_acc += 15
+
+        msg = ""
+        if modified_acc > random100:
+            # attack_with_effects = check_for_effects(attack)
+            final_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
+            caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
+            caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+
+            msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
+
+            caller.db.lf -= final_damage
+            # Modify EX based on damage taken.
+            # Modify the character's EX based on the damage inflicted.
+            new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
+            caller.db.ex = new_ex
+            # Modify the attacker's EX based on the damage inflicted.
+            new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
+            attacker.db.ex = new_attacker_ex
+        else:
+            final_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
+            caller.msg("You endure {attack}. Mad Dog is shocked at your tenacity!!!!!".format(attack=attack.name))
+            caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+            msg = "|y<COMBAT>|n {target} endures {attacker}'s {modifier}{attack}."
+            # Now calculate endure bonus. Currently, let's set it so if you endure multiple attacks in a round,
+            # you get to keep whatever endure bonus is higher. But endure bonus is not cumulative. (That's OP.)
+            if hasattr(caller.db, "endure_bonus"):
+                if endure_bonus_calc(final_damage) > caller.db.endure_bonus:
+                    caller.db.endure_bonus = endure_bonus_calc(final_damage)
+
+        if aim_or_feint == AimOrFeint.AIM:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="Aimed ",
+                                                         attack=attack.name))
+        elif aim_or_feint == AimOrFeint.FEINT:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="Feinting ",
+                                                         attack=attack.name))
+        else:
+            self.caller.location.msg_contents(msg.format(target=caller.key,
+                                                         attacker=attacker.key,
+                                                         modifier="",
+                                                         attack=attack.name))
+        # Checking after the combat location messages if the attack has put the defender at 0 LF or below.
         caller = final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
 

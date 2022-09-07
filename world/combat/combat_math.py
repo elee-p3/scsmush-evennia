@@ -38,6 +38,29 @@ def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole,
     return accuracy
 
 
+def endure_chance_calc(attack_acc, base_stat, speed, parry, barrier, brace_boole):
+    # Calculate the chance of successfully enduring. Like Block, should be based on both Speed and relevant defense.
+    def_stat = 0
+    if base_stat == "Power":
+        def_stat = parry
+    if base_stat == "Knowledge":
+        def_stat = barrier
+    averaged_def = (def_stat + speed) / 2 + 50
+    accuracy = int(int(attack_acc) / (averaged_def / 100))
+    # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
+    if brace_boole:
+        accuracy -= 10
+    return accuracy
+
+
+def endure_bonus_calc(damage_taken):
+    # Calculate the accuracy bonus to your next attack from enduring. Should be capped at around 10 to 15.
+    accuracy_bonus = int(damage_taken) / 15
+    if accuracy_bonus > 12:
+        accuracy_bonus = 12
+    return accuracy_bonus
+
+
 def block_damage_calc(base_damage):
     return base_damage / 2
 
@@ -69,6 +92,7 @@ def normalize_status(character):
     character.db.block_penalty = 0
     character.db.final_action = False
     character.db.KOed = False
+    character.db.endure_bonus = 0
 
 
 def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
@@ -118,6 +142,7 @@ def combat_tick(character):
     character.db.is_weaving = False
     character.db.is_bracing = False
     character.db.is_baiting = False
+    character.db.endure_bonus = 0
     # Currently, reduce block penalty by 10 per tick.
     if character.db.block_penalty > 0:
         if character.db.block_penalty - 10 < 0:
