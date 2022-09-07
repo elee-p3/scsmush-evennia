@@ -263,6 +263,7 @@ class CmdDodge(default_cmds.MuxCommand):
             rush_boole = True
         modified_acc = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
 
+        caller.msg(aim_or_feint)
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         if aim_or_feint == AimOrFeint.AIM:
             modified_acc += 15
@@ -578,11 +579,9 @@ class CmdInterrupt(default_cmds.MuxCommand):
             if outgoing_interrupt_arg not in arts:
                 return caller.msg("Your selected interrupt action cannot be found.")
         if outgoing_interrupt_arg in NORMALS:
-            caller.msg("Made it into normals if statement.")
             interrupt_clean = NORMALS[NORMALS.index(outgoing_interrupt_arg)]  # found action with correct capitalization
             caller.msg(NORMALS.index(outgoing_interrupt_arg))
         else:
-            caller.msg("Made it into arts else statement.")
             interrupt_clean = arts[arts.index(outgoing_interrupt_arg)]
             caller.msg(arts.index(outgoing_interrupt_arg))
         # If the character has insufficient AP or EX to use that move, cancel the interrupt.
@@ -654,7 +653,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
             modified_int_damage = 0
-            modified_int_damage += interrupt_clean.dmg
+            modified_int_damage += outgoing_damage
             if interrupt_clean.base_stat == "Power":
                 modified_int_damage += caller.db.power
             if interrupt_clean.base_stat == "Knowledge":
