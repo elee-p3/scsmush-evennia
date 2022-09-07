@@ -9,18 +9,21 @@ def damage_calc(attack_dmg, base_stat, parry, barrier):
     return damage
 
 
-def dodge_calc(attack_acc, speed, sweep_boole, weave_boole):
+def dodge_calc(attack_acc, speed, sweep_boole, weave_boole, rush_boole):
     accuracy = int(int(attack_acc) / (speed/100))
     # Checking to see if the attack has sweep and improving accuracy/reducing dodge chance if so.
     if sweep_boole:
         accuracy += 10
+    # Checking to see if the defender is_rushing and improving accuracy if so.
+    if rush_boole:
+        accuracy += 5
     # Checking to see if the defender is_weaving and reducing accuracy/improving dodge chance if so.
     if weave_boole:
         accuracy -= 10
     return accuracy
 
 
-def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole, brace_boole, block_penalty):
+def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole, brace_boole, block_penalty, rush_boole):
     def_stat = 0
     if base_stat == "Power":
         def_stat = parry
@@ -33,12 +36,15 @@ def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole,
         accuracy += 10
     if brace_boole:
         accuracy -= 10
+    # Checking to see if the defender is_rushing and improving accuracy if so.
+    if rush_boole:
+        accuracy += 5
     # Incorporating block penalty.
     accuracy += block_penalty
     return accuracy
 
 
-def endure_chance_calc(attack_acc, base_stat, speed, parry, barrier, brace_boole):
+def endure_chance_calc(attack_acc, base_stat, speed, parry, barrier, brace_boole, rush_boole):
     # Calculate the chance of successfully enduring. Like Block, should be based on both Speed and relevant defense.
     def_stat = 0
     if base_stat == "Power":
@@ -50,6 +56,9 @@ def endure_chance_calc(attack_acc, base_stat, speed, parry, barrier, brace_boole
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
     if brace_boole:
         accuracy -= 10
+    # Checking to see if the defender is_rushing and improving accuracy if so.
+    if rush_boole:
+        accuracy += 5
     return accuracy
 
 

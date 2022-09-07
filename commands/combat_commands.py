@@ -104,6 +104,9 @@ class CmdAttack(default_cmds.MuxCommand):
         # Also modify the attack accuracy if the attacker has an endure bonus from their reaction.
         if hasattr(caller.db, "endure_bonus"):
             modified_accuracy += caller.db.endure_bonus
+        # Modify the attack accuracy if the attack has the Rush effect. Apply_attacker_effects will apply is_rushing.
+        if "Rush" in action_clean.effects:
+            modified_accuracy += 7
 
         # If the character has insufficient AP to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
@@ -182,6 +185,7 @@ class CmdQueue(default_cmds.MuxCommand):
                 brace_boole = False
                 crush_boole = False
                 sweep_boole = False
+                rush_boole = False
                 # Checking for persistent status effects on the defender.
                 if hasattr(caller.db, "is_weaving"):
                     if caller.db.is_weaving:
@@ -189,6 +193,9 @@ class CmdQueue(default_cmds.MuxCommand):
                 if hasattr(caller.db, "is_bracing"):
                     if caller.db.is_bracing:
                         brace_boole = True
+                if hasattr(caller.db, "is_rushing"):
+                    if caller.db.is_rushing:
+                        rush_boole = True
                 # Checking for relevant effects on the attack.
                 attack = check_for_effects(attack)
                 if hasattr(attack, "has_crush"):
@@ -201,14 +208,14 @@ class CmdQueue(default_cmds.MuxCommand):
                 current_block_penalty = 0
                 if hasattr(caller.db, "block_penalty"):
                     current_block_penalty = caller.db.block_penalty
-                modified_acc_for_dodge = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole)
+                modified_acc_for_dodge = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
                 dodge_pct = 100 - modified_acc_for_dodge
                 modified_acc_for_block = block_chance_calc(accuracy, attack.base_stat, caller.db.speed,
                                                            caller.db.parry, caller.db.barrier, crush_boole, brace_boole,
-                                                           current_block_penalty)
+                                                           current_block_penalty, rush_boole)
                 block_pct = 100 - modified_acc_for_block
                 modified_acc_for_endure = endure_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry,
-                                                             caller.db.barrier, brace_boole)
+                                                             caller.db.barrier, brace_boole, rush_boole)
                 endure_pct = 100 - modified_acc_for_endure
                 caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.base_stat,
                                                                                dodge_pct, block_pct, endure_pct))
@@ -251,15 +258,19 @@ class CmdDodge(default_cmds.MuxCommand):
         random100 = random.randint(1, 100)
         sweep_boole = False
         weave_boole = False
+        rush_boole = False
         # Checking if the attack has the Sweep effect.
         if hasattr(attack, "has_sweep"):
             if attack.has_sweep:
                 sweep_boole = True
-        # Checking if the defender's previous attack had the Weave effect.
+        # Checking if the defender's previous attack had the Weave or Rush effects.
         if hasattr(caller.db, "is_weaving"):
             if caller.db.is_weaving:
                 weave_boole = True
-        modified_acc = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole)
+        if hasattr(caller.db, "is_rushing"):
+            if caller.db.is_rushing:
+                rush_boole = True
+        modified_acc = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         if aim_or_feint == AimOrFeint.AIM:
@@ -359,6 +370,7 @@ class CmdBlock(default_cmds.MuxCommand):
         random100 = random.randint(1, 100)
         crush_boole = False
         brace_boole = False
+        rush_boole = False
         attack_with_effects = check_for_effects(attack)
         if hasattr(attack_with_effects, "has_crush"):
             if attack_with_effects.has_crush:
@@ -366,12 +378,15 @@ class CmdBlock(default_cmds.MuxCommand):
         if hasattr(caller.db, "is_bracing"):
             if caller.db.is_bracing:
                 brace_boole = True
+        if hasattr(caller.db, "is_rushing"):
+            if caller.db.is_rushing:
+                rush_boole = True
         # Checking for block penalty. Using hasattr to avoid erroring out if the attribute doesn't exist yet.
         current_block_penalty = 0
         if hasattr(caller.db, "block_penalty"):
             current_block_penalty = caller.db.block_penalty
         modified_acc = block_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry,
-                                         caller.db.barrier, crush_boole, brace_boole, current_block_penalty)
+                                         caller.db.barrier, crush_boole, brace_boole, current_block_penalty, rush_boole)
         modified_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
         # caller.msg("Base damage is: " + str(attack.dmg))
         # caller.msg("Modified damage is: " + str(modified_damage))
@@ -475,12 +490,16 @@ class CmdEndure(default_cmds.MuxCommand):
         aim_or_feint = action["aim_or_feint"]
         random100 = random.randint(1, 100)
         brace_boole = False
-        # Checking if the defender's previous attack had the Brace effect.
+        rush_boole = False
+        # Checking if the defender's previous attack had the Brace or Rush effect.
         if hasattr(caller.db, "is_bracing"):
             if caller.db.is_bracing:
                 brace_boole = True
+        if hasattr(caller.db, "is_rushing"):
+            if caller.db.is_rushing:
+                rush_boole = True
         modified_acc = endure_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier,
-                                          brace_boole)
+                                          brace_boole, rush_boole)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         if aim_or_feint == AimOrFeint.AIM:
