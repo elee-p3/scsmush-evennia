@@ -57,9 +57,8 @@ class CmdAttack(default_cmds.MuxCommand):
         # caller.msg(action)
 
         # First, check that the character attacking is not KOed
-        if hasattr(caller.db, "KOed"):
-            if caller.db.KOed:
-                return caller.msg("Your character is KOed and cannot act!")
+        if caller.db.KOed:
+            return caller.msg("Your character is KOed and cannot act!")
 
         # Then check that the target is a character in the room using utility
         characters_in_room = location_character_search(location)
@@ -102,9 +101,8 @@ class CmdAttack(default_cmds.MuxCommand):
         modified_accuracy += action_clean.acc
         modified_accuracy += final_action_penalty(caller)
         # Also modify the attack accuracy if the attacker has an endure bonus from their reaction.
-        if hasattr(caller.db, "endure_bonus"):
-            if caller.db.endure_bonus:
-                modified_accuracy += caller.db.endure_bonus
+        if caller.db.endure_bonus:
+            modified_accuracy += caller.db.endure_bonus
         # Modify the attack accuracy if the attack has the Rush effect. Apply_attacker_effects will apply is_rushing.
         if "Rush" in action_clean.effects:
             modified_accuracy += 7
@@ -145,12 +143,11 @@ class CmdAttack(default_cmds.MuxCommand):
         caller.db.is_aiming = False
         caller.db.is_feinting = False
         # If this was the attacker's final action, they are now KOed.
-        if hasattr(caller.db, "final_action"):
-            if caller.db.final_action:
-                caller.db.final_action = False
-                caller.db.KOed = True
-                caller.msg("You have taken your final action and can no longer fight.")
-                caller.location.msg_contents("|y<COMBAT>|n {0} can no longer fight.".format(caller.name))
+        if caller.db.final_action:
+            caller.db.final_action = False
+            caller.db.KOed = True
+            caller.msg("You have taken your final action and can no longer fight.")
+            caller.location.msg_contents("|y<COMBAT>|n {0} can no longer fight.".format(caller.name))
 
 class CmdQueue(default_cmds.MuxCommand):
     """
@@ -188,15 +185,12 @@ class CmdQueue(default_cmds.MuxCommand):
                 sweep_boole = False
                 rush_boole = False
                 # Checking for persistent status effects on the defender.
-                if hasattr(caller.db, "is_weaving"):
-                    if caller.db.is_weaving:
-                        weave_boole = True
-                if hasattr(caller.db, "is_bracing"):
-                    if caller.db.is_bracing:
-                        brace_boole = True
-                if hasattr(caller.db, "is_rushing"):
-                    if caller.db.is_rushing:
-                        rush_boole = True
+                if caller.db.is_weaving:
+                    weave_boole = True
+                if caller.db.is_bracing:
+                    brace_boole = True
+                if caller.db.is_rushing:
+                    rush_boole = True
                 # Checking for relevant effects on the attack.
                 attack = check_for_effects(attack)
                 if hasattr(attack, "has_crush"):
@@ -205,17 +199,13 @@ class CmdQueue(default_cmds.MuxCommand):
                 if hasattr(attack, "has_sweep"):
                     if attack.has_sweep:
                         sweep_boole = True
-                # Checking for block penalty. Using hasattr to avoid erroring out if the attribute doesn't exist yet.
-                current_block_penalty = 0
-                if hasattr(caller.db, "block_penalty"):
-                    current_block_penalty = caller.db.block_penalty
-                else:
-                    caller.db.block_penalty = current_block_penalty
+                # Checking for block penalty.
+                block_penalty = caller.db.block_penalty
                 modified_acc_for_dodge = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
                 dodge_pct = 100 - modified_acc_for_dodge
                 modified_acc_for_block = block_chance_calc(accuracy, attack.base_stat, caller.db.speed,
                                                            caller.db.parry, caller.db.barrier, crush_boole, brace_boole,
-                                                           current_block_penalty, rush_boole)
+                                                           block_penalty, rush_boole)
                 block_pct = 100 - modified_acc_for_block
                 modified_acc_for_endure = endure_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry,
                                                              caller.db.barrier, brace_boole, rush_boole)
@@ -267,12 +257,10 @@ class CmdDodge(default_cmds.MuxCommand):
             if attack.has_sweep:
                 sweep_boole = True
         # Checking if the defender's previous attack had the Weave or Rush effects.
-        if hasattr(caller.db, "is_weaving"):
-            if caller.db.is_weaving:
-                weave_boole = True
-        if hasattr(caller.db, "is_rushing"):
-            if caller.db.is_rushing:
-                rush_boole = True
+        if caller.db.is_weaving:
+            weave_boole = True
+        if caller.db.is_rushing:
+            rush_boole = True
         modified_acc = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
@@ -378,18 +366,14 @@ class CmdBlock(default_cmds.MuxCommand):
         if hasattr(attack_with_effects, "has_crush"):
             if attack_with_effects.has_crush:
                 crush_boole = True
-        if hasattr(caller.db, "is_bracing"):
-            if caller.db.is_bracing:
-                brace_boole = True
-        if hasattr(caller.db, "is_rushing"):
-            if caller.db.is_rushing:
-                rush_boole = True
-        # Checking for block penalty. Using hasattr to avoid erroring out if the attribute doesn't exist yet.
-        current_block_penalty = 0
-        if hasattr(caller.db, "block_penalty"):
-            current_block_penalty = caller.db.block_penalty
+        if caller.db.is_bracing:
+            brace_boole = True
+        if caller.db.is_rushing:
+            rush_boole = True
+        # Checking for block penalty.
+        block_penalty = caller.db.block_penalty
         modified_acc = block_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry,
-                                         caller.db.barrier, crush_boole, brace_boole, current_block_penalty, rush_boole)
+                                         caller.db.barrier, crush_boole, brace_boole, block_penalty, rush_boole)
         modified_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
         # caller.msg("Base damage is: " + str(attack.dmg))
         # caller.msg("Modified damage is: " + str(modified_damage))
@@ -495,12 +479,10 @@ class CmdEndure(default_cmds.MuxCommand):
         brace_boole = False
         rush_boole = False
         # Checking if the defender's previous attack had the Brace or Rush effect.
-        if hasattr(caller.db, "is_bracing"):
-            if caller.db.is_bracing:
-                brace_boole = True
-        if hasattr(caller.db, "is_rushing"):
-            if caller.db.is_rushing:
-                rush_boole = True
+        if caller.db.is_bracing:
+            brace_boole = True
+        if caller.db.is_rushing:
+            rush_boole = True
         modified_acc = endure_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier,
                                           brace_boole, rush_boole)
 
@@ -534,9 +516,8 @@ class CmdEndure(default_cmds.MuxCommand):
             msg = "|y<COMBAT>|n {target} endures {attacker}'s {modifier}{attack}."
             # Now calculate endure bonus. Currently, let's set it so if you endure multiple attacks in a round,
             # you get to keep whatever endure bonus is higher. But endure bonus is not cumulative. (That's OP.)
-            if hasattr(caller.db, "endure_bonus"):
-                if endure_bonus_calc(final_damage) > caller.db.endure_bonus:
-                    caller.db.endure_bonus = endure_bonus_calc(final_damage)
+            if endure_bonus_calc(final_damage) > caller.db.endure_bonus:
+                caller.db.endure_bonus = endure_bonus_calc(final_damage)
 
         if aim_or_feint == AimOrFeint.AIM:
             self.caller.location.msg_contents(msg.format(target=caller.key,
@@ -635,12 +616,10 @@ class CmdInterrupt(default_cmds.MuxCommand):
             if incoming_attack.has_priority:
                 incoming_priority_boole = True
         # Checking if the defender's previous attack had the Bait or Rush effect.
-        if hasattr(caller.db, "is_baiting"):
-            if caller.db.is_bracing:
-                bait_boole = True
-        if hasattr(caller.db, "is_rushing"):
-            if caller.db.is_rushing:
-                rush_boole = True
+        if caller.db.is_bracing:
+            bait_boole = True
+        if caller.db.is_rushing:
+            rush_boole = True
         # Checking if the defender's interrupt has the Priority effect.
         if hasattr(outgoing_interrupt, "has_priority"):
             if outgoing_interrupt.has_priority:
@@ -915,15 +894,13 @@ class CmdPass(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         # First, check that the character acting is not KOed
-        if hasattr(caller.db, "KOed"):
-            if caller.db.KOed:
-                return caller.msg("Your character is KOed and cannot act!")
+        if caller.db.KOed:
+            return caller.msg("Your character is KOed and cannot act!")
         combat_tick(caller)
         caller.location.msg_contents("|y<COMBAT>|n {0} takes no action.".format(caller.name))
         # If this was the attacker's final action, they are now KOed.
-        if hasattr(caller.db, "final_action"):
-            if caller.db.final_action:
-                caller.db.final_action = False
-                caller.db.KOed = True
-                caller.msg("You have taken your final action and can no longer fight.")
-                caller.location.msg_contents("|y<COMBAT>|n {0} can no longer fight.".format(caller.name))
+        if caller.db.final_action:
+            caller.db.final_action = False
+            caller.db.KOed = True
+            caller.msg("You have taken your final action and can no longer fight.")
+            caller.location.msg_contents("|y<COMBAT>|n {0} can no longer fight.".format(caller.name))

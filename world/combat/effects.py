@@ -15,6 +15,9 @@ class Effect:
 # The AP Cost of an effect is in addition to the base AP cost of an Art (15, I'm thinking).
 # Currently, all persistent effects apply to the attacker, not to the target. We can figure out debuffs later.
 
+# IMPORTANT NOTE: if you add a new Effect, add it to at_pre_puppet in characters.py and normalize_status and combat_tick
+# in combat_math.py.
+
 # Current Turn Effects
 
 crush = Effect("Crush", -10)

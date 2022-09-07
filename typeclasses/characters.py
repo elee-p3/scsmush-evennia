@@ -58,6 +58,82 @@ class Character(DefaultCharacter):
         self.db.obs_mode = False
         self.db.arts = []
 
+    def at_post_puppet(self, **kwargs):
+        """
+        Called just after puppeting has been completed and all
+        Account<->Object links have been established.
+        Args:
+            **kwargs (dict): Arbitrary, optional arguments for users
+                overriding the call (unused by default).
+        Note:
+            You can use `self.account` and `self.sessions.get()` to get
+            account and sessions at this point; the last entry in the
+            list from `self.sessions.get()` is the latest Session
+            puppeting this Object.
+        """
+        self.msg("\nYou become |c%s|n.\n" % self.name)
+        self.msg((self.at_look(self.location), {"type": "look"}), options=None)
+
+        def message(obj, from_obj):
+            obj.msg("%s has entered the game." % self.get_display_name(obj), from_obj=from_obj)
+
+        self.location.for_contents(message, exclude=[self], from_obj=self)
+        # Attempting to modify this to add all missing combat database data on login, e.g., block penalty.
+        # For some reason, in this context, if a character doesn't have the attribute, hasattr will return
+        # the attribute itself. So I'm adding an isinstance line to confirm that the attribute is the proper type.
+        # And if there's no attribute at all, then the attribute will still be set in the "else" case.
+        # If a character 1) has the attribute and 2) it is the proper data type, it shouldn't be modified on login.
+        if hasattr(self.db, "KOed"):
+            if not isinstance(self.db.koed, bool):
+                self.db.KOed = False
+        else:
+            self.db.KOed = False
+        if hasattr(self.db, "final_action"):
+            if not isinstance(self.db.final_action, bool):
+                self.db.final_action = False
+        else:
+            self.db.final_action = False
+        if hasattr(self.db, "endure_bonus"):
+            if not isinstance(self.db.endure_bonus, int):
+                self.db.endure_bonus = 0
+        else:
+            self.db.endure_bonus = 0
+        if hasattr(self.db, "is_weaving"):
+            if not isinstance(self.db.is_weaving, bool):
+                self.db.is_weaving = False
+        else:
+            self.db.is_weaving = False
+        if hasattr(self.db, "is_bracing"):
+            if not isinstance(self.db.is_bracing, bool):
+                self.db.is_bracing = False
+        else:
+            self.db.is_bracing = False
+        if hasattr(self.db, "is_baiting"):
+            if not isinstance(self.db.is_baiting, bool):
+                self.db.is_baiting = False
+        else:
+            self.db.is_baiting = False
+        if hasattr(self.db, "is_rushing"):
+            if not isinstance(self.db.is_rushing, bool):
+                self.db.is_rushing = False
+        else:
+            self.db.is_rushing = False
+        if hasattr(self.db, "block_penalty"):
+            if not isinstance(self.db.block_penalty, int):
+                self.db.block_penalty = 0
+        else:
+            self.db.block_penalty = 0
+        if hasattr(self.db, "is_aiming"):
+            if not isinstance(self.db.is_aiming, bool):
+                self.db.is_aiming = False
+        else:
+            self.db.is_aiming = False
+        if hasattr(self.db, "is_feinting"):
+            if not isinstance(self.db.is_feinting, bool):
+                self.db.is_feinting = False
+        else:
+            self.db.is_feinting = False
+
     def get_abilities(self):
         return {"name":self.key, "sex":self.db.sex, "race":self.db.race, "occupation":self.db.occupation,
                 "group":self.db.group, "domain":self.db.domain, "element":self.db.element, "origin":self.db.origin,
