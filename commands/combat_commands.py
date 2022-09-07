@@ -592,7 +592,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             return caller.msg("Cannot find that attack in your queue.")
 
         # Make sure that the outgoing interrupt is an available Art/Normal.
-        interrupt_clean = ""
+        interrupt_clean = None  # can't initialize an empty Attack class, so setting to None
         if outgoing_interrupt_arg not in NORMALS:
             if outgoing_interrupt_arg not in arts:
                 return caller.msg("Your selected interrupt action cannot be found.")
@@ -623,17 +623,18 @@ class CmdInterrupt(default_cmds.MuxCommand):
         attacker = incoming_action["attacker"]
         aim_or_feint = incoming_action["aim_or_feint"]
         outgoing_interrupt = interrupt_clean
-        outgoing_damage = interrupt_clean.dmg
         outgoing_accuracy = interrupt_clean.acc
         random100 = random.randint(1, 100)
         bait_boole = False
         rush_boole = False
         incoming_priority_boole = False
         outgoing_priority_boole = False
+
         # Checking if the attacker's attack has the Priority effect.
         if hasattr(incoming_attack, "has_priority"):
             if incoming_attack.has_priority:
                 incoming_priority_boole = True
+
         # Checking if the defender's previous attack had the Bait or Rush effect.
         if hasattr(caller.db, "is_baiting"):
             if caller.db.is_bracing:
@@ -641,6 +642,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         if hasattr(caller.db, "is_rushing"):
             if caller.db.is_rushing:
                 rush_boole = True
+
         # Checking if the defender's interrupt has the Priority effect.
         if hasattr(outgoing_interrupt, "has_priority"):
             if outgoing_interrupt.has_priority:
@@ -665,10 +667,12 @@ class CmdInterrupt(default_cmds.MuxCommand):
 
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= final_damage
+
             # Modify EX based on damage taken.
             # Modify the character's EX based on the damage inflicted.
             new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
             caller.db.ex = new_ex
+
             # Modify the attacker's EX based on the damage inflicted.
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
@@ -680,6 +684,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
                 modified_int_damage += caller.db.power
             if interrupt_clean.base_stat == "Knowledge":
                 modified_int_damage += caller.db.knowledge
+
             # If the interrupt succeeds, halve incoming damage for now.
             final_incoming_damage = damage_calc(incoming_damage, incoming_attack.base_stat, caller.db.parry, caller.db.barrier) / 2
             final_outgoing_damage = damage_calc(modified_int_damage, outgoing_interrupt.base_stat, attacker.db.parry, attacker.db.barrier)
@@ -690,12 +695,14 @@ class CmdInterrupt(default_cmds.MuxCommand):
             caller.db.lf -= final_incoming_damage
             attacker.db.lf -= final_outgoing_damage
             attacker.msg("You took {dmg} damage.".format(dmg=final_outgoing_damage))
+
             # Modify EX based on damage taken.
             # Modify the character's EX based on the damage dealt AND inflicted.
             new_ex_first = ex_gain_on_defense(final_incoming_damage, caller.db.ex, caller.db.maxex)
             caller.db.ex = new_ex_first
             new_ex_second = ex_gain_on_attack(final_outgoing_damage, caller.db.ex, caller.db.maxex)
             caller.db.ex = new_ex_second
+
             # Modify the attacker's EX based on the damage dealt AND inflicted.
             new_attacker_ex_first = ex_gain_on_attack(final_incoming_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex_first
@@ -720,6 +727,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
                                                          modifier="",
                                                          attack=incoming_attack.name,
                                                          interrupt=outgoing_interrupt.name))
+
         # If interrupting puts you at 0 LF or below, instead of the usual final action/KO check, combine them.
         if caller.db.lf <= 0:
             caller.db.KOed = True
