@@ -682,7 +682,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
                 modified_int_damage += caller.db.knowledge
             # If the interrupt succeeds, halve incoming damage for now.
             final_incoming_damage = damage_calc(incoming_damage, incoming_attack.base_stat, caller.db.parry, caller.db.barrier) / 2
-            final_outgoing_damage = damage_calc(outgoing_damage, outgoing_interrupt.base_stat, attacker.db.parry, attacker.db.barrier)
+            final_outgoing_damage = damage_calc(modified_int_damage, outgoing_interrupt.base_stat, attacker.db.parry, attacker.db.barrier)
             caller.msg("You interrupt {attack} with {interrupt}.".format(attack=incoming_attack.name, interrupt=outgoing_interrupt.name))
             caller.msg("You took {dmg} damage.".format(dmg=final_incoming_damage))
             msg = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}."
