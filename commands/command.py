@@ -4,7 +4,7 @@ Commands
 Commands describe the input the account can do to the game.
 
 """
-from math import floor
+from math import floor, ceil
 import random
 #from typing import AwaitableGenerator
 from evennia.server.sessionhandler import SESSIONS
@@ -158,45 +158,47 @@ class CmdFinger(default_cmds.MuxCommand):
 
         # TODO: actually figure out error handling. Need to be able to differentiate between "ambiguous search" error and "not a character" error
         try:
+            client_width = self.client_width()
             char = target.get_abilities()
-            # charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
-            #                                 border_bottom_char=" ", width=78)
             charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
-                                            border_bottom_char=" ", width=self.client_width())
+                                            border_bottom_char=" ", width=client_width)
             charInfoTable.add_column()
             charInfoTable.add_column()
             charInfoTable.add_row("Sex: {0}".format(char["sex"]), "Group: {0}".format(char["group"]))
             charInfoTable.add_row("Race: {0}".format(char["race"]), "Domain: {0}".format(char["domain"]))
             charInfoTable.add_row("Origin: {0}".format(char["origin"]), "Element: {0}".format(char["element"]))
 
-            # charDescTable = evtable.EvTable(border="table", border_left_char="|", border_right_char="|",
-            #                                 border_top_char="-",
-            #                                 border_bottom_char="_", width=78)
             charDescTable = evtable.EvTable(border="table", border_left_char="|", border_right_char="|",
                                             border_top_char="-",
-                                            border_bottom_char="_", width=self.client_width())
+                                            border_bottom_char="_", width=client_width)
             charDescTable.add_column()
             charDescTable.add_row('"{0}"'.format(char["quote"]))
             charDescTable.add_row("")
             charDescTable.add_row("{0}".format(char["profile"]))
 
             fingerMsg = ""
-            # fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
-            fingerMsg += "/\\" + (self.client_width() - 4) * "_" + "/\\" + "\n"
+            fingerMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
 
-            # TODO: we want if-else logic to add an alias if they have it, and just spit out their name if they don't
-            # nameBorder = "\\/" + (37 - floor(len(char["name"] + " - " + char["occupation"]) / 2.0)) * " "
-            # nameBorder += char["name"] + " - " + char["occupation"]
-            # nameBorder += (76 - len(nameBorder)) * " " + "\\/"
-            # fingerMsg += nameBorder + "\n"
+            header = ""
+            alias_list = [x for x in target.aliases.all() if " " not in x]
+            # find all aliases that don't contain spaces (this was to get rid of "An Ivo" or "One Ivo")
+            if alias_list:
+                alias = min(alias_list, key=len).title()
+                header = char["name"] + " (" + alias + ")" + " - " + char["occupation"]
+                self.caller.msg("header is this: {0}".format(header))
+            else:
+                header = char["name"] + " - " + char["occupation"]
+
+            left_spacing = " " * ((floor(client_width/2.0) - floor(len(header)/2.0)) - 2) # -2 for the \/
+            right_spacing = " " * ((floor(client_width / 2.0) - ceil(len(header) / 2.0)) - 2)  # -2 for the \/
+            nameBorder = "\\/" + left_spacing + header + right_spacing + "\\/"
+            fingerMsg += nameBorder + "\n"
 
             charInfoString = charInfoTable.__str__()
             fingerMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
             fingerMsg += charDescTable.__str__() + "\n"
-            # fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
-            # fingerMsg += "\\/" + 74 * " " + "\\/" + "\n"
-            fingerMsg += "/\\" + (self.client_width() - 4) * "_" + "/\\" + "\n"
-            fingerMsg += "\\/" + (self.client_width() - 4) * " " + "\\/" + "\n"
+            fingerMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
+            fingerMsg += "\\/" + (client_width - 4) * " " + "\\/" + "\n"
 
             self.caller.msg(fingerMsg)
         except:

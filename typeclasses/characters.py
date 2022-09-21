@@ -41,7 +41,7 @@ class Character(DefaultCharacter):
         self.db.domain = "Unknown"
         self.db.element = "Unknown"
         self.db.origin = "Unknown"
-        self.db.quote = '"..."'
+        self.db.quote = '...'
         self.db.profile = "This character is shrouded in mystery."
         self.db.lf = 1000
         self.db.maxlf = 1000
