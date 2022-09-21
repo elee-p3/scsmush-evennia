@@ -159,36 +159,44 @@ class CmdFinger(default_cmds.MuxCommand):
         # TODO: actually figure out error handling. Need to be able to differentiate between "ambiguous search" error and "not a character" error
         try:
             char = target.get_abilities()
+            # charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
+            #                                 border_bottom_char=" ", width=78)
             charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
-                                            border_bottom_char=" ", width=78)
+                                            border_bottom_char=" ", width=self.client_width())
             charInfoTable.add_column()
             charInfoTable.add_column()
             charInfoTable.add_row("Sex: {0}".format(char["sex"]), "Group: {0}".format(char["group"]))
             charInfoTable.add_row("Race: {0}".format(char["race"]), "Domain: {0}".format(char["domain"]))
             charInfoTable.add_row("Origin: {0}".format(char["origin"]), "Element: {0}".format(char["element"]))
 
+            # charDescTable = evtable.EvTable(border="table", border_left_char="|", border_right_char="|",
+            #                                 border_top_char="-",
+            #                                 border_bottom_char="_", width=78)
             charDescTable = evtable.EvTable(border="table", border_left_char="|", border_right_char="|",
                                             border_top_char="-",
-                                            border_bottom_char="_", width=78)
+                                            border_bottom_char="_", width=self.client_width())
             charDescTable.add_column()
             charDescTable.add_row('"{0}"'.format(char["quote"]))
             charDescTable.add_row("")
             charDescTable.add_row("{0}".format(char["profile"]))
 
             fingerMsg = ""
-            fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
+            # fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
+            fingerMsg += "/\\" + (self.client_width() - 4) * "_" + "/\\" + "\n"
 
             # TODO: we want if-else logic to add an alias if they have it, and just spit out their name if they don't
-            nameBorder = "\\/" + (37 - floor(len(char["name"] + " - " + char["occupation"]) / 2.0)) * " "
-            nameBorder += char["name"] + " - " + char["occupation"]
-            nameBorder += (76 - len(nameBorder)) * " " + "\\/"
-            fingerMsg += nameBorder + "\n"
+            # nameBorder = "\\/" + (37 - floor(len(char["name"] + " - " + char["occupation"]) / 2.0)) * " "
+            # nameBorder += char["name"] + " - " + char["occupation"]
+            # nameBorder += (76 - len(nameBorder)) * " " + "\\/"
+            # fingerMsg += nameBorder + "\n"
 
             charInfoString = charInfoTable.__str__()
             fingerMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
             fingerMsg += charDescTable.__str__() + "\n"
-            fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
-            fingerMsg += "\\/" + 74 * " " + "\\/" + "\n"
+            # fingerMsg += "/\\" + 74 * "_" + "/\\" + "\n"
+            # fingerMsg += "\\/" + 74 * " " + "\\/" + "\n"
+            fingerMsg += "/\\" + (self.client_width() - 4) * "_" + "/\\" + "\n"
+            fingerMsg += "\\/" + (self.client_width() - 4) * " " + "\\/" + "\n"
 
             self.caller.msg(fingerMsg)
         except:
@@ -672,18 +680,17 @@ class CmdPot(default_cmds.MuxCommand):
         Get all connected accounts by polling session.
         """
 
-        account = self.account
         all_sessions = SESSIONS.get_sessions()
 
         all_sessions = sorted(all_sessions, key=lambda o: o.account.character.get_pose_time()) # sort by last posed time
         pruned_sessions = prune_sessions(all_sessions)
 
-        naccounts = SESSIONS.account_count()
         table = self.styled_table(
             "|wCharacter",
             "|wOn for",
             "|wIdle",
-            "|wLast posed"
+            "|wLast posed",
+            "|wLF"
         )
 
         old_session_list = []
@@ -692,11 +699,12 @@ class CmdPot(default_cmds.MuxCommand):
             if not session.logged_in:
                 continue
 
-            session_account = session.get_account()
             puppet = session.get_puppet()
             delta_cmd = time.time() - session.cmd_last_visible
             delta_conn = time.time() - session.conn_time
             delta_pose_time = time.time() - puppet.get_pose_time()
+            lf = str(int(puppet.db.lf))
+            max_lf = str(int(puppet.db.maxlf))
 
             if delta_pose_time > 3600:
                 old_session_list.append(session)
@@ -707,26 +715,29 @@ class CmdPot(default_cmds.MuxCommand):
                 table.add_row(puppet.key,
                               utils.time_format(delta_conn, 0),
                               utils.time_format(delta_cmd, 1),
-                              utils.time_format(delta_pose_time, 1))
+                              utils.time_format(delta_pose_time, 1),
+                              lf + "/" + max_lf)
 
         for session in old_session_list:
-            session_account = session.get_account()
             puppet = session.get_puppet()
             delta_cmd = time.time() - session.cmd_last_visible
             delta_conn = time.time() - session.conn_time
-            delta_pose_time = time.time() - puppet.get_pose_time()
+            lf = str(int(puppet.db.lf))
+            max_lf = str(int(puppet.db.maxlf))
 
             if puppet.location == self.caller.character.location:
                 if puppet.get_obs_mode() == True:
                     table.add_row("|y" + puppet.key + " (O)",
                                   utils.time_format(delta_conn, 0),
                                   utils.time_format(delta_cmd, 1),
-                                  "-")
+                                  "-",
+                                  lf + "/" + max_lf)
                 else:
                     table.add_row(puppet.key,
                                   utils.time_format(delta_conn, 0),
                                   utils.time_format(delta_cmd, 1),
-                                  "-")
+                                  "-",
+                                  lf + "/" + max_lf)
 
         self.caller.msg(table)
 
@@ -1033,8 +1044,8 @@ class CmdMail(default_cmds.MuxAccountCommand):
                     "",
                     table=None,
                     border="header",
-                    header_line_char=_SUB_HEAD_CHAR,
-                    width=_WIDTH,
+                    header_line_char=self._SUB_HEAD_CHAR,
+                    width=self._WIDTH,
                 )
                 index = 1
                 for message in messages:
@@ -1057,9 +1068,9 @@ class CmdMail(default_cmds.MuxAccountCommand):
                 table.reformat_column(3, width=13)
                 table.reformat_column(4, width=7)
 
-                self.caller.msg(_HEAD_CHAR * _WIDTH)
+                self.caller.msg(self._HEAD_CHAR * self._WIDTH)
                 self.caller.msg(str(table))
-                self.caller.msg(_HEAD_CHAR * _WIDTH)
+                self.caller.msg(self._HEAD_CHAR * self._WIDTH)
             else:
                 self.caller.msg("There are no messages in your inbox.")
 
