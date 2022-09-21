@@ -1002,7 +1002,7 @@ class CmdMail(default_cmds.MuxAccountCommand):
 
                     messageForm = []
                     if message:
-                        messageForm.append(_HEAD_CHAR * _WIDTH)
+                        messageForm.append(self._HEAD_CHAR * self._WIDTH)
                         messageForm.append(
                             "|wFrom:|n %s" % (message.senders[0].get_display_name(self.caller))
                         )
@@ -1013,9 +1013,9 @@ class CmdMail(default_cmds.MuxAccountCommand):
                             % message.db_date_created.strftime(f"%b {day}, %Y - %H:%M:%S")
                         )
                         messageForm.append("|wSubject:|n %s" % message.header)
-                        messageForm.append(_SUB_HEAD_CHAR * _WIDTH)
+                        messageForm.append(self._SUB_HEAD_CHAR * self._WIDTH)
                         messageForm.append(message.message)
-                        messageForm.append(_HEAD_CHAR * _WIDTH)
+                        messageForm.append(self._HEAD_CHAR * self._WIDTH)
                     self.caller.msg("\n".join(messageForm))
                     message.tags.remove("new", category="mail")
                     message.tags.add("-", category="mail")
