@@ -62,9 +62,12 @@ class CmdAttack(default_cmds.MuxCommand):
 
         # Then check that the target is a character in the room using utility
         characters_in_room = location_character_search(location)
+        # Check aliases of characters in room as well
+        alias_list_in_room = [character.aliases.all() for character in characters_in_room]
         # caller.msg(characters_in_room)
         if target not in [character.name.lower() for character in characters_in_room]:
-            return caller.msg("Your target is not a character in this room.")
+            if target not in alias_list_in_room:
+                return caller.msg("Your target is not a character in this room.")
 
         # Find the actual character object using the input string
         target_object = None
