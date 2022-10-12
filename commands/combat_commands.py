@@ -63,17 +63,24 @@ class CmdAttack(default_cmds.MuxCommand):
         # Then check that the target is a character in the room using utility
         characters_in_room = location_character_search(location)
         # Check aliases of characters in room as well
-        alias_list_in_room = [character.aliases.all() for character in characters_in_room]
+        alias_list_in_room = [(character, character.aliases.all()) for character in characters_in_room]
+        target_alias_list = [idx for idx, alias_tuple in enumerate(alias_list_in_room) if target.lower() in alias_tuple[1]]
+
+        target_object = None
+        if target_alias_list:
+            target_alias_idx = target_alias_list[0]
+            target_object = alias_list_in_room[target_alias_idx][0]
+
         # caller.msg(characters_in_room)
         if target not in [character.name.lower() for character in characters_in_room]:
-            if target not in alias_list_in_room:
+            if not target_object:
                 return caller.msg("Your target is not a character in this room.")
 
         # Find the actual character object using the input string
-        target_object = None
         for obj in location.contents:
-            if target in obj.db_key.lower():
-                target_object = obj
+            if not target_object:
+                if target in obj.db_key.lower():
+                    target_object = obj
 
         # Now check that the action is an attack.
         action_clean = ""
