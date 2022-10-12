@@ -78,6 +78,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdPass)
         self.add(CmdEndure)
         self.add(CmdInterrupt)
+        self.add(CmdCheck)
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """

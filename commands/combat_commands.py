@@ -4,6 +4,8 @@ from world.utilities.utilities import location_character_search
 import random
 from world.combat.combat_math import *
 from world.combat.effects import AimOrFeint
+from evennia.utils import evtable
+from math import floor, ceil
 
 def append_to_queue(caller, target, attack, attack_damage, modified_accuracy, attacker, aim_or_feint):
     # Find the actual attack object using the input attack string
@@ -779,6 +781,74 @@ class CmdListAttacks(default_cmds.MuxCommand):
             caller.msg("{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4}".format(normal.name, normal.ap_change,
                                                                                       normal.dmg, normal.acc,
                                                                                       normal.base_stat))
+        # If the character has arts, list them.
+        if arts:
+            caller.msg("-- Arts --")
+            for art in arts:
+                name = art.name
+                dmg = art.dmg
+                acc = art.acc
+                base_stat = art.base_stat
+                effects = art.effects
+                ap_change = art.ap_change
+                # AP costs are displayed in cyan; otherwise, the number is displayed in green.
+                if int(ap_change) >= 0:
+                    caller.msg(
+                    "{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc, base_stat,
+                                                                                              effects))
+                else:
+                    caller.msg(
+                    "{0} -- AP: |c{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc, base_stat,
+                                                                                              effects))
+
+class CmdCheck(default_cmds.MuxCommand):
+    """
+        List all attacks available to your character
+        (including Arts and Normals) with the interrupt chances.
+
+        Usage:
+          +check
+
+    """
+
+    key = "+check"
+    aliases = ["check"]
+    locks = "cmd:all()"
+
+    def func(self):
+        client_width = self.client_width()
+        caller = self.caller
+        args = self.args
+        arts = caller.db.arts
+
+        left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Normals") / 2.0)) - 2)  # -2 for the \/
+        right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Normals") / 2.0)) - 2)  # -2 for the \/
+        header = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
+        header += "\\/" + left_spacing + "Normals" + right_spacing + "\\/" + "\n"
+
+        normals_table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", " ",
+                                       border_left_char="|", border_right_char="|", border_top_char="-",
+                                            border_bottom_char="-", width=client_width)
+
+        for normal in NORMALS:
+            normals_table.add_row(normal.name,
+                                  "|g" + str(normal.ap_change) + "|n",
+                                  normal.dmg,
+                                  normal.acc,
+                                  normal.base_stat,
+                                  " ")
+
+        caller.msg(header + normals_table.__str__())
+            # caller.msg("{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4}".format(normal.name, normal.ap_change,
+            #                                                                           normal.dmg, normal.acc,
+            #                                                                           normal.base_stat))
+
+
+        # caller.msg("-- Normals --")
+        # for normal in NORMALS:
+        #     caller.msg("{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4}".format(normal.name, normal.ap_change,
+        #                                                                               normal.dmg, normal.acc,
+        #                                                                               normal.base_stat))
         # If the character has arts, list them.
         if arts:
             caller.msg("-- Arts --")
