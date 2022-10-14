@@ -868,6 +868,9 @@ class CmdMail(default_cmds.MuxAccountCommand):
             caller (obj): The object (or Account or Character) that is sending the message.
 
         """
+        # Adding error handling for if there's no body in the message.
+        if not message:
+            return caller.msg("The message body is empty. No @mail was sent.")
         for recipient in recipients:
             recipient.msg("You have received a new @mail from %s" % caller)
             new_message = create.create_message(
