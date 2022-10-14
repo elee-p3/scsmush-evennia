@@ -2,22 +2,27 @@ from evennia import default_cmds
 from world.combat.effects import EFFECTS
 from world.combat.attacks import Attack
 
-class CmdAddArt(default_cmds.MuxCommand):
+class CmdSetArt(default_cmds.MuxCommand):
     """
-        A character generation command that adds an Art to
-        your character's list of Arts. Specify its name, Damage,
-        Base Stat (Power or Knowledge), and Effects.
+        A character generation command that adds an Art to or
+        edits an Art on your character's list of Arts. Specify
+        its name, Damage, Base Stat (Power or Knowledge), and Effects.
 
         Name, Damage, Base Stat, and Effects should be separated by
         commas. Different Effects should be separated by spaces.
+        See "help effects" for a list of valid Effects.
+
+        Characters may currently have a maximum of 10 Arts. To remove
+        an Art, add the switch /del.
 
         Usage:
-          +addart <name of art>, <damage>, <base stat>, <effect1> <effect2>
+          +setart <name of art>, <damage>, <base stat>, <effect1> <effect2>
+          +setart/del <name of art>
 
     """
 
-    key = "+addart"
-    aliases = ["addart"]
+    key = "+setart"
+    aliases = ["setart"]
     locks = "cmd:all()"
 
     def func(self):
@@ -28,6 +33,16 @@ class CmdAddArt(default_cmds.MuxCommand):
         if not caller.db.arts:
             caller.db.arts = []
         # Name = string, damage = int, base stat = string, effects = string(s).
+        if "del" in self.switches:
+            art_to_remove = None
+            for art in caller.db.arts:
+                if args.lower() == art.name.lower():
+                    art_to_remove = art
+            if not art_to_remove:
+                return caller.msg("Art not found. No Art has been deleted.")
+            else:
+                caller.db.arts.remove(art_to_remove)
+                return caller.msg("{0} removed from Arts.".format(art_to_remove.name))
         # Check that there are args.
         if not args:
             return caller.msg("You must provide a name, damage value, base stat, and effects (if any).")
@@ -44,6 +59,18 @@ class CmdAddArt(default_cmds.MuxCommand):
         # Checking that the base stat is either Power or Knowledge.
         if base_stat.lower() not in ["power", "knowledge"]:
             return caller.msg("Error: your Art's base stat must be either Power or Knowledge.")
+        # Check if an Art with that name already exists and, if so, remove the existing Art before proceeding.
+        art_to_edit = None
+        art_modified = False
+        for art in caller.db.arts:
+            if name.lower() == art.name.lower():
+                art_to_edit = art
+        if art_to_edit:
+            caller.db.arts.remove(art_to_edit)
+            art_modified = True
+        # Now check that the character does not already have the maximum number of Arts: 10.
+        if len(caller.db.arts) == 10:
+            return caller.msg("Your character already has the maximum of 10 Arts.")
         # Set the baseline AP cost for an art at 15.
         true_ap_change = -15
         if len(art_list) == 4:
@@ -72,13 +99,21 @@ class CmdAddArt(default_cmds.MuxCommand):
         else:
             new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat)
         caller.db.arts.append(new_art)
-        caller.msg("{0} has been added to your list of Arts.".format(name))
+        # Change the message to the player depending on if the Art was added or edited.
+        if not art_modified:
+            caller.msg("{0} has been added to your list of Arts.".format(name))
+        else:
+            caller.msg("{0} has been modified on your list of Arts.".format(name))
 
 class CmdChargen(default_cmds.MuxCommand):
     """
         A character generation command used to set your five stats: Power,
         Knowledge, Parry, Barrier, and Speed. The total must be equal to
         your character's Stat Total. By default, this is 625, or 125 per stat.
+        Think of 100 as "average," 150 as "good," and 200 as "exceptional."
+
+        The current stat minimum is 50 and maximum is 210. Special dispensation
+        is required for any stat lower or higher than this.
 
         Remember to place commas and spaces between each stat assignment.
 
@@ -107,10 +142,12 @@ class CmdChargen(default_cmds.MuxCommand):
         # Compare the sum of the input numbers with the Stat Total.
         if split_args_sum != stat_total:
             return caller.msg("Please ensure your total stat value is equal to {0}.".format(stat_total))
-        # Make sure that no stat is above 255.
+        # Make sure that no stat is above 210 or below 50.
         for stat in split_args:
-            if int(stat) > 255:
-                return caller.msg("Please ensure that no stat is above the maximum of 255.")
+            if int(stat) > 210:
+                return caller.msg("Please ensure that no stat is above the maximum of 210.")
+            if int(stat) < 50:
+                return caller.msg("Please ensure that no stat is below the minimum of 50.")
         # Set the stats accordingly.
         caller.db.power = int(split_args[0])
         caller.db.knowledge = int(split_args[1])

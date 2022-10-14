@@ -68,7 +68,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdRoulette)
         self.add(CmdGridscan)
         self.add(CmdBlock)
-        self.add(CmdAddArt)
+        self.add(CmdSetArt)
         self.add(CmdArts)
         self.add(CmdListAttacks)
         self.add(CmdChargen)
