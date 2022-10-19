@@ -586,7 +586,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             return caller.msg("Cannot find that attack in your queue.")
 
         # Make sure that the outgoing interrupt is an available Art/Normal.
-        interrupt_clean = ""
+        interrupt_clean = None  # this will be an Attack object
         if outgoing_interrupt_arg not in NORMALS:
             if outgoing_interrupt_arg not in arts:
                 return caller.msg("Your selected interrupt action cannot be found.")
@@ -627,7 +627,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             if incoming_attack.has_priority:
                 incoming_priority_boole = True
         # Checking if the defender's previous attack had the Bait or Rush effect.
-        if caller.db.is_bracing:
+        if caller.db.is_baiting:
             bait_boole = True
         if caller.db.is_rushing:
             rush_boole = True
@@ -877,54 +877,107 @@ class CmdCheck(default_cmds.MuxCommand):
             # Confirm that the argument is just an integer (the incoming attack ID).
             if not args.isnumeric():
                 return caller.msg("Please use an integer with the check command, e.g., \"check 1\".")
-            # Now, beautifully display the arts and normals with an added column for relative interrupt chance.
-            left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Normals") / 2.0)) - 2)  # -2 for the \/
-            right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Normals") / 2.0)) - 2)  # -2 for the \/
-            header = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
-            header += "\\/" + left_spacing + "Normals" + right_spacing + "\\/" + "\n"
 
-            normals_table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", " ",
-                                           border_left_char="|", border_right_char="|", border_top_char="-",
+            attack_id = int(args)
+            id_list = [attack["id"] for attack in caller.db.queue]
+
+            # Now, beautifully display the arts and normals with an added column for relative interrupt chance.
+            normals_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Normals") / 2.0)) - 2)  # -2 for the \/
+            normals_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Normals") / 2.0)) - 2)  # -2 for the \/
+            arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
+            arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/
+            header_top = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
+            normals_header = header_top + "\\/" + normals_left_spacing + "Normals" + normals_right_spacing + "\\/" + "\n"
+            arts_header = header_top + "\\/" + arts_left_spacing + "Arts" + arts_right_spacing + "\\/" + "\n"
+
+            normals_table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects", "Int%",
+                                                border_left_char="|", border_right_char="|", border_top_char="-",
                                                 border_bottom_char="-", width=client_width)
 
+            arts_table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects", "Int%",
+                                            border_left_char="|", border_right_char="|", border_top_char="-",
+                                            border_bottom_char="-", width=client_width)
+
             for normal in NORMALS:
+                # this code block is copied from CmdInterrupt
+                # TODO: refactor CmdInterrupt and figure out how to move this all into a separate function
+                incoming_action = caller.db.queue[id_list.index(attack_id)]
+                incoming_attack = incoming_action["attack"]
+                incoming_damage = incoming_action["modified_damage"]
+                incoming_accuracy = incoming_action["modified_accuracy"]
+                attacker = incoming_action["attacker"]
+                aim_or_feint = incoming_action["aim_or_feint"]
+                outgoing_damage = normal.dmg
+                outgoing_accuracy = normal.acc
+                random100 = random.randint(1, 100)
+                bait_boole = False
+                rush_boole = False
+                incoming_priority_boole = False
+                outgoing_priority_boole = False
+                # Checking if the attacker's attack has the Priority effect.
+                if hasattr(incoming_attack, "has_priority"):
+                    if incoming_attack.has_priority:
+                        incoming_priority_boole = True
+                # Checking if the defender's previous attack had the Bait or Rush effect.
+                if caller.db.is_baiting:
+                    bait_boole = True
+                if caller.db.is_rushing:
+                    rush_boole = True
+                # Checking if the defender's interrupt has the Priority effect.
+                if hasattr(normal, "has_priority"):
+                    if normal.has_priority:
+                        outgoing_priority_boole = True
+                modified_acc = interrupt_chance_calc(incoming_accuracy, outgoing_accuracy, bait_boole, rush_boole,
+                                                     incoming_priority_boole, outgoing_priority_boole)
+
                 normals_table.add_row(normal.name,
                                       "|g" + str(normal.ap_change) + "|n",
                                       normal.dmg,
                                       normal.acc,
                                       normal.base_stat,
-                                      " ")
+                                      " ",
+                                      modified_acc)
 
-            caller.msg(header + normals_table.__str__())
-                # caller.msg("{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4}".format(normal.name, normal.ap_change,
-                #                                                                           normal.dmg, normal.acc,
-                #                                                                           normal.base_stat))
+            caller.msg(normals_header + normals_table.__str__())
 
-
-            # caller.msg("-- Normals --")
-            # for normal in NORMALS:
-            #     caller.msg("{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4}".format(normal.name, normal.ap_change,
-            #                                                                               normal.dmg, normal.acc,
-            #                                                                               normal.base_stat))
             # If the character has arts, list them.
             if arts:
-                caller.msg("-- Arts --")
                 for art in arts:
-                    name = art.name
-                    dmg = art.dmg
-                    acc = art.acc
-                    base_stat = art.base_stat
-                    effects = art.effects
-                    ap_change = art.ap_change
-                    # AP costs are displayed in cyan; otherwise, the number is displayed in green.
-                    if int(ap_change) >= 0:
-                        caller.msg(
-                        "{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc, base_stat,
-                                                                                                  effects))
-                    else:
-                        caller.msg(
-                        "{0} -- AP: |c{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc, base_stat,
-                                                                                                  effects))
+                    art = check_for_effects(art)
+                    # this code block is copied from CmdInterrupt
+                    incoming_action = caller.db.queue[id_list.index(attack_id)]
+                    incoming_attack = incoming_action["attack"]
+                    incoming_accuracy = incoming_action["modified_accuracy"]
+                    outgoing_accuracy = art.acc
+                    bait_boole = False
+                    rush_boole = False
+                    incoming_priority_boole = False
+                    outgoing_priority_boole = False
+                    # Checking if the attacker's attack has the Priority effect.
+                    if hasattr(incoming_attack, "has_priority"):
+                        if incoming_attack.has_priority:
+                            incoming_priority_boole = True
+                    # Checking if the defender's previous attack had the Bait or Rush effect.
+                    if caller.db.is_baiting:
+                        bait_boole = True
+                    if caller.db.is_rushing:
+                        rush_boole = True
+                    # Checking if the defender's interrupt has the Priority effect.
+                    if hasattr(art, "has_priority"):
+                        if art.has_priority:
+                            outgoing_priority_boole = True
+                    modified_acc = interrupt_chance_calc(incoming_accuracy, outgoing_accuracy, bait_boole, rush_boole,
+                                                         incoming_priority_boole, outgoing_priority_boole)
+
+                    arts_table.add_row(art.name,
+                                      "|g" + str(art.ap_change) + "|n",
+                                      art.dmg,
+                                      art.acc,
+                                      art.base_stat,
+                                      str(art.effects),
+                                      modified_acc)
+
+                caller.msg(arts_header + arts_table.__str__())
 
 
 # Note: you can never be aiming and feinting at the same time. There's no explicit check that guarantees this,

@@ -1,6 +1,6 @@
 class Attack:
     # TODO: we don't guarantee attack name uniqueness anywhere. This check shouldn't happen here - it should happen in the future command where you're adding attacks to your character
-    def __init__(self, name: str, ap_change: int, dmg: int, acc: int, base_stat="", effects=""):
+    def __init__(self, name: str, ap_change: int, dmg: int, acc: int, base_stat="", effects=[]):
         self.name = name # make case-insensitive
         self.ap_change = ap_change
         self.dmg = dmg
