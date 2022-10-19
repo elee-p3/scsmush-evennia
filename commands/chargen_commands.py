@@ -77,18 +77,21 @@ class CmdSetArt(default_cmds.MuxCommand):
             effects = art_list[3]
             # Split up the effects at the space bar.
             split_effects = effects.split()
-            # Make sure the effects are in title case.
+            # Make sure the effects are in title case, except for EX.
             title_split_effects = []
             for effect in split_effects:
-                title_case_effect = effect.title()
-                title_split_effects.append(title_case_effect)
+                if effect.lower() == "ex":
+                    title_split_effects.append(effect.upper())
+                else:
+                    title_case_effect = effect.title()
+                    title_split_effects.append(title_case_effect)
             # Now, for each effect in the split_effects list, confirm that it is in EFFECTS.
             # If so, modify the art's AP cost based on the data in EFFECTS.
             ex_move = False
             for art_effect in title_split_effects:
                 effect_ok = False
                 for real_effect in EFFECTS:
-                    if art_effect in real_effect.name:
+                    if art_effect.lower() in real_effect.name.lower():
                         effect_ok = True
                         true_ap_change += int(real_effect.ap_change)
                         if real_effect.name == "EX":
