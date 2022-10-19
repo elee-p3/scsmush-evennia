@@ -77,10 +77,15 @@ class CmdSetArt(default_cmds.MuxCommand):
             effects = art_list[3]
             # Split up the effects at the space bar.
             split_effects = effects.split()
+            # Make sure the effects are in title case.
+            title_split_effects = []
+            for effect in split_effects:
+                title_case_effect = effect.title()
+                title_split_effects.append(title_case_effect)
             # Now, for each effect in the split_effects list, confirm that it is in EFFECTS.
             # If so, modify the art's AP cost based on the data in EFFECTS.
             ex_move = False
-            for art_effect in split_effects:
+            for art_effect in title_split_effects:
                 effect_ok = False
                 for real_effect in EFFECTS:
                     if art_effect in real_effect.name:
@@ -93,9 +98,9 @@ class CmdSetArt(default_cmds.MuxCommand):
             # Having confirmed the Art is well-formed, add it to the character's list of Arts.
             # Check if it is regular Art (120 points between Damage/Acc) or EX (140 points).
             if ex_move:
-                new_art = Attack(name, true_ap_change, damage_int, (140 - damage_int), base_stat, split_effects)
+                new_art = Attack(name, true_ap_change, damage_int, (140 - damage_int), base_stat, title_split_effects)
             else:
-                new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat, split_effects)
+                new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat, title_split_effects)
         else:
             new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat)
         caller.db.arts.append(new_art)
