@@ -506,24 +506,12 @@ class CmdEndure(default_cmds.MuxCommand):
             modified_acc += 15
 
         msg = ""
+        final_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
         if modified_acc > random100:
-            # attack_with_effects = check_for_effects(attack)
-            final_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
             caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
             caller.msg("You took {dmg} damage.".format(dmg=final_damage))
-
             msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
-
-            caller.db.lf -= final_damage
-            # Modify EX based on damage taken.
-            # Modify the character's EX based on the damage inflicted.
-            new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
-            caller.db.ex = new_ex
-            # Modify the attacker's EX based on the damage inflicted.
-            new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
-            attacker.db.ex = new_attacker_ex
         else:
-            final_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
             caller.msg("You endure {attack}. Mad Dog is shocked at your tenacity!!!!!".format(attack=attack.name))
             caller.msg("You took {dmg} damage.".format(dmg=final_damage))
             msg = "|y<COMBAT>|n {target} endures {attacker}'s {modifier}{attack}."
@@ -531,6 +519,15 @@ class CmdEndure(default_cmds.MuxCommand):
             # you get to keep whatever endure bonus is higher. But endure bonus is not cumulative. (That's OP.)
             if endure_bonus_calc(final_damage) > caller.db.endure_bonus:
                 caller.db.endure_bonus = endure_bonus_calc(final_damage)
+
+        caller.db.lf -= final_damage
+        # Modify EX based on damage taken.
+        # Modify the character's EX based on the damage inflicted.
+        new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
+        caller.db.ex = new_ex
+        # Modify the attacker's EX based on the damage inflicted.
+        new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
+        attacker.db.ex = new_attacker_ex
 
         if aim_or_feint == AimOrFeint.AIM:
             self.caller.location.msg_contents(msg.format(target=caller.key,
@@ -576,7 +573,6 @@ class CmdInterrupt(default_cmds.MuxCommand):
         split_args = args.split("=")
         incoming_attack_arg = split_args[0]
         outgoing_interrupt_arg = split_args[1].lower()
-        caller.msg(outgoing_interrupt_arg)
 
         # Syntax of the first argument is "interrupt <id>".
         if not incoming_attack_arg.isdigit():
@@ -592,10 +588,8 @@ class CmdInterrupt(default_cmds.MuxCommand):
                 return caller.msg("Your selected interrupt action cannot be found.")
         if outgoing_interrupt_arg in NORMALS:
             interrupt_clean = NORMALS[NORMALS.index(outgoing_interrupt_arg)]  # found action with correct capitalization
-            caller.msg(NORMALS.index(outgoing_interrupt_arg))
         else:
             interrupt_clean = arts[arts.index(outgoing_interrupt_arg)]
-            caller.msg(arts.index(outgoing_interrupt_arg))
         # If the character has insufficient AP or EX to use that move, cancel the interrupt.
         # Otherwise, if EX move, set their EX from 100 to 0.
         total_ap_change = interrupt_clean.ap_change

@@ -91,7 +91,7 @@ class CmdSetArt(default_cmds.MuxCommand):
             for art_effect in title_split_effects:
                 effect_ok = False
                 for real_effect in EFFECTS:
-                    if art_effect.lower() in real_effect.name.lower():
+                    if art_effect.lower() == real_effect.name.lower():
                         effect_ok = True
                         true_ap_change += int(real_effect.ap_change)
                         if real_effect.name == "EX":
