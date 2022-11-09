@@ -177,7 +177,7 @@ class CmdFinger(default_cmds.MuxCommand):
             charDescTable.add_row("{0}".format(char["profile"]))
 
             fingerMsg = ""
-            fingerMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
+            fingerMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"  # top border
 
             header = ""
             alias_list = [x for x in target.aliases.all() if " " not in x]
@@ -185,7 +185,6 @@ class CmdFinger(default_cmds.MuxCommand):
             if alias_list:
                 alias = min(alias_list, key=len).title()
                 header = char["name"] + " (" + alias + ")" + " - " + char["occupation"]
-                self.caller.msg("header is this: {0}".format(header))
             else:
                 header = char["name"] + " - " + char["occupation"]
 
@@ -399,93 +398,178 @@ class CmdSheet(default_cmds.MuxCommand):
         def func(self):
             "implements the actual functionality"
             # TODO: We did this before we knew about the evtable function. This needs to be refactored.
+            client_width = self.client_width()
             char = self.caller.get_abilities()
             arts = self.caller.db.arts
+            charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
+                                            border_bottom_char=" ", width=client_width)
             # name, sex, race, occupation, group, domain, element, origin, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
             # power, knowledge, parry, barrier, speed = self.caller.get_abilities()
             sheetMsg = ""
 
-            sheetMsg += "/\\" + 74 * "_" + "/\\" + "\n"
-            nameBorder = "\\/" + (37 - floor(len(char["name"] + " - " + char["occupation"])/2.0)) * " "
-            nameBorder += char["name"] + " - " + char["occupation"]
-            nameBorder += (76 - len(nameBorder))*" " + "\\/"
+            sheetMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"  # top border
+
+            header = ""
+            alias_list = [x for x in self.caller.aliases.all() if " " not in x]
+            # find all aliases that don't contain spaces (this was to get rid of "An Ivo" or "One Ivo")
+            if alias_list:
+                alias = min(alias_list, key=len).title()
+                header = char["name"] + " (" + alias + ")" + " - " + char["occupation"]
+            else:
+                header = char["name"] + " - " + char["occupation"]
+
+            left_spacing = " " * ((floor(client_width / 2.0) - floor(len(header) / 2.0)) - 2)  # -2 for the \/
+            right_spacing = " " * ((floor(client_width / 2.0) - ceil(len(header) / 2.0)) - 2)  # -2 for the \/
+            nameBorder = "\\/" + left_spacing + header + right_spacing + "\\/"
             sheetMsg += nameBorder + "\n"
-            sheetMsg += "--" + 74 * "-" + "--" + "\n"
 
-            # first row
-            firstRow = "| LF"
-            firstRow += (22 - (len(str(char["lf"])) + len(str(char["maxlf"])) + 1 + len(firstRow))) * " "
-            firstRow += "{0}/{1}".format(char["lf"], char["maxlf"])
-            firstRow = self.padToSecondLabel(firstRow)
-            firstRow += "Power"
-            firstRow = self.padToLastValue(firstRow)
-            firstRow += "{0}".format(char["power"])
-            firstRow = self.padToEnd(firstRow)
-            firstRow += "\n"
-            sheetMsg += firstRow
+            charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
+                                            border_bottom_char=" ", width=client_width, border="table")
+            charInfoTable.add_column()
+            charInfoTable.add_column()
+            charInfoTable.add_column()
+            charInfoTable.add_column()
+            charInfoTable.reformat_column(0, align='l') # resource label
+            charInfoTable.reformat_column(1, align='r') # resource value
+            charInfoTable.reformat_column(2, align='l') # stat label
+            charInfoTable.reformat_column(3, align='l') # stat value
+            charInfoTable.add_row("LF",
+                                  "{0}/{1}  ".format(int(char["lf"]), int(char["maxlf"])),
+                                  "  Power",
+                                  "  {0}".format(char["power"]))
+            charInfoTable.add_row("[future hp vis]",
+                                  "",
+                                  "  Knowledge",
+                                  "  {0}".format(char["knowledge"]))
+            charInfoTable.add_row("AP",
+                                  "{0}/{1}  ".format(int(char["ap"]), int(char["maxap"])),
+                                  "  Parry",
+                                  "  {0}".format(char["parry"]))
+            charInfoTable.add_row("[future hp vis]",
+                                  "",
+                                  "  Barrier",
+                                  "  {0}".format(char["barrier"]))
+            charInfoTable.add_row("EX",
+                                  "{0}%/{1}%  ".format(int(char["ex"]), int(char["maxex"])),
+                                  "  Speed",
+                                  "  {0}".format(char["speed"]))
+            charInfoTable.add_row("[future ex vis]",
+                                  "",
+                                  "",
+                                  "")
 
-            # second row
-            secondRow = "| ["
-            secondRow += (21 - len(secondRow)) * " "
-            secondRow += "]"
-            secondRow = self.padToSecondLabel(secondRow)
-            secondRow += "Knowledge"
-            secondRow = self.padToLastValue(secondRow)
-            secondRow += "{0}".format(char["knowledge"])
-            secondRow = self.padToEnd(secondRow)
-            secondRow += "\n"
-            sheetMsg += secondRow
+            charInfoString = charInfoTable.__str__()
+            sheetMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
+            left_spacing = floor(client_width / 2.0) - 3  # -2 for the borders
+            right_spacing = ceil(client_width / 2.0) - 3  # -2 for the borders
+            sheetMsg += "|" + "=" * left_spacing + "ARTS" + "=" * right_spacing + "|"
 
-            # third row
-            thirdRow = "| AP"
-            thirdRow += (22 - (len(str(char["ap"])) + len(str(char["maxap"])) + 1 + len(thirdRow))) * " "
-            thirdRow += "{0}/{1}".format(char["ap"], char["maxap"])
-            thirdRow = self.padToSecondLabel(thirdRow)
-            thirdRow += "Parry"
-            thirdRow = self.padToLastValue(thirdRow)
-            thirdRow += "{0}".format(char["parry"])
-            thirdRow = self.padToEnd(thirdRow)
-            thirdRow += "\n"
-            sheetMsg += thirdRow
+            if arts:
+                for art in arts:
+                    arts_table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
+                                                 border_left_char="|", border_right_char="|", border_top_char="",
+                                                 border_bottom_char="-", width=client_width)
+                    arts_table.add_row(art.name,
+                                      "|g" + str(art.ap_change) + "|n",
+                                      art.dmg,
+                                      art.acc,
+                                      art.base_stat,
+                                      str(art.effects))
 
-            # fourth row
-            fourthRow = "| ["
-            fourthRow += (21 - len(fourthRow)) * " "
-            fourthRow += "]"
-            fourthRow = self.padToSecondLabel(fourthRow)
-            fourthRow += "Barrier"
-            fourthRow = self.padToLastValue(fourthRow)
-            fourthRow += "{0}".format(char["barrier"])
-            fourthRow = self.padToEnd(fourthRow)
-            fourthRow += "\n"
-            sheetMsg += fourthRow
+                # sheetMsg += arts_table.__str__()
+                arts_string = arts_table.__str__()
+                sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
 
-            # fifth row
-            fifthRow = "| EX"
-            fifthRow += (20 - (len(str(char["ex"])) + len(str(char["maxex"])) + 1 + len(fifthRow))) * " "
-            fifthRow += "{0}%/{1}%".format(char["ex"], char["maxex"])
-            fifthRow = self.padToSecondLabel(fifthRow)
-            fifthRow += "Speed"
-            fifthRow = self.padToLastValue(fifthRow)
-            fifthRow += "{0}".format(char["speed"])
-            fifthRow = self.padToEnd(fifthRow)
-            fifthRow += "\n"
-            sheetMsg += fifthRow
+            sheetMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
+            sheetMsg += "\\/" + (client_width - 4) * " " + "\\/" + "\n"
 
-            # sixth row
-            sixthRow = "| ["
-            sixthRow += (21 - len(sixthRow)) * " "
-            sixthRow += "]"
-            sixthRow = self.padToEnd(sixthRow)
-            sixthRow += "\n"
-            sheetMsg += sixthRow
+            self.caller.msg(sheetMsg)
+            # charInfoTable.add_row("Race: {0}".format(char["race"]), "Domain: {0}".format(char["domain"]))
+            # charInfoTable.add_row("Origin: {0}".format(char["origin"]), "Element: {0}".format(char["element"]))
 
-            # ARTTSSSSS
-            sheetMsg += "|===================================ARTS=====================================|\n"
+            # beginning of old stuff
+            # nameBorder = "\\/" + (37 - floor(len(char["name"] + " - " + char["occupation"])/2.0)) * " "
+            # nameBorder += char["name"] + " - " + char["occupation"]
+            # nameBorder += (76 - len(nameBorder))*" " + "\\/"
+            # sheetMsg += nameBorder + "\n"
+            # sheetMsg += "--" + 74 * "-" + "--" + "\n"
+            #
+            # # first row
+            # firstRow = "| LF"
+            # firstRow += (22 - (len(str(char["lf"])) + len(str(char["maxlf"])) + 1 + len(firstRow))) * " "
+            # firstRow += "{0}/{1}".format(char["lf"], char["maxlf"])
+            # firstRow = self.padToSecondLabel(firstRow)
+            # firstRow += "Power"
+            # firstRow = self.padToLastValue(firstRow)
+            # firstRow += "{0}".format(char["power"])
+            # firstRow = self.padToEnd(firstRow)
+            # firstRow += "\n"
+            # sheetMsg += firstRow
+            #
+            # # second row
+            # secondRow = "| ["
+            # secondRow += (21 - len(secondRow)) * " "
+            # secondRow += "]"
+            # secondRow = self.padToSecondLabel(secondRow)
+            # secondRow += "Knowledge"
+            # secondRow = self.padToLastValue(secondRow)
+            # secondRow += "{0}".format(char["knowledge"])
+            # secondRow = self.padToEnd(secondRow)
+            # secondRow += "\n"
+            # sheetMsg += secondRow
+            #
+            # # third row
+            # thirdRow = "| AP"
+            # thirdRow += (22 - (len(str(char["ap"])) + len(str(char["maxap"])) + 1 + len(thirdRow))) * " "
+            # thirdRow += "{0}/{1}".format(char["ap"], char["maxap"])
+            # thirdRow = self.padToSecondLabel(thirdRow)
+            # thirdRow += "Parry"
+            # thirdRow = self.padToLastValue(thirdRow)
+            # thirdRow += "{0}".format(char["parry"])
+            # thirdRow = self.padToEnd(thirdRow)
+            # thirdRow += "\n"
+            # sheetMsg += thirdRow
+            #
+            # # fourth row
+            # fourthRow = "| ["
+            # fourthRow += (21 - len(fourthRow)) * " "
+            # fourthRow += "]"
+            # fourthRow = self.padToSecondLabel(fourthRow)
+            # fourthRow += "Barrier"
+            # fourthRow = self.padToLastValue(fourthRow)
+            # fourthRow += "{0}".format(char["barrier"])
+            # fourthRow = self.padToEnd(fourthRow)
+            # fourthRow += "\n"
+            # sheetMsg += fourthRow
+            #
+            # # fifth row
+            # fifthRow = "| EX"
+            # fifthRow += (20 - (len(str(char["ex"])) + len(str(char["maxex"])) + 1 + len(fifthRow))) * " "
+            # fifthRow += "{0}%/{1}%".format(char["ex"], char["maxex"])
+            # fifthRow = self.padToSecondLabel(fifthRow)
+            # fifthRow += "Speed"
+            # fifthRow = self.padToLastValue(fifthRow)
+            # fifthRow += "{0}".format(char["speed"])
+            # fifthRow = self.padToEnd(fifthRow)
+            # fifthRow += "\n"
+            # sheetMsg += fifthRow
+            #
+            # # sixth row
+            # sixthRow = "| ["
+            # sixthRow += (21 - len(sixthRow)) * " "
+            # sixthRow += "]"
+            # sixthRow = self.padToEnd(sixthRow)
+            # sixthRow += "\n"
+            # sheetMsg += sixthRow
+            #
+            # # ARTTSSSSS
+            # sheetMsg += "|===================================ARTS=====================================|\n"
+            #
+            # # Bottom border
+            # sheetMsg += "/\\" + 74 * "_" + "/\\" + "\n"
+            # sheetMsg += "\\/" + 74 * " " + "\\/" + "\n"
 
-            # Bottom border
-            sheetMsg += "/\\" + 74 * "_" + "/\\" + "\n"
-            sheetMsg += "\\/" + 74 * " " + "\\/" + "\n"
+            # end of old stuff
 
             self.caller.msg(sheetMsg)
 
