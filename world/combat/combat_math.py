@@ -10,7 +10,8 @@ def damage_calc(attack_dmg, base_stat, parry, barrier):
 
 
 def dodge_calc(attack_acc, speed, sweep_boole, weave_boole, rush_boole):
-    accuracy = int(int(attack_acc) / (speed/100))
+    # accuracy = int(int(attack_acc) / (speed/100))
+    accuracy = 100.0 - (0.475 * (speed - attack_acc))
     # Checking to see if the attack has sweep and improving accuracy/reducing dodge chance if so.
     if sweep_boole:
         accuracy += 10
@@ -20,6 +21,11 @@ def dodge_calc(attack_acc, speed, sweep_boole, weave_boole, rush_boole):
     # Checking to see if the defender is_weaving and reducing accuracy/improving dodge chance if so.
     if weave_boole:
         accuracy -= 10
+    # cap accuracy at 99%
+    if accuracy > 99:
+        accuracy = 99
+    elif accuracy < 1:
+        accuracy = 1
     return accuracy
 
 
@@ -30,7 +36,8 @@ def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole,
     if base_stat == "Knowledge":
         def_stat = barrier
     averaged_def = (def_stat + speed)/2 + 50
-    accuracy = int(int(attack_acc) / (averaged_def/100))
+    # accuracy = int(int(attack_acc) / (averaged_def/100))
+    accuracy = 100.0 - (0.475 * (speed - attack_acc))
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
     if crush_boole:
         accuracy += 10
@@ -41,6 +48,10 @@ def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole,
         accuracy += 5
     # Incorporating block penalty.
     accuracy += block_penalty
+    if accuracy > 99:
+        accuracy = 99
+    elif accuracy < 1:
+        accuracy = 1
     return accuracy
 
 
