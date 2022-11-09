@@ -5,7 +5,8 @@ def damage_calc(attack_dmg, base_stat, parry, barrier):
     if base_stat == "Knowledge":
         def_stat = barrier
     # return int(int(attack_dmg) / (def_stat/100))
-    damage = int(int(attack_dmg) / (def_stat/100))
+    # damage = int(int(attack_dmg) / (def_stat/100))
+    damage = 1.6 * (base_stat - def_stat) + 110
     return damage
 
 
@@ -63,13 +64,18 @@ def endure_chance_calc(attack_acc, base_stat, speed, parry, barrier, brace_boole
     if base_stat == "Knowledge":
         def_stat = barrier
     averaged_def = (def_stat + speed) / 2 + 50
-    accuracy = int(int(attack_acc) / (averaged_def / 100))
+    # accuracy = int(int(attack_acc) / (averaged_def / 100))
+    accuracy = 100.0 - (0.475 * (averaged_def - attack_acc))
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
     if brace_boole:
         accuracy -= 10
     # Checking to see if the defender is_rushing and improving accuracy if so.
     if rush_boole:
         accuracy += 5
+    if accuracy > 99:
+        accuracy = 99
+    elif accuracy < 1:
+        accuracy = 1
     return accuracy
 
 
