@@ -465,10 +465,10 @@ class CmdSheet(default_cmds.MuxCommand):
             sheetMsg += "|" + "=" * left_spacing + "ARTS" + "=" * right_spacing + "|"
 
             if arts:
+                arts_table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
+                                             border_left_char="|", border_right_char="|", border_top_char="",
+                                             border_bottom_char="-", width=client_width)
                 for art in arts:
-                    arts_table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
-                                                 border_left_char="|", border_right_char="|", border_top_char="",
-                                                 border_bottom_char="-", width=client_width)
                     arts_table.add_row(art.name,
                                       "|g" + str(art.ap_change) + "|n",
                                       art.dmg,
