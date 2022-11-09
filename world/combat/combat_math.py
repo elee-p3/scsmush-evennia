@@ -12,7 +12,7 @@ def damage_calc(attack_dmg, base_stat, parry, barrier):
 
 def dodge_calc(attack_acc, speed, sweep_boole, weave_boole, rush_boole):
     # accuracy = int(int(attack_acc) / (speed/100))
-    accuracy = 100.0 - (0.475 * (speed - attack_acc))
+    accuracy = 100.0 - (0.475 * (speed - attack_acc) + 10.0)
     # Checking to see if the attack has sweep and improving accuracy/reducing dodge chance if so.
     if sweep_boole:
         accuracy += 10
@@ -38,7 +38,7 @@ def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole,
         def_stat = barrier
     averaged_def = (def_stat + speed)/2 + 50
     # accuracy = int(int(attack_acc) / (averaged_def/100))
-    accuracy = 100.0 - (0.475 * (speed - attack_acc)) - 15.0
+    accuracy = 100.0 - (0.475 * (speed - attack_acc) + 25.0)
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
     if crush_boole:
         accuracy += 10
