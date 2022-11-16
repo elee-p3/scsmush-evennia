@@ -10,6 +10,31 @@ def damage_calc(attack_dmg, base_stat, parry, barrier):
     return damage
 
 
+def modify_accuracy(action, character):
+    accuracy = action.acc
+    # First, check if this is the attacker's final action, and if so, apply a final action penalty.
+    if hasattr(character.db, "final_action"):
+        if character.db.final_action:
+            accuracy -= 30
+    # Then, check if the character has an endure bonus and, if so, apply it.
+    if character.db.endure_bonus:
+        accuracy += character.db.endure_bonus
+    # Check if the character is rushing and, if so, add 7 to accuracy.
+    if "Rush" in action.effects:
+        accuracy += 7
+    return accuracy
+
+
+def modify_damage(action, character):
+    damage = action.dmg
+    # Modify attack damage based on base stat.
+    if action.base_stat == "Power":
+        damage += character.db.power
+    if action.base_stat == "Knowledge":
+        damage += character.db.knowledge
+    return damage
+
+
 def dodge_calc(attack_acc, speed, sweep_boole, weave_boole, rush_boole):
     # accuracy = int(int(attack_acc) / (speed/100))
     accuracy = 100.0 - (0.475 * (speed - attack_acc) + 10.0)
@@ -38,7 +63,7 @@ def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole,
         def_stat = barrier
     averaged_def = (def_stat + speed)/2 + 50
     # accuracy = int(int(attack_acc) / (averaged_def/100))
-    accuracy = 100.0 - (0.475 * (speed - attack_acc) + 25.0)
+    accuracy = 100.0 - (0.475 * (averaged_def - attack_acc))
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
     if crush_boole:
         accuracy += 10
@@ -93,6 +118,18 @@ def interrupt_chance_calc(incoming_accuracy, outgoing_accuracy, bait_boole, rush
     return interrupt_chance
 
 
+def interrupt_mitigation_calc(unmitigated_incoming_damage, outgoing_damage):
+    # This function mitigates the damage taken by the interrupter on a successful interrupt relative to the Damage
+    # of the interrupting attack. This discourages super-high-Accuracy super-low-Damage interrupts.
+    mitigated_damage = unmitigated_incoming_damage / 2
+    if unmitigated_incoming_damage > outgoing_damage:
+        mitigated_damage *= (unmitigated_incoming_damage / outgoing_damage)
+    # Check to make sure nothing wacky has happened and the incoming attack isn't doing MORE damage.
+    if mitigated_damage > unmitigated_incoming_damage:
+        mitigated_damage = unmitigated_incoming_damage
+    return mitigated_damage
+
+
 def endure_bonus_calc(damage_taken):
     # Calculate the accuracy bonus to your next attack from enduring. Should be capped at around 10 to 15.
     accuracy_bonus = int(damage_taken) / 15
@@ -101,8 +138,17 @@ def endure_bonus_calc(damage_taken):
     return accuracy_bonus
 
 
-def block_damage_calc(base_damage):
-    return base_damage / 2
+def block_damage_calc(base_damage, block_penalty):
+    mitigated_damage = base_damage / 2
+    # Modify the base mitigated damage by the block penalty.
+    # Currently, a doubled percentage increase: e.g., if someone successfully blocks with a 20 block penalty,
+    # first halve the damage, then multiply that by x1.4.
+    if block_penalty > 0:
+        mitigated_damage *= ((block_penalty * 2) / 100 + 1)
+    # Make sure that this can't somehow do more damage than a failed block.
+    if mitigated_damage > base_damage:
+        mitigated_damage = base_damage
+    return mitigated_damage
 
 
 def ex_gain_on_attack(damage_inflicted, current_ex, max_ex):
@@ -183,12 +229,16 @@ def combat_tick(character):
     character.db.is_bracing = False
     character.db.is_baiting = False
     character.db.endure_bonus = 0
-    # Currently, reduce block penalty by 10 per tick.
+    # Currently, reduce block penalty per tick by 10 or a third, whichever is higher.
     if character.db.block_penalty > 0:
-        if character.db.block_penalty - 10 < 0:
+        if (character.db.block_penalty / 3) > 10:
+            block_penalty_reduction = character.db.block_penalty / 3
+        else:
+            block_penalty_reduction = 10
+        if block_penalty_reduction - 10 < 0:
             character.db.block_penalty = 0
         else:
-            character.db.block_penalty -= 10
+            character.db.block_penalty -= block_penalty_reduction
     return character
 
 
@@ -208,19 +258,19 @@ def apply_attacker_effects(attacker, attack):
     return attacker
 
 
-def accrue_block_penalty(character, damage, block_boole, crush_boole):
+def accrue_block_penalty(character, pre_block_damage, block_boole, crush_boole):
     # If the block succeeds, accrue full block penalty. If the block fails, accrue a minor block penalty.
     # Crush makes the block penalty a lot worse if you block and a little worse if you fail to block.
     if block_boole:
         if crush_boole:
-            character.db.block_penalty += (damage / 5)
+            character.db.block_penalty += (pre_block_damage / 5)
         else:
-            character.db.block_penalty += (damage / 15)
+            character.db.block_penalty += (pre_block_damage / 15)
     else:
         if crush_boole:
-            character.db.block_penalty += (damage / 15)
+            character.db.block_penalty += (pre_block_damage / 15)
         else:
-            character.db.block_penalty += (damage / 30)
+            character.db.block_penalty += (pre_block_damage / 30)
     return character.db.block_penalty
 
 
@@ -231,12 +281,3 @@ def final_action_check(character):
         character.msg("You have been reduced to 0 LF or below. Your next action will be your last. Any attacks will"
                       " suffer a penalty to your accuracy.")
     return character
-
-
-def final_action_penalty(character):
-    # Final action currently reduces accuracy by 30.
-    accuracy_mod = 0
-    if hasattr(character.db, "final_action"):
-        if character.db.final_action:
-            accuracy_mod -= 30
-    return accuracy_mod

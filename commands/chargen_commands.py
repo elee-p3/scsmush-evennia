@@ -71,8 +71,8 @@ class CmdSetArt(default_cmds.MuxCommand):
         # Now check that the character does not already have the maximum number of Arts: 10.
         if len(caller.db.arts) == 10:
             return caller.msg("Your character already has the maximum of 10 Arts.")
-        # Set the baseline AP cost for an art at 15.
-        true_ap_change = -15
+        # Set the baseline AP cost for an art at 5.
+        true_ap_change = -5
         if len(art_list) == 4:
             effects = art_list[3]
             # Split up the effects at the space bar.

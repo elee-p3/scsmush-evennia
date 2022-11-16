@@ -6,21 +6,9 @@ from world.combat.combat_math import *
 from world.combat.effects import AimOrFeint
 from evennia.utils import evtable
 from math import floor, ceil
+import copy
 
-def append_to_queue(caller, target, attack, attack_damage, modified_accuracy, attacker, aim_or_feint):
-    # Find the actual attack object using the input attack string
-    # TODO: the caller isn't used yet, but in the future we might modify attacks by the current character's equipment/stats
-    attack_object = None
-    for normal in NORMALS:
-        if attack == normal:
-            attack_object = normal
-            break
-    if caller.db.arts:
-        for art in caller.db.arts:
-            if attack == art:
-                attack_object = art
-                break
-
+def append_to_queue(target, attack, attacker, aim_or_feint):
     # append a tuple per attack: (id, attack)
     # theoretically, you should always resolve all attacks in your queue before having more people attack you
     # this code should always just tack on at the end of the list even if that doesn't happen
@@ -28,8 +16,9 @@ def append_to_queue(caller, target, attack, attack_damage, modified_accuracy, at
         last_id = 0
     else:
         last_id = max((attack["id"] for attack in target.db.queue))
-    target.db.queue.append({"id":last_id+1, "attack":attack_object, "modified_damage":attack_damage, "modified_accuracy":
-        modified_accuracy, "attacker":attacker, "aim_or_feint":aim_or_feint})
+    # target.db.queue.append({"id":last_id+1, "attack":attack_object, "modified_damage":attack_damage, "modified_accuracy":
+    #     modified_accuracy, "attacker":attacker, "aim_or_feint":aim_or_feint})
+    target.db.queue.append({"id":last_id+1, "attack":attack, "attacker":attacker, "aim_or_feint":aim_or_feint})
 
 class CmdAttack(default_cmds.MuxCommand):
     """
@@ -100,24 +89,27 @@ class CmdAttack(default_cmds.MuxCommand):
         if target_object.db.queue is None:
             target_object.db.queue = []
 
-        # Modify the attack damage based on the relevant stat.
-        modified_damage = 0
-        modified_damage += action_clean.dmg
-        if action_clean.base_stat == "Power":
-            modified_damage += caller.db.power
-        if action_clean.base_stat == "Knowledge":
-            modified_damage += caller.db.knowledge
+        # # Modify the attack damage based on the relevant stat.
+        # modified_damage = 0
+        # modified_damage += action_clean.dmg
+        # if action_clean.base_stat == "Power":
+        #     modified_damage += caller.db.power
+        # if action_clean.base_stat == "Knowledge":
+        #     modified_damage += caller.db.knowledge
 
-        # Modify the attack accuracy if it is the attacker's final action.
-        modified_accuracy = 0
-        modified_accuracy += action_clean.acc
-        modified_accuracy += final_action_penalty(caller)
-        # Also modify the attack accuracy if the attacker has an endure bonus from their reaction.
-        if caller.db.endure_bonus:
-            modified_accuracy += caller.db.endure_bonus
-        # Modify the attack accuracy if the attack has the Rush effect. Apply_attacker_effects will apply is_rushing.
-        if "Rush" in action_clean.effects:
-            modified_accuracy += 7
+        # # Modify the attack accuracy if it is the attacker's final action.
+        # modified_accuracy = 0
+        # modified_accuracy += action_clean.acc
+        # modified_accuracy += final_action_penalty(caller)
+        # # Also modify the attack accuracy if the attacker has an endure bonus from their reaction.
+        # if caller.db.endure_bonus:
+        #     modified_accuracy += caller.db.endure_bonus
+        # # Modify the attack accuracy if the attack has the Rush effect. Apply_attacker_effects will apply is_rushing.
+        # if "Rush" in action_clean.effects:
+        #     modified_accuracy += 7
+        action_clean = copy.copy(action_clean)
+        action_clean.dmg = modify_damage(action_clean, caller)
+        action_clean.acc = modify_accuracy(action_clean, caller)
 
         # If the character has insufficient AP or EX to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
@@ -142,11 +134,11 @@ class CmdAttack(default_cmds.MuxCommand):
 
         # Append the attack to the target's queue and announce the attack.
         if caller.db.is_aiming:
-            append_to_queue(caller, target_object, action_clean, modified_damage, modified_accuracy, caller, AimOrFeint.AIM)
+            append_to_queue(target_object, action_clean, caller, AimOrFeint.AIM)
         elif caller.db.is_feinting:
-            append_to_queue(caller, target_object, action_clean, modified_damage, modified_accuracy, caller, AimOrFeint.FEINT)
+            append_to_queue(target_object, action_clean, caller, AimOrFeint.FEINT)
         else:
-            append_to_queue(caller, target_object, action_clean, modified_damage, modified_accuracy, caller, AimOrFeint.NEUTRAL)
+            append_to_queue(target_object, action_clean, caller, AimOrFeint.NEUTRAL)
 
         caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
         caller.location.msg_contents("|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
@@ -190,7 +182,7 @@ class CmdQueue(default_cmds.MuxCommand):
             for atk_obj in caller.db.queue:
                 attack = atk_obj["attack"]
                 id = atk_obj["id"]
-                accuracy = atk_obj["modified_accuracy"]
+                accuracy = attack.acc
                 weave_boole = False
                 brace_boole = False
                 crush_boole = False
@@ -256,8 +248,8 @@ class CmdDodge(default_cmds.MuxCommand):
         # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
         attack = action["attack"]
-        attack_damage = action["modified_damage"]
-        accuracy = action["modified_accuracy"]
+        attack_damage = attack.dmg
+        accuracy = attack.acc
         attacker = action["attacker"]
         aim_or_feint = action["aim_or_feint"]
         random100 = random.randint(1, 100)
@@ -275,7 +267,6 @@ class CmdDodge(default_cmds.MuxCommand):
             rush_boole = True
         modified_acc = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
 
-        caller.msg(aim_or_feint)
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         if aim_or_feint == AimOrFeint.AIM:
             modified_acc += 15
@@ -367,8 +358,8 @@ class CmdBlock(default_cmds.MuxCommand):
         # The attack is a string in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
         attack = action["attack"]
-        attack_damage = action["modified_damage"]
-        accuracy = action["modified_accuracy"]
+        attack_damage = attack.dmg
+        accuracy = attack.acc
         attacker = action["attacker"]
         aim_or_feint = action["aim_or_feint"]
         random100 = random.randint(1, 100)
@@ -417,7 +408,7 @@ class CmdBlock(default_cmds.MuxCommand):
             new_block_penalty = accrue_block_penalty(caller, modified_damage, block_boole, crush_boole)
             caller.db.block_penalty = new_block_penalty
         else:
-            final_damage = block_damage_calc(modified_damage)
+            final_damage = block_damage_calc(modified_damage, block_penalty)
             caller.msg("You have successfully blocked. Good for you.")
             caller.msg("You took {dmg} damage.".format(dmg=final_damage))
             caller.db.lf -= final_damage
@@ -484,8 +475,8 @@ class CmdEndure(default_cmds.MuxCommand):
         # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
         attack = action["attack"]
-        attack_damage = action["modified_damage"]
-        accuracy = action["modified_accuracy"]
+        attack_damage = attack.dmg
+        accuracy = attack.acc
         attacker = action["attacker"]
         aim_or_feint = action["aim_or_feint"]
         random100 = random.randint(1, 100)
@@ -604,8 +595,8 @@ class CmdInterrupt(default_cmds.MuxCommand):
         # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
         incoming_action = caller.db.queue[id_list.index(int(incoming_attack_arg))]
         incoming_attack = incoming_action["attack"]
-        incoming_damage = incoming_action["modified_damage"]
-        incoming_accuracy = incoming_action["modified_accuracy"]
+        incoming_damage = incoming_attack.dmg
+        incoming_accuracy = incoming_attack.acc
         attacker = incoming_action["attacker"]
         aim_or_feint = incoming_action["aim_or_feint"]
         outgoing_interrupt = interrupt_clean
@@ -658,30 +649,27 @@ class CmdInterrupt(default_cmds.MuxCommand):
             attacker.db.ex = new_attacker_ex
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
-            modified_int_damage = 0
-            modified_int_damage += outgoing_damage
-            if interrupt_clean.base_stat == "Power":
-                modified_int_damage += caller.db.power
-            if interrupt_clean.base_stat == "Knowledge":
-                modified_int_damage += caller.db.knowledge
-            # If the interrupt succeeds, halve incoming damage for now.
-            final_incoming_damage = damage_calc(incoming_damage, incoming_attack.base_stat, caller.db.parry, caller.db.barrier) / 2
+            modified_int_damage = modify_damage(outgoing_interrupt, caller)
             final_outgoing_damage = damage_calc(modified_int_damage, outgoing_interrupt.base_stat, attacker.db.parry, attacker.db.barrier)
+            # Determine how much damage the incoming attack would do if unmitigated.
+            unmitigated_incoming_damage = damage_calc(incoming_damage, incoming_attack.base_stat, caller.db.parry, caller.db.barrier)
+            # Determine how the Damage of the outgoing interrupt mitigates incoming Damage.
+            mitigated_damage = interrupt_mitigation_calc(unmitigated_incoming_damage, final_outgoing_damage)
             caller.msg("You interrupt {attack} with {interrupt}.".format(attack=incoming_attack.name, interrupt=outgoing_interrupt.name))
-            caller.msg("You took {dmg} damage.".format(dmg=final_incoming_damage))
+            caller.msg("You took {dmg} damage.".format(dmg=mitigated_damage))
             msg = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}."
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
-            caller.db.lf -= final_incoming_damage
+            caller.db.lf -= mitigated_damage
             attacker.db.lf -= final_outgoing_damage
             attacker.msg("You took {dmg} damage.".format(dmg=final_outgoing_damage))
             # Modify EX based on damage taken.
             # Modify the character's EX based on the damage dealt AND inflicted.
-            new_ex_first = ex_gain_on_defense(final_incoming_damage, caller.db.ex, caller.db.maxex)
+            new_ex_first = ex_gain_on_defense(mitigated_damage, caller.db.ex, caller.db.maxex)
             caller.db.ex = new_ex_first
             new_ex_second = ex_gain_on_attack(final_outgoing_damage, caller.db.ex, caller.db.maxex)
             caller.db.ex = new_ex_second
             # Modify the attacker's EX based on the damage dealt AND inflicted.
-            new_attacker_ex_first = ex_gain_on_attack(final_incoming_damage, attacker.db.ex, attacker.db.maxex)
+            new_attacker_ex_first = ex_gain_on_attack(mitigated_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex_first
             new_attacker_ex_second = ex_gain_on_defense(final_outgoing_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex_second
