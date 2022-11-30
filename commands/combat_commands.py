@@ -885,13 +885,8 @@ class CmdCheck(default_cmds.MuxCommand):
                 # TODO: refactor CmdInterrupt and figure out how to move this all into a separate function
                 incoming_action = caller.db.queue[id_list.index(attack_id)]
                 incoming_attack = incoming_action["attack"]
-                incoming_damage = incoming_action["modified_damage"]
-                incoming_accuracy = incoming_action["modified_accuracy"]
-                attacker = incoming_action["attacker"]
-                aim_or_feint = incoming_action["aim_or_feint"]
-                outgoing_damage = normal.dmg
+                incoming_accuracy = incoming_attack.acc
                 outgoing_accuracy = normal.acc
-                random100 = random.randint(1, 100)
                 bait_boole = False
                 rush_boole = False
                 incoming_priority_boole = False
@@ -929,7 +924,7 @@ class CmdCheck(default_cmds.MuxCommand):
                     # this code block is copied from CmdInterrupt
                     incoming_action = caller.db.queue[id_list.index(attack_id)]
                     incoming_attack = incoming_action["attack"]
-                    incoming_accuracy = incoming_action["modified_accuracy"]
+                    incoming_accuracy = incoming_attack.acc
                     outgoing_accuracy = art.acc
                     bait_boole = False
                     rush_boole = False
