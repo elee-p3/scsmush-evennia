@@ -821,7 +821,7 @@ class CmdCheck(default_cmds.MuxCommand):
                 for atk_obj in caller.db.queue:
                     attack = atk_obj["attack"]
                     id = atk_obj["id"]
-                    accuracy = atk_obj["modified_accuracy"]
+                    accuracy = attack.acc
                     weave_boole = False
                     brace_boole = False
                     crush_boole = False
