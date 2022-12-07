@@ -49,7 +49,7 @@ class CmdAttack(default_cmds.MuxCommand):
         arts = caller.db.arts
 
         if len(args) == 0:
-            return caller.msg("You need to specify a target and art, dumb-dumb. See `help attack` for syntax.")
+            return caller.msg("You need to specify a target and action, schmoo. See `help attack` for syntax.")
 
         split_args = args.split('=')
 
