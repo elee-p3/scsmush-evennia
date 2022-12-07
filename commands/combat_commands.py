@@ -648,6 +648,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             caller.db.lf -= mitigated_damage
             attacker.db.lf -= final_outgoing_damage
             attacker.msg("You took {dmg} damage.".format(dmg=final_outgoing_damage))
+            attacker = final_action_check(attacker)
             # Modify EX based on damage taken.
             # Modify the character's EX based on the damage dealt AND inflicted.
             new_ex_first = ex_gain_on_defense(mitigated_damage, caller.db.ex, caller.db.maxex)
