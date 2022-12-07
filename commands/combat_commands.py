@@ -24,8 +24,15 @@ class CmdAttack(default_cmds.MuxCommand):
     """
         Attack! Kill! Destroy!!!
 
+        Use the attack command to...attack an opponent during combat. Obvi.
+
+        'target' must be the name of another character to receive the attack.
+
+        'action' must be the name of the art your character will use to perform the attack.
+        This art must be among those possessed by your character.
+
         Usage:
-          +attack
+          +attack target=action
 
     """
 
@@ -40,7 +47,15 @@ class CmdAttack(default_cmds.MuxCommand):
         location = caller.location
         args = self.args
         arts = caller.db.arts
+
+        if len(args) == 0:
+            return caller.msg("You need to specify a target and art, dumb-dumb. See `help attack` for syntax.")
+
         split_args = args.split('=')
+
+        if len(split_args) != 2:
+            return caller.msg("Unrecognized command syntax. See `help attack`.")
+
         target = split_args[0].lower() # make everything case-insensitive
         action = split_args[1].lower()
 
