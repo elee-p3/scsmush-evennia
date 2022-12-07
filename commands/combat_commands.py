@@ -141,8 +141,10 @@ class CmdAttack(default_cmds.MuxCommand):
             append_to_queue(target_object, action_clean, caller, AimOrFeint.NEUTRAL)
 
         caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
-        caller.location.msg_contents("|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
-            attacker=caller.key, target=target_object, action=action_clean))
+        combat_string = "|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
+            attacker=caller.key, target=target_object, action=action_clean)
+        caller.location.msg_contents(combat_string)
+        combat_log_entry(caller, combat_string)
 
         caller.db.is_aiming = False
         caller.db.is_feinting = False
@@ -151,7 +153,9 @@ class CmdAttack(default_cmds.MuxCommand):
             caller.db.final_action = False
             caller.db.KOed = True
             caller.msg("You have taken your final action and can no longer fight.")
-            caller.location.msg_contents("|y<COMBAT>|n {0} can no longer fight.".format(caller.name))
+            combat_string = "|y<COMBAT>|n {0} can no longer fight.".format(caller.name)
+            caller.location.msg_contents(combat_string)
+            combat_log_entry(caller, combat_string)
 
 class CmdQueue(default_cmds.MuxCommand):
     """
@@ -306,24 +310,20 @@ class CmdDodge(default_cmds.MuxCommand):
             msg = "|y<COMBAT>|n {target} has dodged {attacker}'s {modifier}{attack}."
 
         if aim_or_feint == AimOrFeint.AIM:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="Aimed ",
-                                                         attack=attack.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Aimed ", attack=attack.name)
         elif aim_or_feint == AimOrFeint.FEINT:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="Feinting ",
-                                                         attack=attack.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Feinting ", attack=attack.name)
         else:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="",
-                                                         attack=attack.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="", attack=attack.name)
+        caller.location.msg_contents(combat_string)
+        combat_log_entry(caller, combat_string)
         # To avoid overcomplicating the above messaging code, I'm adding the "glancing blow"
         # location message as an additional separate string.
         if is_glancing_blow:
-            self.caller.location.msg_contents("|y<COMBAT>|n ** Glancing Blow **")
+            # self.caller.location.msg_contents("|y<COMBAT>|n ** Glancing Blow **")
+            combat_string = "|y<COMBAT>|n ** Glancing Blow **"
+            caller.location.msg_contents(combat_string)
+            combat_log_entry(caller, combat_string)
         # Checking after the combat location messages if the attack has put the defender at 0 LF or below.
         caller = final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
@@ -426,20 +426,13 @@ class CmdBlock(default_cmds.MuxCommand):
             new_block_penalty = accrue_block_penalty(caller, modified_damage, block_boole, crush_boole)
             caller.db.block_penalty = new_block_penalty
         if aim_or_feint == AimOrFeint.AIM:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="Aimed ",
-                                                         attack=attack.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Aimed ", attack=attack.name)
         elif aim_or_feint == AimOrFeint.FEINT:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="Feinting ",
-                                                         attack=attack.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Feinting ", attack=attack.name)
         else:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="",
-                                                         attack=attack.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="", attack=attack.name)
+        caller.location.msg_contents(combat_string)
+        combat_log_entry(caller, combat_string)
         # Checking after the combat location message if the attack has put the defender at 0 LF or below.
         caller = final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
@@ -521,20 +514,13 @@ class CmdEndure(default_cmds.MuxCommand):
         attacker.db.ex = new_attacker_ex
 
         if aim_or_feint == AimOrFeint.AIM:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="Aimed ",
-                                                         attack=attack.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Aimed ", attack=attack.name)
         elif aim_or_feint == AimOrFeint.FEINT:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="Feinting ",
-                                                         attack=attack.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Feinting ", attack=attack.name)
         else:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="",
-                                                         attack=attack.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="", attack=attack.name)
+        caller.location.msg_contents(combat_string)
+        combat_log_entry(caller, combat_string)
         # Checking after the combat location messages if the attack has put the defender at 0 LF or below.
         caller = final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
@@ -675,28 +661,23 @@ class CmdInterrupt(default_cmds.MuxCommand):
             attacker.db.ex = new_attacker_ex_second
 
         if aim_or_feint == AimOrFeint.AIM:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="Aimed ",
-                                                         attack=incoming_attack.name,
-                                                         interrupt=outgoing_interrupt.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Aimed ",
+                                       attack=incoming_attack.name, interrupt=outgoing_interrupt.name)
         elif aim_or_feint == AimOrFeint.FEINT:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="Feinting ",
-                                                         attack=incoming_attack.name,
-                                                         interrupt=outgoing_interrupt.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Feinting ",
+                                       attack=incoming_attack.name, interrupt=outgoing_interrupt.name)
         else:
-            self.caller.location.msg_contents(msg.format(target=caller.key,
-                                                         attacker=attacker.key,
-                                                         modifier="",
-                                                         attack=incoming_attack.name,
-                                                         interrupt=outgoing_interrupt.name))
+            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="",
+                                        attack=incoming_attack.name, interrupt=outgoing_interrupt.name)
+        caller.location.msg_contents(combat_string)
+        combat_log_entry(caller, combat_string)
         # If interrupting puts you at 0 LF or below, instead of the usual final action/KO check, combine them.
         if caller.db.lf <= 0:
             caller.db.KOed = True
             caller.msg("You have taken your final action and can no longer fight.")
-            caller.location.msg_contents("|y<COMBAT>|n {0} can no longer fight.".format(caller.name))
+            combat_string = "|y<COMBAT>|n {0} can no longer fight.".format(caller.name)
+            caller.location.msg_contents(combat_string)
+            combat_log_entry(caller, combat_string)
         # If the defender survives the interrupt, do a combat tick to clear status, as with +attack and +pass.
         else:
             combat_tick(caller)
@@ -1063,10 +1044,14 @@ class CmdPass(default_cmds.MuxCommand):
         if caller.db.KOed:
             return caller.msg("Your character is KOed and cannot act!")
         combat_tick(caller)
-        caller.location.msg_contents("|y<COMBAT>|n {0} takes no action.".format(caller.name))
+        combat_string = "|y<COMBAT>|n {0} takes no action.".format(caller.name)
+        caller.location.msg_contents(combat_string)
+        combat_log_entry(caller, combat_string)
         # If this was the attacker's final action, they are now KOed.
         if caller.db.final_action:
             caller.db.final_action = False
             caller.db.KOed = True
             caller.msg("You have taken your final action and can no longer fight.")
-            caller.location.msg_contents("|y<COMBAT>|n {0} can no longer fight.".format(caller.name))
+            combat_string = "|y<COMBAT>|n {0} can no longer fight.".format(caller.name)
+            caller.location.msg_contents(combat_string)
+            combat_log_entry(caller, combat_string)

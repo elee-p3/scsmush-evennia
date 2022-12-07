@@ -100,11 +100,13 @@ class LogEntry(models.Model):
         SAY = 2
         POSE = 3
         DICE = 4
+        COMBAT = 5
         TYPE_CHOICES = (
             (EMIT, 'Emit'),
             (SAY, 'Say'),
             (POSE, 'Pose'),
             (DICE, 'Dice'),
+            (COMBAT, 'Combat')
         )
 
     # The type of operation captured in this log entry (see EntryType).

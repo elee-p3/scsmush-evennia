@@ -39,7 +39,6 @@ WEBSERVER_PORTS = [(80, 4005)]
 INSTALLED_APPS += [
     "django.contrib.humanize",
     "world.msgs",
-    "world.events",
     "world.scenes",
     "world.character",
     "web.template_overrides"

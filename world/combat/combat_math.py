@@ -1,3 +1,6 @@
+from world.scenes.models import Scene, LogEntry
+from django.utils.html import escape
+
 def damage_calc(attack_dmg, base_stat, parry, barrier):
     def_stat = 0
     if base_stat == "Power":
@@ -281,3 +284,11 @@ def final_action_check(character):
         character.msg("You have been reduced to 0 LF or below. Your next action will be your last. Any attacks will"
                       " suffer a penalty to your accuracy.")
     return character
+
+
+def combat_log_entry(caller, logstring):
+    # This function is called when adding "<COMBAT>" messages to the autologger, so that people reading logs of combat
+    # scenes can contextualize the RP with the blow-by-blow record of fights.
+    if caller.location.db.active_event:
+        scene = Scene.objects.get(pk=caller.location.db.event_id)
+        scene.addLogEntry(LogEntry.EntryType.COMBAT, escape(logstring), caller)
