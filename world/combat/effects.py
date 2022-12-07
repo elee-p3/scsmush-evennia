@@ -27,7 +27,7 @@ sweep = Effect("Sweep", -10, "SWP")
 # 1) Lower opponent's dodge chance. 2) Increase chance of Glancing Blow (partial damage) if dodged.
 priority = Effect("Priority", -15, "PRI")
 # 1) Lower opponent's interrupt chance. 2) Increase interrupt chance if used as an interrupt.
-ex_move = Effect("EX", 15, "EX")
+ex_move = Effect("EX", 5, "EX")
 # An EX attack costs 0 AP but 100% EX.
 rush = Effect("Rush", -5, "RSH")
 # 1) Increase accuracy if not used as interrupt. 2) Decrease all reaction chances until next action.

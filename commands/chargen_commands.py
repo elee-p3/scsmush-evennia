@@ -7,6 +7,7 @@ class CmdSetArt(default_cmds.MuxCommand):
         A character generation command that adds an Art to or
         edits an Art on your character's list of Arts. Specify
         its name, Damage, Base Stat (Power or Knowledge), and Effects.
+        Damage must be an integer between 1 and 100.
 
         Name, Damage, Base Stat, and Effects should be separated by
         commas. Different Effects should be separated by spaces.
@@ -53,7 +54,7 @@ class CmdSetArt(default_cmds.MuxCommand):
             return caller.msg("Error: the name of your Art must be a string.")
         damage = art_list[1]
         damage_int = int(damage)
-        if damage_int not in range(0, 100):
+        if damage_int not in range(0, 101):
             return caller.msg("Error: your damage value must be an integer between 0 and 100.")
         base_stat = art_list[2]
         # Checking that the base stat is either Power or Knowledge.
