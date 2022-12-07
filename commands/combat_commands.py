@@ -837,6 +837,21 @@ class CmdCheck(default_cmds.MuxCommand):
                     endure_pct = 100 - modified_acc_for_endure
                     caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.base_stat,
                                                                                    dodge_pct, block_pct, endure_pct))
+            # The code above is just Queue again. Now we'll display status effects.
+            if caller.db.block_penalty > 0:
+                caller.msg("Your current block penalty is {0}%.".format(ceil(caller.db.block_penalty)))
+            if caller.db.endure_bonus > 0:
+                caller.msg("Your current endure bonus to accuracy is {0}%.".format(caller.db.endure_bonus))
+            if caller.db.final_action:
+                caller.msg("You have been reduced below 0 LF. Your next action will be your last and your accuracy is lowered.")
+            if caller.db.is_weaving:
+                caller.msg("You are currently weaving, increasing your chance to dodge until your next action.")
+            if caller.db.is_bracing:
+                caller.msg("You are currently bracing, increasing your chance to block until your next action.")
+            if caller.db.is_baiting:
+                caller.msg("You are currently baiting, increasing your chance to interrupt until your next action.")
+            if caller.db.is_rushing:
+                caller.msg("You are currently rushing, decreasing your reaction chances until your next action.")
         else:
             # Confirm that the argument is just an integer (the incoming attack ID).
             if not args.isnumeric():
