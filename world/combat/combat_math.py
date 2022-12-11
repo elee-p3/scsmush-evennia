@@ -8,6 +8,7 @@ def damage_calc(attack_dmg, attacker_stat, base_stat, parry, barrier):
     if base_stat == "Knowledge":
         def_stat = barrier
     # Now magnify or mitigate the stat multiplier depending on how different they are.
+    # This works OK, but is a placeholder for a more complex curve that I want to implement eventually.
     defender_advantage = def_stat - attacker_stat
     stat_mitigation = def_stat * (-0.00188 * defender_advantage + 1.05)
     damage = 1.85 * attack_dmg - stat_mitigation
@@ -38,24 +39,25 @@ def modify_damage(action, character):
         base_stat = character.db.power
     if action.base_stat == "Knowledge":
         base_stat = character.db.knowledge
-    total_damage = damage + base_stat
     # The following conditionals increase the significance of the attack's Damage value on damage dealt.
-    if damage <= 10:
-        total_damage *= .75
-    elif damage <= 20:
-        total_damage *= .825
-    elif damage <= 30:
-        total_damage *= .9
-    elif damage <= 40:
-        total_damage *= .975
-    elif damage >= 60:
-        total_damage *= 1.025
-    elif damage >= 70:
-        total_damage *= 1.1
-    elif damage >= 80:
-        total_damage *= 1.175
-    elif damage >= 90:
-        total_damage *= 1.25
+    # if damage <= 10:
+    #     total_damage *= .75
+    # elif damage <= 20:
+    #     total_damage *= .825
+    # elif damage <= 30:
+    #     total_damage *= .9
+    # elif damage <= 40:
+    #     total_damage *= .975
+    # elif damage >= 60:
+    #     total_damage *= 1.025
+    # elif damage >= 70:
+    #     total_damage *= 1.1
+    # elif damage >= 80:
+    #     total_damage *= 1.175
+    # elif damage >= 90:
+    #     total_damage *= 1.25
+    damage_multiplier = (0.00583 * damage) + 0.708
+    total_damage = (damage + base_stat) * damage_multiplier
     return total_damage
 
 
