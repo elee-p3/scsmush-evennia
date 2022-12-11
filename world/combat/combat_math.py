@@ -1,15 +1,18 @@
 from world.scenes.models import Scene, LogEntry
 from django.utils.html import escape
 
-def damage_calc(attack_dmg, base_stat, parry, barrier):
+def damage_calc(attack_dmg, attacker_stat, base_stat, parry, barrier):
     def_stat = 0
     if base_stat == "Power":
         def_stat = parry
     if base_stat == "Knowledge":
         def_stat = barrier
-    # return int(int(attack_dmg) / (def_stat/100))
-    # damage = int(int(attack_dmg) / (def_stat/100))
-    damage = 1.6 * (attack_dmg - def_stat) + 110
+    # Now magnify or mitigate the stat multiplier depending on how different they are.
+    defender_advantage = def_stat - attacker_stat
+    stat_mitigation = def_stat * (-0.00188 * defender_advantage + 1.05)
+    damage = 1.85 * attack_dmg - stat_mitigation
+    if damage < 0:
+        damage = 0
     return damage
 
 
@@ -32,15 +35,40 @@ def modify_damage(action, character):
     damage = action.dmg
     # Modify attack damage based on base stat.
     if action.base_stat == "Power":
-        damage += character.db.power
+        base_stat = character.db.power
     if action.base_stat == "Knowledge":
-        damage += character.db.knowledge
-    return damage
+        base_stat = character.db.knowledge
+    total_damage = damage + base_stat
+    # The following conditionals increase the significance of the attack's Damage value on damage dealt.
+    if damage <= 10:
+        total_damage *= .75
+    elif damage <= 20:
+        total_damage *= .825
+    elif damage <= 30:
+        total_damage *= .9
+    elif damage <= 40:
+        total_damage *= .975
+    elif damage >= 60:
+        total_damage *= 1.025
+    elif damage >= 70:
+        total_damage *= 1.1
+    elif damage >= 80:
+        total_damage *= 1.175
+    elif damage >= 90:
+        total_damage *= 1.25
+    return total_damage
+
+
+def modify_speed(speed):
+    # A function to nest within the reaction functions to soften the effects of low and high Speed.
+    speed_multiplier = speed * -0.00221 + 1.25
+    effective_speed = speed * speed_multiplier
+    return effective_speed
 
 
 def dodge_calc(attack_acc, speed, sweep_boole, weave_boole, rush_boole):
     # accuracy = int(int(attack_acc) / (speed/100))
-    accuracy = 100.0 - (0.475 * (speed - attack_acc) + 10.0)
+    accuracy = 100.0 - (0.475 * (modify_speed(speed) - attack_acc) + 5)
     # Checking to see if the attack has sweep and improving accuracy/reducing dodge chance if so.
     if sweep_boole:
         accuracy += 10
@@ -64,7 +92,7 @@ def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole,
         def_stat = parry
     if base_stat == "Knowledge":
         def_stat = barrier
-    averaged_def = (def_stat + speed)/2 + 50
+    averaged_def = modify_speed(speed) + def_stat*.5
     # accuracy = int(int(attack_acc) / (averaged_def/100))
     accuracy = 100.0 - (0.475 * (averaged_def - attack_acc))
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
@@ -91,7 +119,7 @@ def endure_chance_calc(attack_acc, base_stat, speed, parry, barrier, brace_boole
         def_stat = parry
     if base_stat == "Knowledge":
         def_stat = barrier
-    averaged_def = (def_stat + speed) / 2 + 50
+    averaged_def = modify_speed(speed) + def_stat*.5
     # accuracy = int(int(attack_acc) / (averaged_def / 100))
     accuracy = 100.0 - (0.475 * (averaged_def - attack_acc))
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
@@ -232,13 +260,13 @@ def combat_tick(character):
     character.db.is_bracing = False
     character.db.is_baiting = False
     character.db.endure_bonus = 0
-    # Currently, reduce block penalty per tick by 10 or a third, whichever is higher.
+    # Currently, reduce block penalty per tick by 7 or a third, whichever is higher.
     if character.db.block_penalty > 0:
-        if (character.db.block_penalty / 3) > 10:
+        if (character.db.block_penalty / 3) > 7:
             block_penalty_reduction = character.db.block_penalty / 3
         else:
-            block_penalty_reduction = 10
-        if block_penalty_reduction - 10 < 0:
+            block_penalty_reduction = 7
+        if block_penalty_reduction - 7 < 0:
             character.db.block_penalty = 0
         else:
             character.db.block_penalty -= block_penalty_reduction
@@ -268,7 +296,7 @@ def accrue_block_penalty(character, pre_block_damage, block_boole, crush_boole):
         if crush_boole:
             character.db.block_penalty += (pre_block_damage / 5)
         else:
-            character.db.block_penalty += (pre_block_damage / 15)
+            character.db.block_penalty += (pre_block_damage / 10)
     else:
         if crush_boole:
             character.db.block_penalty += (pre_block_damage / 15)
@@ -292,3 +320,13 @@ def combat_log_entry(caller, logstring):
     if caller.location.db.active_event:
         scene = Scene.objects.get(pk=caller.location.db.event_id)
         scene.addLogEntry(LogEntry.EntryType.COMBAT, escape(logstring), caller)
+
+
+def find_attacker_stat(attacker, base_stat):
+    # Use the base stat of the attack to pull the attacker's corresponding stat value.
+    attacker_stat = 0
+    if base_stat == "Power":
+        attacker_stat += attacker.db.power
+    if base_stat == "Knowledge":
+        attacker_stat += attacker.db.knowledge
+    return attacker_stat

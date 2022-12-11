@@ -234,12 +234,13 @@ class CmdQueue(default_cmds.MuxCommand):
                                                              caller.db.barrier, brace_boole, rush_boole)
                 endure_pct = 100 - modified_acc_for_endure
                 caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.base_stat,
-                                                                               dodge_pct, block_pct, endure_pct))
+                                                                               round(dodge_pct), round(block_pct),
+                                                                               round(endure_pct)))
 
 
 class CmdDodge(default_cmds.MuxCommand):
     """
-        Avoid Mad Dog. Though you cannot.
+        A combat reaction. Attempt to dodge an attack, fully negating its damage.
 
         Usage:
           +dodge <queue id>
@@ -295,6 +296,7 @@ class CmdDodge(default_cmds.MuxCommand):
 
         msg = ""
         is_glancing_blow = False
+        attacker_stat = find_attacker_stat(attacker, attack.base_stat)
         if modified_acc > random100:
             # Since the attack has hit, check for glancing blow.
             attack_with_effects = check_for_effects(attack)
@@ -302,13 +304,13 @@ class CmdDodge(default_cmds.MuxCommand):
             is_glancing_blow = glancing_blow_calc(random100, modified_acc, sweep_boolean)
             if is_glancing_blow:
                 # For now, halving the damage of glancing blows.
-                final_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier) / 2
-                caller.msg("You have been glanced by {attack}! Mad... Mad Dog?".format(attack=attack.name))
-                caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+                final_damage = damage_calc(attack_damage, attacker_stat, attack.base_stat, caller.db.parry, caller.db.barrier) / 2
+                caller.msg("You have been glanced by {attack}.".format(attack=attack.name))
+                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
             else:
-                final_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
-                caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
-                caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+                final_damage = damage_calc(attack_damage, attacker_stat, attack.base_stat, caller.db.parry, caller.db.barrier)
+                caller.msg("You have been hit by {attack}.".format(attack=attack.name))
+                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
 
             msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
 
@@ -321,7 +323,7 @@ class CmdDodge(default_cmds.MuxCommand):
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
         else:
-            caller.msg("You have successfully dodged. Good for you.")
+            caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
             msg = "|y<COMBAT>|n {target} has dodged {attacker}'s {modifier}{attack}."
 
         if aim_or_feint == AimOrFeint.AIM:
@@ -345,7 +347,7 @@ class CmdDodge(default_cmds.MuxCommand):
 
 class CmdBlock(default_cmds.MuxCommand):
     """
-        Block Mad Dog. If you dare.
+        A combat reaction. Attempt to block an attack, partially negating its damage.
 
         Usage:
           +block <queue id>
@@ -391,9 +393,11 @@ class CmdBlock(default_cmds.MuxCommand):
             rush_boole = True
         # Checking for block penalty.
         block_penalty = caller.db.block_penalty
+        # Find the attacker's relevant attack stat for damage_calc.
+        attacker_stat = find_attacker_stat(attacker, attack.base_stat)
         modified_acc = block_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry,
                                          caller.db.barrier, crush_boole, brace_boole, block_penalty, rush_boole)
-        modified_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
+        modified_damage = damage_calc(attack_damage, attacker_stat, attack.base_stat, caller.db.parry, caller.db.barrier)
         # caller.msg("Base damage is: " + str(attack.dmg))
         # caller.msg("Modified damage is: " + str(modified_damage))
 
@@ -406,8 +410,8 @@ class CmdBlock(default_cmds.MuxCommand):
         msg = ""
 
         if modified_acc > random100:
-            caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
-            caller.msg("You took {dmg} damage.".format(dmg=modified_damage))
+            caller.msg("You have been hit by {attack}.".format(attack=attack.name))
+            caller.msg("You took {dmg} damage.".format(dmg=round(modified_damage)))
             caller.db.lf -= modified_damage
 
             msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
@@ -424,8 +428,8 @@ class CmdBlock(default_cmds.MuxCommand):
             caller.db.block_penalty = new_block_penalty
         else:
             final_damage = block_damage_calc(modified_damage, block_penalty)
-            caller.msg("You have successfully blocked. Good for you.")
-            caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+            caller.msg("You have successfully blocked {attack}.".format(attack=attack.name))
+            caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
             caller.db.lf -= final_damage
 
             msg = "|y<COMBAT>|n {target} has blocked {attacker}'s {modifier}{attack}."
@@ -455,7 +459,8 @@ class CmdBlock(default_cmds.MuxCommand):
 
 class CmdEndure(default_cmds.MuxCommand):
     """
-            Endure Mad Dog. Only one madder than he would try.
+            A combat reaction. Attempt to endure an attack, taking full damage but
+            gaining a bonus to the accuracy of your next attack.
 
             Usage:
               +endure <queue id>
@@ -505,14 +510,15 @@ class CmdEndure(default_cmds.MuxCommand):
             modified_acc += 15
 
         msg = ""
-        final_damage = damage_calc(attack_damage, attack.base_stat, caller.db.parry, caller.db.barrier)
+        attacker_stat = find_attacker_stat(attacker, attack.base_stat)
+        final_damage = damage_calc(attack_damage, attacker_stat, attack.base_stat, caller.db.parry, caller.db.barrier)
         if modified_acc > random100:
-            caller.msg("You have been hit by {attack}! Oh, God! Mad Dog!!!!!".format(attack=attack.name))
-            caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+            caller.msg("You have been hit by {attack}.".format(attack=attack.name))
+            caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
             msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
         else:
-            caller.msg("You endure {attack}. Mad Dog is shocked at your tenacity!!!!!".format(attack=attack.name))
-            caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+            caller.msg("You endure {attack}.".format(attack=attack.name))
+            caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
             msg = "|y<COMBAT>|n {target} endures {attacker}'s {modifier}{attack}."
             # Now calculate endure bonus. Currently, let's set it so if you endure multiple attacks in a round,
             # you get to keep whatever endure bonus is higher. But endure bonus is not cumulative. (That's OP.)
@@ -543,7 +549,14 @@ class CmdEndure(default_cmds.MuxCommand):
 
 class CmdInterrupt(default_cmds.MuxCommand):
     """
-            Interrupt Mad Dog. But what can interrupt madness?
+            A combat reaction. Attempt to an interrupt an attack with one of your own.
+            If successful, your opponent is struck directly, without a chance to react.
+            Unlike other reactions, the success of your interrupt depends on the accuracy
+            of the attack with which you interrupt, not your Speed.
+
+            However, note that an interrupt is considered both an action and a reaction.
+            Whether you succeed or fail, an interrupt constitutes your turn. After you pose,
+            your turn is over.
 
             Usage:
               +interrupt <queue id>=<name of attack>
@@ -608,6 +621,8 @@ class CmdInterrupt(default_cmds.MuxCommand):
         rush_boole = False
         incoming_priority_boole = False
         outgoing_priority_boole = False
+        incoming_attack_stat = find_attacker_stat(attacker, incoming_attack.base_stat)
+        outgoing_interrupt_stat = find_attacker_stat(caller, outgoing_interrupt.base_stat)
         # Checking if the attacker's attack has the Priority effect.
         if hasattr(incoming_attack, "has_priority"):
             if incoming_attack.has_priority:
@@ -633,9 +648,9 @@ class CmdInterrupt(default_cmds.MuxCommand):
         msg = ""
         if modified_acc > random100:
             # attack_with_effects = check_for_effects(attack)
-            final_damage = damage_calc(incoming_damage, incoming_attack.base_stat, caller.db.parry, caller.db.barrier)
-            caller.msg("You have failed to interrupt {attack}! Oh, God! Mad Dog!!!!!".format(attack=incoming_attack.name))
-            caller.msg("You took {dmg} damage.".format(dmg=final_damage))
+            final_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_attack.base_stat, caller.db.parry, caller.db.barrier)
+            caller.msg("You have failed to interrupt {attack}.".format(attack=incoming_attack.name))
+            caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
 
             msg = "|y<COMBAT>|n {target} has failed to interrupt {attacker}'s {modifier}{attack} with {interrupt}."
 
@@ -651,18 +666,18 @@ class CmdInterrupt(default_cmds.MuxCommand):
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
             modified_int_damage = modify_damage(outgoing_interrupt, caller)
-            final_outgoing_damage = damage_calc(modified_int_damage, outgoing_interrupt.base_stat, attacker.db.parry, attacker.db.barrier)
+            final_outgoing_damage = damage_calc(modified_int_damage, outgoing_interrupt_stat, outgoing_interrupt.base_stat, attacker.db.parry, attacker.db.barrier)
             # Determine how much damage the incoming attack would do if unmitigated.
-            unmitigated_incoming_damage = damage_calc(incoming_damage, incoming_attack.base_stat, caller.db.parry, caller.db.barrier)
+            unmitigated_incoming_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_attack.base_stat, caller.db.parry, caller.db.barrier)
             # Determine how the Damage of the outgoing interrupt mitigates incoming Damage.
             mitigated_damage = interrupt_mitigation_calc(unmitigated_incoming_damage, final_outgoing_damage)
             caller.msg("You interrupt {attack} with {interrupt}.".format(attack=incoming_attack.name, interrupt=outgoing_interrupt.name))
-            caller.msg("You took {dmg} damage.".format(dmg=mitigated_damage))
+            caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
             msg = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}."
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= mitigated_damage
             attacker.db.lf -= final_outgoing_damage
-            attacker.msg("You took {dmg} damage.".format(dmg=final_outgoing_damage))
+            attacker.msg("You took {dmg} damage.".format(dmg=round(final_outgoing_damage)))
             attacker = final_action_check(attacker)
             # Modify EX based on damage taken.
             # Modify the character's EX based on the damage dealt AND inflicted.
@@ -851,7 +866,8 @@ class CmdCheck(default_cmds.MuxCommand):
                                                                  caller.db.parry, caller.db.barrier, brace_boole, rush_boole)
                     endure_pct = 100 - modified_acc_for_endure
                     caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.base_stat,
-                                                                                   dodge_pct, block_pct, endure_pct))
+                                                                                   round(dodge_pct), round(block_pct),
+                                                                                   round(endure_pct)))
             # The code above is just Queue again. Now we'll display status effects.
             if caller.db.block_penalty > 0:
                 caller.msg("Your current block penalty is {0}%.".format(ceil(caller.db.block_penalty)))
