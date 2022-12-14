@@ -43,7 +43,7 @@ class CmdSetArt(default_cmds.MuxCommand):
                 return caller.msg("Art not found. No Art has been deleted.")
             else:
                 caller.db.arts.remove(art_to_remove)
-                return caller.msg("{0} removed from Arts.".format(art_to_remove.name))
+                return caller.msg("{0} removed from your Arts.".format(art_to_remove.name))
         # Check that there are args.
         if not args:
             return caller.msg("You must provide a name, damage value, base stat, and effects (if any).")
@@ -51,15 +51,22 @@ class CmdSetArt(default_cmds.MuxCommand):
         art_list = args.split(", ")
         name = art_list[0]
         if not isinstance(name, str):
-            return caller.msg("Error: the name of your Art must be a string.")
+            return caller.msg("Error: the name of your Art must be a string. Make sure that your format is: name, damage"
+                              " value, base stat, and effects (if any).")
         damage = art_list[1]
-        damage_int = int(damage)
+        try:
+            damage_int = int(damage)
+        except ValueError:
+            return caller.msg("Error: your damage value must be an integer. Make sure that your format is: name, damage"
+                              " value, base stat, and effects (if any).")
         if damage_int not in range(0, 101):
-            return caller.msg("Error: your damage value must be an integer between 0 and 100.")
+            return caller.msg("Error: your damage value must be an integer between 0 and 100. Make sure that your format"
+                              " is: name, damage value, base stat, and effects (if any).")
         base_stat = art_list[2]
         # Checking that the base stat is either Power or Knowledge.
         if base_stat.lower() not in ["power", "knowledge"]:
-            return caller.msg("Error: your Art's base stat must be either Power or Knowledge.")
+            return caller.msg("Error: your Art's base stat must be either Power or Knowledge. Make sure that your format "
+                              "is: name, damage value, base stat, and effects (if any).")
         # Check if an Art with that name already exists and, if so, remove the existing Art before proceeding.
         art_to_edit = None
         art_modified = False
@@ -71,7 +78,7 @@ class CmdSetArt(default_cmds.MuxCommand):
             art_modified = True
         # Now check that the character does not already have the maximum number of Arts: 10.
         if len(caller.db.arts) == 10:
-            return caller.msg("Your character already has the maximum of 10 Arts.")
+            return caller.msg("Your character already has the maximum of 10 Arts. Art not added.")
         # Set the baseline AP cost for an art at 5.
         true_ap_change = -5
         if len(art_list) == 4:
@@ -150,7 +157,7 @@ class CmdChargen(default_cmds.MuxCommand):
         stat_total = 625
         # Compare the sum of the input numbers with the Stat Total.
         if split_args_sum != stat_total:
-            return caller.msg("Please ensure your total stat value is equal to {0}.".format(stat_total))
+            return caller.msg("Your stats total {0}. Please ensure your total stat value is equal to {1}.".format(split_args_sum, stat_total))
         # Make sure that no stat is above 210 or below 50.
         for stat in split_args:
             if int(stat) > 210:
