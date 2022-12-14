@@ -410,18 +410,10 @@ class CmdSheet(default_cmds.MuxCommand):
         help_category = "General"
 
         def func(self):
-            "implements the actual functionality"
-            # TODO: We did this before we knew about the evtable function. This needs to be refactored.
             client_width = self.client_width()
             char = self.caller.get_abilities()
             arts = self.caller.db.arts
-            charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
-                                            border_bottom_char=" ", width=client_width)
-            # name, sex, race, occupation, group, domain, element, origin, quote, profile, lf, maxlf, ap, maxap, ex, maxex, \
-            # power, knowledge, parry, barrier, speed = self.caller.get_abilities()
-            sheetMsg = ""
-
-            sheetMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"  # top border
+            sheetMsg = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"  # top border
 
             header = ""
             alias_list = [x for x in self.caller.aliases.all() if " " not in x]
@@ -482,15 +474,24 @@ class CmdSheet(default_cmds.MuxCommand):
                 arts_table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
                                              border_left_char="|", border_right_char="|", border_top_char="",
                                              border_bottom_char="-", width=client_width)
+                arts_table.reformat_column(1, width=7)
+                arts_table.reformat_column(2, width=7)
+                arts_table.reformat_column(3, width=7)
+                arts_table.reformat_column(4, width=7)
                 for art in arts:
+                    stat_string = art.base_stat
+                    if stat_string == "Power":
+                        stat_string = "PWR"
+                    else:
+                        stat_string = "KNW"
+
                     arts_table.add_row(art.name,
                                       "|g" + str(art.ap_change) + "|n",
                                       art.dmg,
                                       art.acc,
-                                      art.base_stat,
-                                      str(art.effects))
+                                      stat_string,
+                                      effects_abbreviator(art.effects))
 
-                # sheetMsg += arts_table.__str__()
                 arts_string = arts_table.__str__()
                 sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
 
@@ -499,43 +500,27 @@ class CmdSheet(default_cmds.MuxCommand):
 
             self.caller.msg(sheetMsg)
 
-        def padToSecondLabel(self, inString):
-            outString = inString + (38 - len(inString)) * " "
-            return outString
+def effects_abbreviator(effects_list):
+    effects_string = ""
+    for effect in effects_list:
+        if effect == "Crush":
+            effects_string += "CRU "
+        elif effect == "Sweep":
+            effects_string += "SWP "
+        elif effect == "Priority":
+            effects_string += "PRI "
+        elif effect == "EX":
+            effects_string += "EX "
+        elif effect == "Rush":
+            effects_string += "RSH "
+        elif effect == "Weave":
+            effects_string += "WV "
+        elif effect == "Brace":
+            effects_string += "BRC "
+        elif effect == "Bait":
+            effects_string += "BT "
 
-
-        def padToLastValue(self, inString):
-            outString = inString + (63 - len(inString)) * " "
-            return outString
-
-
-        def padToEnd(self, inString):
-            """Pad out to the end of the sheet row"""
-            outString = inString + (77 - len(inString))*" "
-            outString += "|"
-            return outString
-
-        # def sheetRow(self, firstLabel, firstValue, secondLabel, secondValue):
-        #     """Format a row of the sheet, providing the sheet the two values that you want to print"""
-        #
-        #     # 80 characters total per row
-        #     rowString = "|"
-        #     rowString += 10 * " "
-        #     rowString += firstLabel + ": "
-        #     rowString += firstValue
-        #     rowString += (50-size(rowString)) * " " # pad out to second column
-        #
-        #     # if we want a second value (i.e. if there are an even number of values in the sheet)
-        #     if secondColumn:
-        #         rowString += secondLabel+": "
-        #         rowString += secondValue
-        #
-        #     # remember to leave room for the right border
-        #     rowString += 79 - size(rowString) * " "
-        #     rowString += "|"
-        #
-        #     return rowString
-
+    return effects_string
 class CmdSetDesc(default_cmds.MuxCommand):
     """
     describe yourself
