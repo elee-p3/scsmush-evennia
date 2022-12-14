@@ -120,7 +120,6 @@ def tailored_msg(caller, msg):
         # caller.msg("pose_colors_self for {0} is {1}".format(character, character.db.pose_colors_self))
         # caller.msg("pose_colors_others for {0} is {1}".format(character, character.db.pose_colors_others))
         # caller.msg("pose_colors_on for {0} is {1}".format(character, character.db.pose_colors_on))
-
         if character.db.pose_colors_on:
             caller.location.msg_contents(text=(highlight_names(character, msg, character.db.pose_colors_self,
                                                                     character.db.pose_colors_others),
@@ -132,6 +131,14 @@ def tailored_msg(caller, msg):
                                               exclude=everyone_else,
                                               from_obj=caller)
     return
+
+def pose_headers_check(caller):
+    char_list = caller.location.contents_get(exclude=caller.location.exits)
+    for character in char_list:
+        everyone_else = caller.location.contents_get(exclude=caller.location.exits)
+        everyone_else.remove(character)
+        if character.db.pose_headers_on:
+            caller.location.msg_contents("|c{0}|n has posed:".format(caller.name), exclude=everyone_else)
 
 class CmdFinger(default_cmds.MuxCommand):
     """
@@ -319,6 +326,9 @@ class CmdEmit(default_cmds.MuxCommand):
             caller.msg(string)
             return
 
+        # Checking to see who has poseheaders on and showing them who emitted if they do
+        pose_headers_check(caller)
+
         # normal emits by players are just sent to the room and tailored to add posecolors
         message = self.args
         message = sub_old_ansi(message)
@@ -329,6 +339,10 @@ class CmdEmit(default_cmds.MuxCommand):
             scene = Scene.objects.get(pk=self.caller.location.db.event_id)
             scene.addLogEntry(LogEntry.EntryType.EMIT, message, self.caller)
             add_participant_to_scene(self.caller, scene)
+
+        # For each character in the room, check if they have poseheaders enabled. If so,
+        # give them a .msg with the caller's name at the beginning.
+
         return
 
 class CmdOOC(default_cmds.MuxCommand):
@@ -1581,3 +1595,34 @@ class CmdGridscan(default_cmds.MuxCommand):
         for location in ic_locations:
             caller.msg("ID: " + str(location.id) + " --- Name: " + location.db_key)
             caller.msg("Desc: " + location.db.desc + "\n")
+
+
+class CmdPoseHeaders(default_cmds.MuxCommand):
+    """
+    Toggle pose headers, which inform you who has posed
+    whenever the @emit command is used.
+
+    Usage:
+      poseheaders on/off
+
+    """
+
+    key = "poseheaders"
+    aliases = "+poseheaders"
+    locks = "cmd:all()"
+
+    def func(self):
+        """Changes pose headers"""
+
+        caller = self.caller
+        args = self.args
+
+        if args:
+            if args == "on":
+                caller.db.pose_headers_on = True
+                caller.msg("Pose headers enabled.")
+            elif args == "off":
+                caller.db.pose_headers_on = False
+                caller.msg("Pose headers disabled.")
+        else:
+            caller.msg("Command not recognized. Please input on or off as an argument.")
