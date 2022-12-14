@@ -4,21 +4,21 @@ Commands
 Commands describe the input the account can do to the game.
 
 """
-from math import floor, ceil
 import random
-#from typing import AwaitableGenerator
-from evennia.server.sessionhandler import SESSIONS
-import time
 import re
+import time
+from datetime import datetime
+from math import floor, ceil
+
+from evennia.server.sessionhandler import SESSIONS
 from evennia import ObjectDB, AccountDB
 from evennia import default_cmds
-from evennia.utils import utils, create, evtable, make_iter, inherits_from, datetime_format, search
+from evennia.utils import utils, create, evtable, make_iter, inherits_from, datetime_format
 from evennia.comms.models import Msg
-from world.scenes.models import Scene, LogEntry
 from typeclasses.rooms import Room
+from world.scenes.models import Scene, LogEntry
 from world.supplemental import *
-
-from datetime import datetime
+from world.utilities.utilities import setup_table, populate_table
 
 def add_participant_to_scene(character, scene):
     '''
@@ -466,61 +466,23 @@ class CmdSheet(default_cmds.MuxCommand):
 
             charInfoString = charInfoTable.__str__()
             sheetMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
+
+            # print Arts table, attached to the bottom of the character sheet
             left_spacing = floor(client_width / 2.0) - 3  # -2 for the borders
             right_spacing = ceil(client_width / 2.0) - 3  # -2 for the borders
             sheetMsg += "|" + "=" * left_spacing + "ARTS" + "=" * right_spacing + "|"
 
-            if arts:
-                arts_table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
-                                             border_left_char="|", border_right_char="|", border_top_char="",
-                                             border_bottom_char="-", width=client_width)
-                arts_table.reformat_column(1, width=7)
-                arts_table.reformat_column(2, width=7)
-                arts_table.reformat_column(3, width=7)
-                arts_table.reformat_column(4, width=7)
-                for art in arts:
-                    stat_string = art.base_stat
-                    if stat_string == "Power":
-                        stat_string = "PWR"
-                    else:
-                        stat_string = "KNW"
-
-                    arts_table.add_row(art.name,
-                                      "|g" + str(art.ap_change) + "|n",
-                                      art.dmg,
-                                      art.acc,
-                                      stat_string,
-                                      effects_abbreviator(art.effects))
-
-                arts_string = arts_table.__str__()
-                sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
+            arts_table = setup_table(client_width, is_sheet=True)
+            populate_table(arts_table, arts)
+            arts_string = arts_table.__str__()
+            sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
 
             sheetMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
             sheetMsg += "\\/" + (client_width - 4) * " " + "\\/" + "\n"
 
             self.caller.msg(sheetMsg)
 
-def effects_abbreviator(effects_list):
-    effects_string = ""
-    for effect in effects_list:
-        if effect == "Crush":
-            effects_string += "CRU "
-        elif effect == "Sweep":
-            effects_string += "SWP "
-        elif effect == "Priority":
-            effects_string += "PRI "
-        elif effect == "EX":
-            effects_string += "EX "
-        elif effect == "Rush":
-            effects_string += "RSH "
-        elif effect == "Weave":
-            effects_string += "WV "
-        elif effect == "Brace":
-            effects_string += "BRC "
-        elif effect == "Bait":
-            effects_string += "BT "
 
-    return effects_string
 class CmdSetDesc(default_cmds.MuxCommand):
     """
     describe yourself

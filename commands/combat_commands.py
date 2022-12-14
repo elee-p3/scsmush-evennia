@@ -1,10 +1,9 @@
 from world.combat.normals import NORMALS
 from evennia import default_cmds
-from world.utilities.utilities import location_character_search
+from world.utilities.utilities import *
 import random
 from world.combat.combat_math import *
 from world.combat.effects import AimOrFeint
-from evennia.utils import evtable
 from math import floor, ceil
 import copy
 
@@ -733,23 +732,17 @@ class CmdArts(default_cmds.MuxCommand):
         arts = caller.db.arts
         if arts is None:
             return caller.msg("Your character has no Arts. Use +addart to create some.")
-        for art in arts:
-            name = art.name
-            dmg = art.dmg
-            acc = art.acc
-            base_stat = art.base_stat
-            effects = art.effects
-            ap_change = art.ap_change
-            if int(ap_change) >= 0:
-                caller.msg(
-                    "{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc,
-                                                                                              base_stat,
-                                                                                              effects))
-            else:
-                caller.msg(
-                    "{0} -- AP: |c{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc,
-                                                                                              base_stat,
-                                                                                              effects))
+
+        client_width = self.client_width()
+        arts_table = setup_table(client_width)
+        populate_table(arts_table, arts)
+
+        arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
+        arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/
+        header_top = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
+        arts_header = header_top + "\\/" + arts_left_spacing + "Arts" + arts_right_spacing + "\\/" + "\n"
+        caller.msg(arts_header + arts_table.__str__())
+
 class CmdListAttacks(default_cmds.MuxCommand):
     """
         List all attacks available to your character,
@@ -770,30 +763,23 @@ class CmdListAttacks(default_cmds.MuxCommand):
         arts = caller.db.arts
         if args:
             return caller.msg("The command +attacks should be input without arguments.")
-        caller.msg("-- Normals --")
-        for normal in NORMALS:
-            caller.msg("{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4}".format(normal.name, normal.ap_change,
-                                                                                      normal.dmg, normal.acc,
-                                                                                      normal.base_stat))
-        # If the character has arts, list them.
-        if arts:
-            caller.msg("-- Arts --")
-            for art in arts:
-                name = art.name
-                dmg = art.dmg
-                acc = art.acc
-                base_stat = art.base_stat
-                effects = art.effects
-                ap_change = art.ap_change
-                # AP costs are displayed in cyan; otherwise, the number is displayed in green.
-                if int(ap_change) >= 0:
-                    caller.msg(
-                    "{0} -- AP: |g{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc, base_stat,
-                                                                                              effects))
-                else:
-                    caller.msg(
-                    "{0} -- AP: |c{1}|n -- Damage: {2} -- Accuracy: {3} -- {4} -- {5}".format(name, ap_change, dmg, acc, base_stat,
-                                                                                              effects))
+
+        client_width = self.client_width()
+        arts_table = setup_table(client_width)
+        normals_table = setup_table(client_width)
+        populate_table(arts_table, arts)
+        populate_table(normals_table, NORMALS)
+
+        arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
+        arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/
+        normals_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Normals") / 2.0)) - 2)  # -2 for the \/
+        normals_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Normals") / 2.0)) - 2)  # -2 for the \/
+        header_top = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
+        arts_header = header_top + "\\/" + arts_left_spacing + "Arts" + arts_right_spacing + "\\/" + "\n"
+        normals_header = header_top + "\\/" + normals_left_spacing + "Normals" + normals_right_spacing + "\\/" + "\n"
+
+        caller.msg(arts_header + arts_table.__str__())
+        caller.msg(normals_header + normals_table.__str__())
 
 class CmdCheck(default_cmds.MuxCommand):
     """
@@ -900,13 +886,8 @@ class CmdCheck(default_cmds.MuxCommand):
             normals_header = header_top + "\\/" + normals_left_spacing + "Normals" + normals_right_spacing + "\\/" + "\n"
             arts_header = header_top + "\\/" + arts_left_spacing + "Arts" + arts_right_spacing + "\\/" + "\n"
 
-            normals_table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects", "Int%",
-                                                border_left_char="|", border_right_char="|", border_top_char="-",
-                                                border_bottom_char="-", width=client_width)
-
-            arts_table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects", "Int%",
-                                            border_left_char="|", border_right_char="|", border_top_char="-",
-                                            border_bottom_char="-", width=client_width)
+            normals_table = setup_table(client_width, is_check=True)
+            arts_table = setup_table(client_width, is_check=True)
 
             for normal in NORMALS:
                 # this code block is copied from CmdInterrupt
@@ -935,11 +916,17 @@ class CmdCheck(default_cmds.MuxCommand):
                 modified_acc = interrupt_chance_calc(incoming_accuracy, outgoing_accuracy, bait_boole, rush_boole,
                                                      incoming_priority_boole, outgoing_priority_boole)
 
+                stat_string = normal.base_stat
+                if stat_string == "Power":
+                    stat_string = "PWR"
+                else:
+                    stat_string = "KNW"
+
                 normals_table.add_row(normal.name,
                                       "|g" + str(normal.ap_change) + "|n",
                                       normal.dmg,
                                       normal.acc,
-                                      normal.base_stat,
+                                      stat_string,
                                       " ",
                                       modified_acc)
 
@@ -974,12 +961,18 @@ class CmdCheck(default_cmds.MuxCommand):
                     modified_acc = interrupt_chance_calc(incoming_accuracy, outgoing_accuracy, bait_boole, rush_boole,
                                                          incoming_priority_boole, outgoing_priority_boole)
 
+                    stat_string = art.base_stat
+                    if stat_string == "Power":
+                        stat_string = "PWR"
+                    else:
+                        stat_string = "KNW"
+
                     arts_table.add_row(art.name,
                                       "|g" + str(art.ap_change) + "|n",
                                       art.dmg,
                                       art.acc,
-                                      art.base_stat,
-                                      str(art.effects),
+                                      stat_string,
+                                      effects_abbreviator(art.effects),
                                       modified_acc)
 
                 caller.msg(arts_header + arts_table.__str__())
