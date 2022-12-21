@@ -17,7 +17,7 @@ class Effect:
 # Currently, all persistent effects apply to the attacker, not to the target. We can figure out debuffs later.
 
 # IMPORTANT NOTE: if you add a new Effect, add it to at_pre_puppet in characters.py and normalize_status and combat_tick
-# in combat_math.py.
+# in combat_functions.py.
 
 # Current Turn Effects
 

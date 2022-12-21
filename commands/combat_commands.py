@@ -2,12 +2,14 @@ from world.combat.normals import NORMALS
 from evennia import default_cmds
 from world.utilities.utilities import *
 import random
-from world.combat.combat_math import *
+from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
 from math import floor, ceil
 import copy
 
+
 def append_to_queue(target, attack, attacker, aim_or_feint):
+    # TODO: create class for queue_object instead of a dict
     # append a tuple per attack: (id, attack)
     # theoretically, you should always resolve all attacks in your queue before having more people attack you
     # this code should always just tack on at the end of the list even if that doesn't happen
@@ -19,16 +21,61 @@ def append_to_queue(target, attack, attacker, aim_or_feint):
     #     modified_accuracy, "attacker":attacker, "aim_or_feint":aim_or_feint})
     target.db.queue.append({"id":last_id+1, "attack":attack, "attacker":attacker, "aim_or_feint":aim_or_feint})
 
+
+def display_queue(caller):
+    if not caller.db.queue:
+        caller.msg("Nothing in queue.")
+    else:
+        for atk_obj in caller.db.queue:
+            attack = atk_obj["attack"]
+            id = atk_obj["id"]
+            accuracy = attack.acc
+            weave_boole = False
+            brace_boole = False
+            crush_boole = False
+            sweep_boole = False
+            rush_boole = False
+            # Checking for persistent status effects on the defender.
+            if caller.db.is_weaving:
+                weave_boole = True
+            if caller.db.is_bracing:
+                brace_boole = True
+            if caller.db.is_rushing:
+                rush_boole = True
+            # Checking for relevant effects on the attack.
+            attack = check_for_effects(attack)
+            if hasattr(attack, "has_crush"):
+                if attack.has_crush:
+                    crush_boole = True
+            if hasattr(attack, "has_sweep"):
+                if attack.has_sweep:
+                    sweep_boole = True
+            # Checking for block penalty.
+            block_penalty = caller.db.block_penalty
+            modified_acc_for_dodge = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
+            dodge_pct = 100 - modified_acc_for_dodge
+            modified_acc_for_block = block_chance_calc(accuracy, attack.base_stat, caller.db.speed,
+                                                       caller.db.parry, caller.db.barrier, crush_boole,
+                                                       brace_boole, block_penalty, rush_boole)
+            block_pct = 100 - modified_acc_for_block
+            modified_acc_for_endure = endure_chance_calc(accuracy, attack.base_stat, caller.db.speed,
+                                                         caller.db.parry, caller.db.barrier, brace_boole, rush_boole)
+            endure_pct = 100 - modified_acc_for_endure
+            # TODO: replace this string with evtable?
+            caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.base_stat,
+                                                                           round(dodge_pct), round(block_pct),
+                                                                           round(endure_pct)))
+
+
 class CmdAttack(default_cmds.MuxCommand):
     """
-        Attack! Kill! Destroy!!!
+        Combat command. Use to attack an opponent during combat.
 
-        Use the attack command to...attack an opponent during combat. Obvi.
+        The "target" must be the name of another character to receive the attack.
 
-        'target' must be the name of another character to receive the attack.
-
-        'action' must be the name of the art your character will use to perform the attack.
-        This art must be among those possessed by your character.
+        The "action" must be the name of the attack your character will use.
+        This must be either a Normal or Art possessed by your character.
+        Type "attacks" to see all attacks available.
 
         Usage:
           +attack target=action
@@ -48,7 +95,7 @@ class CmdAttack(default_cmds.MuxCommand):
         arts = caller.db.arts
 
         if len(args) == 0:
-            return caller.msg("You need to specify a target and action, schmoo. See `help attack` for syntax.")
+            return caller.msg("You need to specify a target and action. See `help attack` for syntax.")
 
         split_args = args.split('=')
 
@@ -63,7 +110,7 @@ class CmdAttack(default_cmds.MuxCommand):
 
         # First, check that the character attacking is not KOed
         if caller.db.KOed:
-            return caller.msg("Your character is KOed and cannot act!")
+            return caller.msg("Your character is KOed and cannot act.")
 
         # Then check that the target is a character in the room using utility
         characters_in_room = location_character_search(location)
@@ -76,7 +123,6 @@ class CmdAttack(default_cmds.MuxCommand):
             target_alias_idx = target_alias_list[0]
             target_object = alias_list_in_room[target_alias_idx][0]
 
-        # caller.msg(characters_in_room)
         if target not in [character.name.lower() for character in characters_in_room]:
             if not target_object:
                 return caller.msg("Your target is not a character in this room.")
@@ -88,7 +134,6 @@ class CmdAttack(default_cmds.MuxCommand):
                     target_object = obj
 
         # Now check that the action is an attack.
-        action_clean = ""
         if action not in NORMALS:
             if action not in arts:
                 return caller.msg("Your selected action cannot be found.")
@@ -103,24 +148,8 @@ class CmdAttack(default_cmds.MuxCommand):
         if target_object.db.queue is None:
             target_object.db.queue = []
 
-        # # Modify the attack damage based on the relevant stat.
-        # modified_damage = 0
-        # modified_damage += action_clean.dmg
-        # if action_clean.base_stat == "Power":
-        #     modified_damage += caller.db.power
-        # if action_clean.base_stat == "Knowledge":
-        #     modified_damage += caller.db.knowledge
-
-        # # Modify the attack accuracy if it is the attacker's final action.
-        # modified_accuracy = 0
-        # modified_accuracy += action_clean.acc
-        # modified_accuracy += final_action_penalty(caller)
-        # # Also modify the attack accuracy if the attacker has an endure bonus from their reaction.
-        # if caller.db.endure_bonus:
-        #     modified_accuracy += caller.db.endure_bonus
-        # # Modify the attack accuracy if the attack has the Rush effect. Apply_attacker_effects will apply is_rushing.
-        # if "Rush" in action_clean.effects:
-        #     modified_accuracy += 7
+        # Modify the damage and accuracy of the attack based on our combat functions.
+        # Copy.copy is used to ensure we do not modify the attack in the character's list, just this instance of it.
         action_clean = copy.copy(action_clean)
         action_clean.dmg = modify_damage(action_clean, caller)
         action_clean.acc = modify_accuracy(action_clean, caller)
@@ -158,6 +187,7 @@ class CmdAttack(default_cmds.MuxCommand):
         combat_string = "|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
             attacker=caller.key, target=target_object, action=action_clean)
         caller.location.msg_contents(combat_string)
+        # TODO: when we generalize the log_entry function, replace all combat_log_entry with that + combat parameter
         combat_log_entry(caller, combat_string)
 
         caller.db.is_aiming = False
@@ -169,11 +199,15 @@ class CmdAttack(default_cmds.MuxCommand):
             caller.msg("You have taken your final action and can no longer fight.")
             combat_string = "|y<COMBAT>|n {0} can no longer fight.".format(caller.name)
             caller.location.msg_contents(combat_string)
+            # TODO: replace
             combat_log_entry(caller, combat_string)
 
+
 class CmdQueue(default_cmds.MuxCommand):
+    # TODO: Replace both queue and check without arguments with a shared function using evtable?
     """
-        Oh God!! Mad Dog!!!!!
+        Combat command. View all incoming attacks in your character's queue.
+        Unlike the "check" command, this does not display additional information, such as status effects.
 
         Usage:
           +queue
@@ -187,54 +221,10 @@ class CmdQueue(default_cmds.MuxCommand):
     # The queue command prints the attacks that you have been targeted with.
     # You are not allowed to attack until you've dealt with your queue.
     # Reaction commands remove attacks from your queue and resolve them.
-    # Eventually, this command will assign IDs to attacks and print chances of dodging, etc.
-    # For now, this just prints what you're allowed to react to.
 
     def func(self):
-        # 1. Medium Attack -- Power -- D: 50%
-        # 2. Heavy Art -- Knowledge -- D: 65%
         caller = self.caller
-        if not caller.db.queue:
-            caller.msg("Nothing in queue")
-        else:
-            for atk_obj in caller.db.queue:
-                attack = atk_obj["attack"]
-                id = atk_obj["id"]
-                accuracy = attack.acc
-                weave_boole = False
-                brace_boole = False
-                crush_boole = False
-                sweep_boole = False
-                rush_boole = False
-                # Checking for persistent status effects on the defender.
-                if caller.db.is_weaving:
-                    weave_boole = True
-                if caller.db.is_bracing:
-                    brace_boole = True
-                if caller.db.is_rushing:
-                    rush_boole = True
-                # Checking for relevant effects on the attack.
-                attack = check_for_effects(attack)
-                if hasattr(attack, "has_crush"):
-                    if attack.has_crush:
-                        crush_boole = True
-                if hasattr(attack, "has_sweep"):
-                    if attack.has_sweep:
-                        sweep_boole = True
-                # Checking for block penalty.
-                block_penalty = caller.db.block_penalty
-                modified_acc_for_dodge = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
-                dodge_pct = 100 - modified_acc_for_dodge
-                modified_acc_for_block = block_chance_calc(accuracy, attack.base_stat, caller.db.speed,
-                                                           caller.db.parry, caller.db.barrier, crush_boole, brace_boole,
-                                                           block_penalty, rush_boole)
-                block_pct = 100 - modified_acc_for_block
-                modified_acc_for_endure = endure_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry,
-                                                             caller.db.barrier, brace_boole, rush_boole)
-                endure_pct = 100 - modified_acc_for_endure
-                caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.base_stat,
-                                                                               round(dodge_pct), round(block_pct),
-                                                                               round(endure_pct)))
+        display_queue(caller)
 
 
 class CmdDodge(default_cmds.MuxCommand):
@@ -275,6 +265,9 @@ class CmdDodge(default_cmds.MuxCommand):
         sweep_boole = False
         weave_boole = False
         rush_boole = False
+        # TODO: take these instances where reactions check for effects and create a meta "check for effects" function
+        # where, depending on which reaction it is, different effects are checked for. This will make it easier to
+        # modify what effects reactions will check for when I add new effects, instead of having to go to the reaction.
         # Checking if the attack has the Sweep effect.
         if hasattr(attack, "has_sweep"):
             if attack.has_sweep:
@@ -291,7 +284,6 @@ class CmdDodge(default_cmds.MuxCommand):
             modified_acc += 15
         elif aim_or_feint == AimOrFeint.FEINT:
             modified_acc -= 15
-
 
         msg = ""
         is_glancing_blow = False
@@ -336,13 +328,14 @@ class CmdDodge(default_cmds.MuxCommand):
         # To avoid overcomplicating the above messaging code, I'm adding the "glancing blow"
         # location message as an additional separate string.
         if is_glancing_blow:
-            # self.caller.location.msg_contents("|y<COMBAT>|n ** Glancing Blow **")
+            # TODO: as is, this creates an additional combat log entry for the glancing blow announcement. combine?
             combat_string = "|y<COMBAT>|n ** Glancing Blow **"
             caller.location.msg_contents(combat_string)
             combat_log_entry(caller, combat_string)
         # Checking after the combat location messages if the attack has put the defender at 0 LF or below.
         caller = final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
+
 
 class CmdBlock(default_cmds.MuxCommand):
     """
@@ -362,7 +355,7 @@ class CmdBlock(default_cmds.MuxCommand):
         args = self.args
         id_list = [attack["id"] for attack in caller.db.queue]
 
-        # Syntax is just "dodge <id>".
+        # Syntax is just "block <id>".
         if not args.isdigit():
             return caller.msg("Please input the attack ID as an integer.")
 
@@ -743,6 +736,7 @@ class CmdArts(default_cmds.MuxCommand):
         arts_header = header_top + "\\/" + arts_left_spacing + "Arts" + arts_right_spacing + "\\/" + "\n"
         caller.msg(arts_header + arts_table.__str__())
 
+
 class CmdListAttacks(default_cmds.MuxCommand):
     """
         List all attacks available to your character,
@@ -781,6 +775,7 @@ class CmdListAttacks(default_cmds.MuxCommand):
         caller.msg(arts_header + arts_table.__str__())
         caller.msg(normals_header + normals_table.__str__())
 
+
 class CmdCheck(default_cmds.MuxCommand):
     """
         Perform a status check. When typing "check" alone,
@@ -810,65 +805,9 @@ class CmdCheck(default_cmds.MuxCommand):
 
         # Check if the command is check by itself or check with args.
         if not args:
-            # In this case, display queue and then effects.
-            # For now, copying and pasting the code from CmdQueue. Can create a separate function to call later.
             caller = self.caller
-            if not caller.db.queue:
-                caller.msg("Nothing in queue")
-            else:
-                for atk_obj in caller.db.queue:
-                    attack = atk_obj["attack"]
-                    id = atk_obj["id"]
-                    accuracy = attack.acc
-                    weave_boole = False
-                    brace_boole = False
-                    crush_boole = False
-                    sweep_boole = False
-                    rush_boole = False
-                    # Checking for persistent status effects on the defender.
-                    if caller.db.is_weaving:
-                        weave_boole = True
-                    if caller.db.is_bracing:
-                        brace_boole = True
-                    if caller.db.is_rushing:
-                        rush_boole = True
-                    # Checking for relevant effects on the attack.
-                    attack = check_for_effects(attack)
-                    if hasattr(attack, "has_crush"):
-                        if attack.has_crush:
-                            crush_boole = True
-                    if hasattr(attack, "has_sweep"):
-                        if attack.has_sweep:
-                            sweep_boole = True
-                    # Checking for block penalty.
-                    block_penalty = caller.db.block_penalty
-                    modified_acc_for_dodge = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
-                    dodge_pct = 100 - modified_acc_for_dodge
-                    modified_acc_for_block = block_chance_calc(accuracy, attack.base_stat, caller.db.speed,
-                                                               caller.db.parry, caller.db.barrier, crush_boole,
-                                                               brace_boole, block_penalty, rush_boole)
-                    block_pct = 100 - modified_acc_for_block
-                    modified_acc_for_endure = endure_chance_calc(accuracy, attack.base_stat, caller.db.speed,
-                                                                 caller.db.parry, caller.db.barrier, brace_boole, rush_boole)
-                    endure_pct = 100 - modified_acc_for_endure
-                    caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.base_stat,
-                                                                                   round(dodge_pct), round(block_pct),
-                                                                                   round(endure_pct)))
-            # The code above is just Queue again. Now we'll display status effects.
-            if caller.db.block_penalty > 0:
-                caller.msg("Your current block penalty is {0}%.".format(ceil(caller.db.block_penalty)))
-            if caller.db.endure_bonus > 0:
-                caller.msg("Your current endure bonus to accuracy is {0}%.".format(caller.db.endure_bonus))
-            if caller.db.final_action:
-                caller.msg("You have been reduced below 0 LF. Your next action will be your last and your accuracy is lowered.")
-            if caller.db.is_weaving:
-                caller.msg("You are currently weaving, increasing your chance to dodge until your next action.")
-            if caller.db.is_bracing:
-                caller.msg("You are currently bracing, increasing your chance to block until your next action.")
-            if caller.db.is_baiting:
-                caller.msg("You are currently baiting, increasing your chance to interrupt until your next action.")
-            if caller.db.is_rushing:
-                caller.msg("You are currently rushing, decreasing your reaction chances until your next action.")
+            display_queue(caller)
+            display_status_effects(caller)
         else:
             # Confirm that the argument is just an integer (the incoming attack ID).
             if not args.isnumeric():
@@ -978,8 +917,6 @@ class CmdCheck(default_cmds.MuxCommand):
                 caller.msg(arts_header + arts_table.__str__())
 
 
-# Note: you can never be aiming and feinting at the same time. There's no explicit check that guarantees this,
-# but the logic should make it impossible to get into that state
 class CmdAim(default_cmds.MuxCommand):
     """
         Apply/remove aim effect to your next attack.
@@ -993,6 +930,8 @@ class CmdAim(default_cmds.MuxCommand):
     aliases = ["aim"]
     locks = "cmd:all()"
 
+    # Note: you can never be aiming and feinting at the same time. There's no explicit check that guarantees this,
+    # but the logic should make it impossible to get into that state
     def func(self):
         caller = self.caller
         if caller.db.queue:

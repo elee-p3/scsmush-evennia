@@ -2,6 +2,7 @@ from evennia import default_cmds
 from world.combat.effects import EFFECTS
 from world.combat.attacks import Attack
 
+
 class CmdSetArt(default_cmds.MuxCommand):
     """
         A character generation command that adds an Art to or
@@ -120,6 +121,7 @@ class CmdSetArt(default_cmds.MuxCommand):
             caller.msg("{0} has been added to your list of Arts.".format(name))
         else:
             caller.msg("{0} has been modified on your list of Arts.".format(name))
+
 
 class CmdChargen(default_cmds.MuxCommand):
     """

@@ -1,5 +1,5 @@
 def sub_old_ansi(text):
-    """Replacing old ansi with newer evennia markup strings"""
+    """Replacing old ansi with newer Evennia markup strings"""
     if not text:
         return ""
     text = text.replace("%r", "|/")

@@ -21,6 +21,7 @@ from world.supplemental import *
 from world.utilities.utilities import setup_table, populate_table
 
 def add_participant_to_scene(character, scene):
+    # TODO(RF): Event code
     '''
     Given a character, checks the given scene's participants for that character and, if
     NOT present, adds the character as a participant to the scene.
@@ -31,13 +32,16 @@ def add_participant_to_scene(character, scene):
 
     scene.participants.add(character)
 
-# Danny was here, bitches.
+
 # text replacement function stolen from https://stackoverflow.com/questions/919056/case-insensitive-replace
 def ireplace(old, repl, text):
+    # TODO(RF): Define internally to posecolors?
     # This function is used in highlight_names to replace names: it is not case sensitive but maintains case.
     return re.sub('(?i)'+re.escape(old), lambda m: repl, text)
 
+
 def prune_sessions(session_list):
+    # TODO(RF): +pot is core MUSHing functionality; who is a modified Evennia command.
     # This function modifies the display of "who" and "+pot" so that, if the same player is connected from multiple
     # devices, their character name is only displayed once to avoid confusion. Admin still see all connected sessions.
     session_accounts = [session.account.key for session in session_list]  # get a list of just the names
@@ -63,7 +67,9 @@ def prune_sessions(session_list):
 
     return pruned_sessions
 
+
 def highlight_names(source_character, in_string, self_color, others_color):
+    # TODO(RF): Define internally to posecolors?
     # This function is used in tailored_msg.
     if self_color is None:
         self_color = "550"
@@ -103,23 +109,18 @@ def highlight_names(source_character, in_string, self_color, others_color):
 
     return out_string
 
+
 def tailored_msg(caller, msg):
+    # TODO(RF): called by pose (and say, eventually).
+    # Future question: why not @emit? Because pose's first word is the character's name, not part of the msg content?
     # the point of this function is to
     # 1. Get a list of character objects in the room
     # 2. For each character, check whether names should be colored
     # 3. And custom color the names so that the receiving character's name is highlighted a different color
     char_list = caller.location.contents_get(exclude=caller.location.exits)
-    # for char in char_list:
-    #     caller.msg("{0}".format(char))
-
     for character in char_list:
         everyone_else = caller.location.contents_get(exclude=caller.location.exits)
         everyone_else.remove(character)
-        # for char in everyone_else:
-        #     caller.msg("{0}".format(char))
-        # caller.msg("pose_colors_self for {0} is {1}".format(character, character.db.pose_colors_self))
-        # caller.msg("pose_colors_others for {0} is {1}".format(character, character.db.pose_colors_others))
-        # caller.msg("pose_colors_on for {0} is {1}".format(character, character.db.pose_colors_on))
         if character.db.pose_colors_on:
             caller.location.msg_contents(text=(highlight_names(character, msg, character.db.pose_colors_self,
                                                                     character.db.pose_colors_others),
@@ -132,15 +133,17 @@ def tailored_msg(caller, msg):
                                               from_obj=caller)
     return
 
-def pose_headers_check(caller):
-    char_list = caller.location.contents_get(exclude=caller.location.exits)
-    for character in char_list:
-        everyone_else = caller.location.contents_get(exclude=caller.location.exits)
-        everyone_else.remove(character)
-        if character.db.pose_headers_on:
-            caller.location.msg_contents("|c{0}|n has posed:".format(caller.name), exclude=everyone_else)
+
+def update_pose_timer(caller):
+    # Update the pose timer if outside of OOC room
+    # This assumes that the character's home is the OOC room, which it is by default
+    if caller.location != caller.home:
+        caller.set_pose_time(time.time())
+        caller.set_obs_mode(False)
+
 
 class CmdFinger(default_cmds.MuxCommand):
+    # TODO(RF): New command; core MUSH functionality for OOC information.
     """
         +finger
         Usage:
@@ -154,8 +157,7 @@ class CmdFinger(default_cmds.MuxCommand):
 
     def func(self):
         if not self.args:
-            # TODO: better messaging
-            self.caller.msg("Need a person to finger!")
+            self.caller.msg("Please specify a character.")
             return
 
         # We've tried changing the evennia-master code in evennia/objects/object.py to allow for non-exact string
@@ -208,10 +210,11 @@ class CmdFinger(default_cmds.MuxCommand):
 
             self.caller.msg(fingerMsg)
         except:
-            self.caller.msg("Target is either not a character or there are multiple matches")
+            self.caller.msg("Target is either not a character or there are multiple matches.")
 
 
 class CmdPose(default_cmds.MuxCommand):
+    # TODO(RF): Modified Evennia command.
     """
     strike a pose
     Usage:
@@ -244,20 +247,20 @@ class CmdPose(default_cmds.MuxCommand):
 
     def func(self):
         """Hook function"""
+        caller = self.caller
         if not self.args:
             message = "What do you want to do?"
-            self.caller.msg(message)
+            caller.msg(message)
         else:
             # Update the pose timer if outside of OOC room
-            # This assumes that the character's home is the OOC room, which it is by default
-            if self.caller.location != self.caller.home:
-                self.caller.set_pose_time(time.time())
-                self.caller.set_obs_mode(False)
+            update_pose_timer(caller)
 
-            message = "%s%s" % (self.caller.name, self.args)
+            message = "%s%s" % (caller.name, self.args)
             message = sub_old_ansi(message)
 
-            tailored_msg(self.caller, message)
+            # Pose uses tailored_msg because its first word is the character's name, which otherwise won't highlight.
+            # Currently retaining the commented code below in case we remember what we wanted to do with it.
+            tailored_msg(caller, message)
             # msg = highlight_names(self.caller, msg)
             # if character.color_attribute == True
             # self.caller.location.msg_contents(text=(highlight_names(msg), {"type": "pose"}), from_obj=self.caller)
@@ -265,12 +268,14 @@ class CmdPose(default_cmds.MuxCommand):
             # self.caller.location.msg_contents(text=msg, {"type": "pose"}), from_obj=self.caller)
 
             # If an event is running in the current room, then write to event's log
-            if self.caller.location.db.active_event:
-                scene = Scene.objects.get(pk=self.caller.location.db.event_id)
-                scene.addLogEntry(LogEntry.EntryType.POSE, self.args, self.caller)
-                add_participant_to_scene(self.caller, scene)
+            # TODO(RF): Make a write_to_event_log function and feed the EntryType in as a parameter
+            if caller.location.db.active_event:
+                scene = Scene.objects.get(pk=caller.location.db.event_id)
+                scene.addLogEntry(LogEntry.EntryType.POSE, self.args, caller)
+                add_participant_to_scene(caller, scene)
 
 class CmdEmit(default_cmds.MuxCommand):
+    # TODO(RF): Modified Evennia command.
     """
     @emit
     Usage:
@@ -310,15 +315,20 @@ class CmdEmit(default_cmds.MuxCommand):
         return help_string
 
     def func(self):
-        """Implement the command"""
+        def print_pose_header(caller):
+            # Finds who in a room has poseheaders on and broadcasts the proper pose to each individual.
+            # This is only necessary for @emit, as pose and say begin with the character's name.
+            char_list = caller.location.contents_get(exclude=caller.location.exits)
+            for character in char_list:
+                everyone_else = caller.location.contents_get(exclude=caller.location.exits)
+                everyone_else.remove(character)
+                if character.db.pose_headers_on:
+                    caller.location.msg_contents("|c{0}|n has posed:".format(caller.name), exclude=everyone_else)
 
         caller = self.caller
 
         # Update the pose timer if outside of OOC room
-        # This assumes that the character's home is the OOC room, which it is by default
-        if caller.location != caller.home:
-            caller.set_pose_time(time.time())
-            caller.set_obs_mode(False)
+        update_pose_timer(caller)
 
         if not self.args:
             string = "Usage: "
@@ -327,25 +337,28 @@ class CmdEmit(default_cmds.MuxCommand):
             return
 
         # Checking to see who has poseheaders on and showing them who emitted if they do
-        pose_headers_check(caller)
+        print_pose_header(caller)
 
         # normal emits by players are just sent to the room and tailored to add posecolors
         message = self.args
         message = sub_old_ansi(message)
         tailored_msg(caller, message)
 
+        # TODO: write_to_event_log function, EMIT EntryType
         # If an event is running in the current room, then write to event log
         if caller.location.db.active_event:
             scene = Scene.objects.get(pk=self.caller.location.db.event_id)
             scene.addLogEntry(LogEntry.EntryType.EMIT, message, self.caller)
             add_participant_to_scene(self.caller, scene)
 
-        # For each character in the room, check if they have poseheaders enabled. If so,
-        # give them a .msg with the caller's name at the beginning.
-
         return
 
 class CmdOOC(default_cmds.MuxCommand):
+    # TODO(RF): New command; core MUSH functionality; replaces Evennia's wacky OOC command.
+    # More details: Evennia's OOC command unpuppets the current character and moves the player to a special room
+    # where they (hypothetically?) can puppet a different character and return to the grid. But there's no built-in
+    # functionality to actually switch puppeted characters (as far as we could figure out). Also, there's no login
+    # menu to choose which character you want to puppet associated with your account. The dev told me we gotta make one.
     """
     speak out-of-character
     Usage:
@@ -375,15 +388,6 @@ class CmdOOC(default_cmds.MuxCommand):
 
         speech = self.args
 
-        # Calling the at_before_say hook on the character
-        speech = caller.at_before_say(speech)
-
-        # If speech is empty, stop here
-        if not speech:
-            return
-
-        # Call the at_after_say hook on the character
-        # caller.at_say(speech, msg_self=True)
         if speech[0] == ":":
             speech = ("|y<OOC>|n {0} {1}").format(self.caller.name, speech[1:])
         elif speech[0] == ";":
@@ -396,6 +400,7 @@ class CmdOOC(default_cmds.MuxCommand):
         )
 
 class CmdSheet(default_cmds.MuxCommand):
+        # TODO(RF): New command. Tied to combat commands. Add to combat_commands.py? Also contains some finger info.
         """
         List attributes
 
@@ -484,6 +489,10 @@ class CmdSheet(default_cmds.MuxCommand):
 
 
 class CmdSetDesc(default_cmds.MuxCommand):
+    # TODO(RF): I made this command because "desc" in Evennia is a builder command with builder permissions.
+    # This is similar to why I made +warp as a modified @tel: because @tel was very complex. If I could figure out
+    # how to curtail or modify the docstring or automatically generated help file depending on the permissions
+    # of the person accessing it, it might be more elegant or make more sense to just have desc and @tel, not setdesc.
     """
     describe yourself
 
@@ -513,7 +522,9 @@ class CmdSetDesc(default_cmds.MuxCommand):
         self.caller.db.desc = message
         self.caller.msg("You set your description.")
 
+
 class CmdWho(default_cmds.MuxCommand):
+    # TODO(RF): Overwritten Evennia command. Players see each other's locations now and multiple sessions are pruned.
     """
     list who is currently online
 
@@ -588,6 +599,7 @@ class CmdWho(default_cmds.MuxCommand):
                 )
         else:
             # unprivileged
+            # TODO: replace styled_table with evtable?
             table = self.styled_table("|wAccount name", "|wOn for", "|wIdle", "|wRoom")
             for session in pruned_sessions:
                 if not session.logged_in:
@@ -609,7 +621,9 @@ class CmdWho(default_cmds.MuxCommand):
             % (table, "One" if is_one else naccounts, "" if is_one else "s")
         )
 
+
 class CmdPot(default_cmds.MuxCommand):
+    # TODO(RF): Original command; core MUSH functionality. We kicked ass making this one.
     """
     View the pose tracker (pot). The pose tracker displays the name,
     time connected, time idle, and time since last posed of every
@@ -643,6 +657,7 @@ class CmdPot(default_cmds.MuxCommand):
         all_sessions = sorted(all_sessions, key=lambda o: o.account.character.get_pose_time()) # sort by last posed time
         pruned_sessions = prune_sessions(all_sessions)
 
+        # TODO: replace styled_table with evtable?
         table = self.styled_table(
             "|wCharacter",
             "|wOn for",
@@ -664,6 +679,7 @@ class CmdPot(default_cmds.MuxCommand):
             lf = str(int(puppet.db.lf))
             max_lf = str(int(puppet.db.maxlf))
 
+            # If you have been idle for an hour, you are moved to the bottom and your pose timer is hidden.
             if delta_pose_time > 3600:
                 old_session_list.append(session)
                 continue
@@ -683,6 +699,7 @@ class CmdPot(default_cmds.MuxCommand):
             lf = str(int(puppet.db.lf))
             max_lf = str(int(puppet.db.maxlf))
 
+            # Changes display depending on if someone has set themselves as an observer or not.
             if puppet.location == self.caller.character.location:
                 if puppet.get_obs_mode() == True:
                     table.add_row("|y" + puppet.key + " (O)",
@@ -699,7 +716,9 @@ class CmdPot(default_cmds.MuxCommand):
 
         self.caller.msg(table)
 
+
 class CmdObserve(default_cmds.MuxCommand):
+    # TODO(RF): Original command; complements +pot.
     """
         Enter observer mode. This signifies that you are observing,
         and not participating, in a scene. In +pot, you will be
@@ -727,7 +746,9 @@ class CmdObserve(default_cmds.MuxCommand):
         self.caller.location.msg_contents(
             "|y<SCENE>|n {0} is now an observer.".format(self.caller.name))
 
+
 class CmdMail(default_cmds.MuxAccountCommand):
+    # TODO(RF): Overwritten Evennia command; incorporated MUSH parsing.
     """
     Communicate with others by sending mail.
 
@@ -829,6 +850,7 @@ class CmdMail(default_cmds.MuxAccountCommand):
             return caller.msg("The message body is empty. No @mail was sent.")
         for recipient in recipients:
             recipient.msg("You have received a new @mail from %s" % caller)
+            # MUSH parsing incorporated via sub_old_ansi.
             new_message = create.create_message(
                 self.caller, sub_old_ansi(message), receivers=recipient, header=subject
             )
@@ -1035,7 +1057,9 @@ class CmdMail(default_cmds.MuxAccountCommand):
             else:
                 self.caller.msg("There are no messages in your inbox.")
 
+
 class CmdSay(default_cmds.MuxCommand):
+    # TODO(RF): Overwritten Evennia command; added event code and posecolors (commented out).
     """
     speak as your character
 
@@ -1057,10 +1081,7 @@ class CmdSay(default_cmds.MuxCommand):
         caller = self.caller
 
         # Update the pose timer if outside of OOC room
-        # This assumes that the character's home is the OOC room, which it is by default
-        if caller.location != caller.home:
-            caller.set_pose_time(time.time())
-            caller.set_obs_mode(False)
+        update_pose_timer(caller)
 
         if not self.args:
             caller.msg("Say what?")
@@ -1081,12 +1102,16 @@ class CmdSay(default_cmds.MuxCommand):
         caller.at_say(message, msg_self=True)
 
         # If an event is running in the current room, then write to event log
+        # TODO: addLogEntry function for EntryType SAY
         if caller.location.db.active_event:
             scene = Scene.objects.get(pk=self.caller.location.db.event_id)
             scene.addLogEntry(LogEntry.EntryType.SAY, self.args, self.caller)
             add_participant_to_scene(self.caller, scene)
 
+
 class CmdWarp(default_cmds.MuxCommand):
+    # TODO(RF): Original command, like setdesc, it's a truncated version of @tel without switches and with perms:all.
+    # Again, not sure if it's worth keeping around as a distinct command; it's just easier than trying to overwrite tel.
     """
     teleport to another location
 
@@ -1125,7 +1150,9 @@ class CmdWarp(default_cmds.MuxCommand):
                 caller.move_to(destination)
                 caller.msg("Teleported to %s." % destination)
 
+
 class CmdEvent(default_cmds.MuxCommand):
+    # TODO(RF): Autologger command; original!
     """
     The @event command is used to log scenes.
 
@@ -1189,8 +1216,6 @@ class CmdEvent(default_cmds.MuxCommand):
                 location=caller.location,
             )
 
-            caller.msg("DEBUG: this event has the following information:\nname = {0}\ndescription = {1}\nlocation = {2}\nid = {3}".format(event.name, event.description, event.location, event.id))
-
             caller.location.db.event_id = event.id
 
             self.caller.location.msg_contents("|y<SCENE>|n A log has been started in this room with scene ID {0}.".format(event.id))
@@ -1237,7 +1262,10 @@ class CmdEvent(default_cmds.MuxCommand):
             Scene.objects.filter(id=caller.location.db.event_id).update(description=self.args)
             caller.msg("Scene description set.")
 
+
 class CmdPoseColors(default_cmds.MuxCommand):
+    # TODO(RF): Original command; modifies emit/pose/say ("IC Commands"?)
+    # Create category of commands that increase readability of the core RP commands (posecolors, poseheaders)?
     """
     Toggle colored names in poses. Posecolors/self and
     posecolors/others are used to set the colors of one's
@@ -1287,7 +1315,14 @@ class CmdPoseColors(default_cmds.MuxCommand):
                 caller.msg("Unknown switch/argument!")
                 return
 
+
 class CmdPage(default_cmds.MuxCommand):
+    # TODO(RF): Overwritten Evennia command; there was no multipaging! That was fucked up. We fixed that.
+    # Something that continues to weird me out is that paging is between Accounts, not Characters.
+    # That means that a character can show up in a room and if you try to page them, the game will tell you that
+    # they do not exist because it is looking for an Account with that name. You have to type "who" to get the Account
+    # and then you can page that. I kind of get it: the same person is reading the page if you are paging different
+    # characters that they puppet. But I've never been on a game that handled things this way.
     """
     send a private message to another account
 
@@ -1468,7 +1503,11 @@ class CmdPage(default_cmds.MuxCommand):
             self.msg("\n".join(rstrings))
         self.msg("You paged %s with: '%s'." % (", ".join(received), message))
 
+
 class CmdRoulette(default_cmds.MuxCommand):
+    # TODO(RF): Original command; classify as Devin's Wacky Stuff. Maybe useful to other people?
+    # The scene types/premises are specific to SCSMUSH's fantasy theme, but in principle, a roulette to help you
+    # pick a location for a random scene or something is not totally useless.
     """
     Randomly generate a scene location, scene type or premise, and "fortune."
 
@@ -1522,7 +1561,9 @@ class CmdRoulette(default_cmds.MuxCommand):
         else:
             self.caller.location.msg_contents("The party's luck will be |wextraordinarily good.|n An event akin to a miracle will occur!")
 
+
 class CmdGridscan(default_cmds.MuxCommand):
+    # TODO(RF): Original command; extremely miscallenous. Literally only I care about this. I used it like twice.
     """
     This is a command to print all of the room names and descs
     to check if I have repeated any turns of phrase. I just want
@@ -1545,6 +1586,7 @@ class CmdGridscan(default_cmds.MuxCommand):
 
 
 class CmdPoseHeaders(default_cmds.MuxCommand):
+    # TODO(RF): Original command; like posecolors, improve readability of RP commands.
     """
     Toggle pose headers, which inform you who has posed
     whenever the @emit command is used.

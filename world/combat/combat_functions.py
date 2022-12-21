@@ -1,6 +1,7 @@
 from world.scenes.models import Scene, LogEntry
 from django.utils.html import escape
 
+
 def damage_calc(attack_dmg, attacker_stat, base_stat, parry, barrier):
     def_stat = 0
     if base_stat == "Power":
@@ -229,6 +230,8 @@ def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
 
 
 def check_for_effects(attack):
+    # TODO: can we build this into append_to_queue? it's weird that we do this at the reaction stage.
+    # TODO: instead, we can rebuild this function to adjust the chances depending on which reaction is being used.
     # This function checks for effects on an attack and modifies the attack object accordingly.
     # Modify this function as more effects are implemented.
     modified_attack = attack
@@ -332,3 +335,21 @@ def find_attacker_stat(attacker, base_stat):
     if base_stat == "Knowledge":
         attacker_stat += attacker.db.knowledge
     return attacker_stat
+
+
+def display_status_effects(caller):
+    # Called by the check command to display status effects.
+    if caller.db.block_penalty > 0:
+        caller.msg("Your current block penalty is {0}%.".format(round(caller.db.block_penalty)))
+    if caller.db.endure_bonus > 0:
+        caller.msg("Your current endure bonus to accuracy is {0}%.".format(caller.db.endure_bonus))
+    if caller.db.final_action:
+        caller.msg("You have been reduced below 0 LF. Your next action will be your last and your accuracy is lowered.")
+    if caller.db.is_weaving:
+        caller.msg("You are currently weaving, increasing your chance to dodge until your next action.")
+    if caller.db.is_bracing:
+        caller.msg("You are currently bracing, increasing your chance to block until your next action.")
+    if caller.db.is_baiting:
+        caller.msg("You are currently baiting, increasing your chance to interrupt until your next action.")
+    if caller.db.is_rushing:
+        caller.msg("You are currently rushing, decreasing your reaction chances until your next action.")
