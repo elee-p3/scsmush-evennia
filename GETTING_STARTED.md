@@ -49,7 +49,7 @@ This will create an `scs-mush-evennia` directory inside of your `project-dir`.
 
 You'll have to do some platform-specific installation.
 
-### MacOS preparation
+### MacOS
 
 1. For local development, get the [Python 3.7.9 release](https://www.python.org/downloads/release/python-379/).
    Technically you can use a number of other releases, but this is a guaranteed-to-work version that comes with
@@ -129,10 +129,42 @@ You'll have to do some platform-specific installation.
    $ pip install -e evennia
    ```
    
+6. Run all of the database migrations.
+   
+   For this you first need to change into the SCSMUSH application directory!
+   
+   ```
+   $ cd <project-dir>/scsmush-evennia
+   $ evennia migrate
+   
+   
 
-### Windows preparation
+### Windows
 
 TODO(Ugen)
+
+## Run the damn thing!
+
+When you are inside the application directory (i.e., `project-dir`/scsmush-evennia), you can fire up SCSMUSH locally by typing:
+
+```
+$ evennia start
+```
+
+This will bring up local instances of the web and telnet servers. You can access the website on your own machine only by opening a
+browser to http://localhost:4001/.
+
+If you make code changes and want to see them reflected in your local instance, you'll have to restart the server:
+
+```
+$ evennia restart
+```
+
+To shut down the servers when you're done, use:
+
+```
+$ evennia stop
+```
 
 
 
