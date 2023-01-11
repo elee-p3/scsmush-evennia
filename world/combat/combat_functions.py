@@ -1,5 +1,25 @@
 from world.scenes.models import Scene, LogEntry
 from django.utils.html import escape
+from evennia.objects.models import ObjectDB
+
+
+def assign_attack_instance_id(target):
+    # Checks the defender's queue in order to determine the ID number of the new incoming attack instance.
+    if not target.db.queue:
+        last_id = 0
+    else:
+        last_id = max((attack.id for attack in target.db.queue))
+    new_id = last_id + 1
+    return new_id
+
+
+def find_attacker_from_key(attacker_key):
+    # This finds the attacker's character object from their key.
+    # Because Evennia uses Python's default pickling method, we cannot pass character objects directly into a queue.
+    all_objects = ObjectDB.objects.all()
+    attacker_queryset = all_objects.filter(db_key=attacker_key)
+    attacker = attacker_queryset[0]
+    return attacker
 
 
 def damage_calc(attack_dmg, attacker_stat, base_stat, parry, barrier):
@@ -40,23 +60,6 @@ def modify_damage(action, character):
         base_stat = character.db.power
     if action.base_stat == "Knowledge":
         base_stat = character.db.knowledge
-    # The following conditionals increase the significance of the attack's Damage value on damage dealt.
-    # if damage <= 10:
-    #     total_damage *= .75
-    # elif damage <= 20:
-    #     total_damage *= .825
-    # elif damage <= 30:
-    #     total_damage *= .9
-    # elif damage <= 40:
-    #     total_damage *= .975
-    # elif damage >= 60:
-    #     total_damage *= 1.025
-    # elif damage >= 70:
-    #     total_damage *= 1.1
-    # elif damage >= 80:
-    #     total_damage *= 1.175
-    # elif damage >= 90:
-    #     total_damage *= 1.25
     damage_multiplier = (0.00583 * damage) + 0.708
     total_damage = (damage + base_stat) * damage_multiplier
     return total_damage
@@ -186,7 +189,7 @@ def block_damage_calc(base_damage, block_penalty):
 
 
 def ex_gain_on_attack(damage_inflicted, current_ex, max_ex):
-    ex_gain = int(damage_inflicted) / 10
+    ex_gain = int(damage_inflicted) / 15
     new_ex = current_ex + ex_gain
     if new_ex > max_ex:
         new_ex = max_ex
@@ -229,29 +232,29 @@ def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
     return False
 
 
-def check_for_effects(attack):
-    # TODO: can we build this into append_to_queue? it's weird that we do this at the reaction stage.
-    # TODO: instead, we can rebuild this function to adjust the chances depending on which reaction is being used.
-    # This function checks for effects on an attack and modifies the attack object accordingly.
-    # Modify this function as more effects are implemented.
-    modified_attack = attack
-    if attack.effects:
-        for effect in attack.effects:
-            if effect == "Crush":
-                modified_attack.has_crush = True
-            if effect == "Sweep":
-                modified_attack.has_sweep = True
-            if effect == "Priority":
-                modified_attack.has_priority = True
-            if effect == "Rush":
-                modified_attack.has_rush = True
-            if effect == "Weave":
-                modified_attack.has_weave = True
-            if effect == "Brace":
-                modified_attack.has_brace = True
-            if effect == "Bait":
-                modified_attack.has_bait = True
-    return modified_attack
+# def check_for_effects(attack):
+#     # TODO: can we build this into append_to_queue? it's weird that we do this at the reaction stage.
+#     # TODO: instead, we can rebuild this function to adjust the chances depending on which reaction is being used.
+#     # This function checks for effects on an attack and modifies the attack object accordingly.
+#     # Modify this function as more effects are implemented.
+#     modified_attack = attack
+#     if attack.effects:
+#         for effect in attack.effects:
+#             if effect == "Crush":
+#                 modified_attack.has_crush = True
+#             if effect == "Sweep":
+#                 modified_attack.has_sweep = True
+#             if effect == "Priority":
+#                 modified_attack.has_priority = True
+#             if effect == "Rush":
+#                 modified_attack.has_rush = True
+#             if effect == "Weave":
+#                 modified_attack.has_weave = True
+#             if effect == "Brace":
+#                 modified_attack.has_brace = True
+#             if effect == "Bait":
+#                 modified_attack.has_bait = True
+#     return modified_attack
 
 
 def combat_tick(character):
@@ -278,7 +281,7 @@ def combat_tick(character):
     return character
 
 
-def apply_attacker_effects(attacker, attack):
+def apply_attack_effects_to_attacker(attacker, attack):
     # This function checks for effects on an attack and modifies the attacker's status accordingly.
     # Modify this function as more effects are implemented.
     if attack.effects:

@@ -6,29 +6,32 @@ from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
 from math import floor, ceil
 import copy
+from world.combat.attacks import AttackInstance
 
 
-def append_to_queue(target, attack, attacker, aim_or_feint):
-    # TODO: create class for queue_object instead of a dict
+# def append_to_queue(target, attack, attacker, aim_or_feint):
+#     # TODO: create class for queue_object instead of a dict
     # append a tuple per attack: (id, attack)
     # theoretically, you should always resolve all attacks in your queue before having more people attack you
     # this code should always just tack on at the end of the list even if that doesn't happen
-    if not target.db.queue:
-        last_id = 0
-    else:
-        last_id = max((attack["id"] for attack in target.db.queue))
+    # if not target.db.queue:
+    #     last_id = 0
+    # else:
+    #     last_id = max((attack["id"] for attack in target.db.queue))
     # target.db.queue.append({"id":last_id+1, "attack":attack_object, "modified_damage":attack_damage, "modified_accuracy":
     #     modified_accuracy, "attacker":attacker, "aim_or_feint":aim_or_feint})
-    target.db.queue.append({"id":last_id+1, "attack":attack, "attacker":attacker, "aim_or_feint":aim_or_feint})
+    # target.db.queue.append({"id":last_id+1, "attack":attack, "attacker":attacker, "aim_or_feint":aim_or_feint})
+    # target.db.queue.append({"id": last_id + 1, "attack": attack, "attacker": attacker, "aim_or_feint": aim_or_feint})
 
 
 def display_queue(caller):
+    # This function is called by both the "queue" command and by "check" when input without arguments.
     if not caller.db.queue:
         caller.msg("Nothing in queue.")
     else:
         for atk_obj in caller.db.queue:
-            attack = atk_obj["attack"]
-            id = atk_obj["id"]
+            attack = atk_obj.attack
+            id = atk_obj.id
             accuracy = attack.acc
             weave_boole = False
             brace_boole = False
@@ -42,14 +45,10 @@ def display_queue(caller):
                 brace_boole = True
             if caller.db.is_rushing:
                 rush_boole = True
-            # Checking for relevant effects on the attack.
-            attack = check_for_effects(attack)
-            if hasattr(attack, "has_crush"):
-                if attack.has_crush:
-                    crush_boole = True
-            if hasattr(attack, "has_sweep"):
-                if attack.has_sweep:
-                    sweep_boole = True
+            if atk_obj.has_crush:
+                crush_boole = True
+            if atk_obj.has_sweep:
+                sweep_boole = True
             # Checking for block penalty.
             block_penalty = caller.db.block_penalty
             modified_acc_for_dodge = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
@@ -105,6 +104,11 @@ class CmdAttack(default_cmds.MuxCommand):
         target = split_args[0].lower() # make everything case-insensitive
         action = split_args[1].lower()
 
+        aim_or_feint = AimOrFeint.NEUTRAL
+        if caller.db.is_aiming:
+            aim_or_feint = AimOrFeint.AIM
+        if caller.db.is_feinting:
+            aim_or_feint = AimOrFeint.FEINT
         # caller.msg(target)
         # caller.msg(action)
 
@@ -173,15 +177,18 @@ class CmdAttack(default_cmds.MuxCommand):
         combat_tick(caller)
 
         # Now apply any persistent effects that will affect the attacker regardless of the attack's future success.
-        caller = apply_attacker_effects(caller, action_clean)
+        caller = apply_attack_effects_to_attacker(caller, action_clean)
 
         # Append the attack to the target's queue and announce the attack.
-        if caller.db.is_aiming:
-            append_to_queue(target_object, action_clean, caller, AimOrFeint.AIM)
-        elif caller.db.is_feinting:
-            append_to_queue(target_object, action_clean, caller, AimOrFeint.FEINT)
-        else:
-            append_to_queue(target_object, action_clean, caller, AimOrFeint.NEUTRAL)
+        # if caller.db.is_aiming:
+        #     append_to_queue(target_object, action_clean, caller, AimOrFeint.AIM)
+        # elif caller.db.is_feinting:
+        #     append_to_queue(target_object, action_clean, caller, AimOrFeint.FEINT)
+        # else:
+        #     append_to_queue(target_object, action_clean, caller, AimOrFeint.NEUTRAL)
+
+        new_id = assign_attack_instance_id(target_object)
+        target_object.db.queue.append(AttackInstance(new_id, action_clean, caller.key, aim_or_feint))
 
         caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
         combat_string = "|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
@@ -243,7 +250,7 @@ class CmdDodge(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         args = self.args
-        id_list = [attack["id"] for attack in caller.db.queue]
+        id_list = [attack.id for attack in caller.db.queue]
 
         # Syntax is just "dodge <id>".
         if not args.isdigit():
@@ -256,11 +263,12 @@ class CmdDodge(default_cmds.MuxCommand):
 
         # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
-        attack = action["attack"]
+        attack = action.attack
         attack_damage = attack.dmg
         accuracy = attack.acc
-        attacker = action["attacker"]
-        aim_or_feint = action["aim_or_feint"]
+        attacker = find_attacker_from_key(action.attacker_key)
+        aim_or_feint = action.aim_or_feint
+        modifier = action.modifier
         random100 = random.randint(1, 100)
         sweep_boole = False
         weave_boole = False
@@ -290,8 +298,8 @@ class CmdDodge(default_cmds.MuxCommand):
         attacker_stat = find_attacker_stat(attacker, attack.base_stat)
         if modified_acc > random100:
             # Since the attack has hit, check for glancing blow.
-            attack_with_effects = check_for_effects(attack)
-            sweep_boolean = hasattr(attack_with_effects, "has_sweep")
+            # attack_with_effects = check_for_effects(attack)
+            sweep_boolean = hasattr(attack, "has_sweep")
             is_glancing_blow = glancing_blow_calc(random100, modified_acc, sweep_boolean)
             if is_glancing_blow:
                 # For now, halving the damage of glancing blows.
@@ -317,12 +325,7 @@ class CmdDodge(default_cmds.MuxCommand):
             caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
             msg = "|y<COMBAT>|n {target} has dodged {attacker}'s {modifier}{attack}."
 
-        if aim_or_feint == AimOrFeint.AIM:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Aimed ", attack=attack.name)
-        elif aim_or_feint == AimOrFeint.FEINT:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Feinting ", attack=attack.name)
-        else:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="", attack=attack.name)
+        combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
         # To avoid overcomplicating the above messaging code, I'm adding the "glancing blow"
@@ -353,7 +356,7 @@ class CmdBlock(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         args = self.args
-        id_list = [attack["id"] for attack in caller.db.queue]
+        id_list = [attack.id for attack in caller.db.queue]
 
         # Syntax is just "block <id>".
         if not args.isdigit():
@@ -366,18 +369,19 @@ class CmdBlock(default_cmds.MuxCommand):
 
         # The attack is a string in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
-        attack = action["attack"]
+        attack = action.attack
         attack_damage = attack.dmg
         accuracy = attack.acc
-        attacker = action["attacker"]
-        aim_or_feint = action["aim_or_feint"]
+        attacker = find_attacker_from_key(action.attacker_key)
+        aim_or_feint = action.aim_or_feint
+        modifier = action.modifier
         random100 = random.randint(1, 100)
         crush_boole = False
         brace_boole = False
         rush_boole = False
-        attack_with_effects = check_for_effects(attack)
-        if hasattr(attack_with_effects, "has_crush"):
-            if attack_with_effects.has_crush:
+        # attack_with_effects = check_for_effects(attack)
+        if hasattr(attack, "has_crush"):
+            if attack.has_crush:
                 crush_boole = True
         if caller.db.is_bracing:
             brace_boole = True
@@ -436,12 +440,7 @@ class CmdBlock(default_cmds.MuxCommand):
             block_boole = True
             new_block_penalty = accrue_block_penalty(caller, modified_damage, block_boole, crush_boole)
             caller.db.block_penalty = new_block_penalty
-        if aim_or_feint == AimOrFeint.AIM:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Aimed ", attack=attack.name)
-        elif aim_or_feint == AimOrFeint.FEINT:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Feinting ", attack=attack.name)
-        else:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="", attack=attack.name)
+        combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
         # Checking after the combat location message if the attack has put the defender at 0 LF or below.
@@ -466,7 +465,7 @@ class CmdEndure(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         args = self.args
-        id_list = [attack["id"] for attack in caller.db.queue]
+        id_list = [attack.id for attack in caller.db.queue]
 
         # Syntax is just "endure <id>".
         if not args.isdigit():
@@ -479,11 +478,12 @@ class CmdEndure(default_cmds.MuxCommand):
 
         # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
-        attack = action["attack"]
+        attack = action.attack
         attack_damage = attack.dmg
         accuracy = attack.acc
-        attacker = action["attacker"]
-        aim_or_feint = action["aim_or_feint"]
+        attacker = find_attacker_from_key(action.attacker_key)
+        aim_or_feint = action.aim_or_feint
+        modifier = action.modifier
         random100 = random.randint(1, 100)
         brace_boole = False
         rush_boole = False
@@ -526,12 +526,7 @@ class CmdEndure(default_cmds.MuxCommand):
         new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
         attacker.db.ex = new_attacker_ex
 
-        if aim_or_feint == AimOrFeint.AIM:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Aimed ", attack=attack.name)
-        elif aim_or_feint == AimOrFeint.FEINT:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Feinting ", attack=attack.name)
-        else:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="", attack=attack.name)
+        combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
         # Checking after the combat location messages if the attack has put the defender at 0 LF or below.
@@ -563,7 +558,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         caller = self.caller
         args = self.args
         arts = caller.db.arts
-        id_list = [attack["id"] for attack in caller.db.queue]
+        id_list = [attack.id for attack in caller.db.queue]
         # Like +attack, +interrupt requires two arguments: a incoming attack and an outgoing interrupt.
         if "=" not in args:
             return caller.msg("Please use proper syntax: interrupt <id>=<name of interrupt>.")
@@ -600,11 +595,12 @@ class CmdInterrupt(default_cmds.MuxCommand):
 
         # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
         incoming_action = caller.db.queue[id_list.index(int(incoming_attack_arg))]
-        incoming_attack = incoming_action["attack"]
+        incoming_attack = incoming_action.attack
         incoming_damage = incoming_attack.dmg
         incoming_accuracy = incoming_attack.acc
-        attacker = incoming_action["attacker"]
-        aim_or_feint = incoming_action["aim_or_feint"]
+        attacker = find_attacker_from_key(incoming_action.attacker_key)
+        aim_or_feint = incoming_action.aim_or_feint
+        modifier = incoming_action.modifier
         outgoing_interrupt = interrupt_clean
         outgoing_damage = interrupt_clean.dmg
         outgoing_accuracy = interrupt_clean.acc
@@ -683,14 +679,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             new_attacker_ex_second = ex_gain_on_defense(final_outgoing_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex_second
 
-        if aim_or_feint == AimOrFeint.AIM:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Aimed ",
-                                       attack=incoming_attack.name, interrupt=outgoing_interrupt.name)
-        elif aim_or_feint == AimOrFeint.FEINT:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="Feinting ",
-                                       attack=incoming_attack.name, interrupt=outgoing_interrupt.name)
-        else:
-            combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier="",
+        combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier,
                                         attack=incoming_attack.name, interrupt=outgoing_interrupt.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
@@ -724,7 +713,7 @@ class CmdArts(default_cmds.MuxCommand):
         caller = self.caller
         arts = caller.db.arts
         if arts is None:
-            return caller.msg("Your character has no Arts. Use +addart to create some.")
+            return caller.msg("Your character has no Arts. Use +setart to create some.")
 
         client_width = self.client_width()
         arts_table = setup_table(client_width)
@@ -814,7 +803,7 @@ class CmdCheck(default_cmds.MuxCommand):
                 return caller.msg("Please use an integer with the check command, e.g., \"check 1\".")
 
             attack_id = int(args)
-            id_list = [attack["id"] for attack in caller.db.queue]
+            id_list = [attack.id for attack in caller.db.queue]
 
             # Now, beautifully display the arts and normals with an added column for relative interrupt chance.
             normals_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Normals") / 2.0)) - 2)  # -2 for the \/
@@ -832,7 +821,7 @@ class CmdCheck(default_cmds.MuxCommand):
                 # this code block is copied from CmdInterrupt
                 # TODO: refactor CmdInterrupt and figure out how to move this all into a separate function
                 incoming_action = caller.db.queue[id_list.index(attack_id)]
-                incoming_attack = incoming_action["attack"]
+                incoming_attack = incoming_action.attack
                 incoming_accuracy = incoming_attack.acc
                 outgoing_accuracy = normal.acc
                 bait_boole = False
@@ -874,10 +863,10 @@ class CmdCheck(default_cmds.MuxCommand):
             # If the character has arts, list them.
             if arts:
                 for art in arts:
-                    art = check_for_effects(art)
+                    # art = check_for_effects(art)
                     # this code block is copied from CmdInterrupt
                     incoming_action = caller.db.queue[id_list.index(attack_id)]
-                    incoming_attack = incoming_action["attack"]
+                    incoming_attack = incoming_action.attack
                     incoming_accuracy = incoming_attack.acc
                     outgoing_accuracy = art.acc
                     bait_boole = False
