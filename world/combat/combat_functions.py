@@ -72,17 +72,19 @@ def modify_speed(speed):
     return effective_speed
 
 
-def dodge_calc(attack_acc, speed, sweep_boole, weave_boole, rush_boole):
+def dodge_calc(defender, attack_instance):
     # accuracy = int(int(attack_acc) / (speed/100))
+    speed = defender.db.speed
+    attack_acc = attack_instance.attack.acc
     accuracy = 100.0 - (0.475 * (modify_speed(speed) - attack_acc) + 5)
     # Checking to see if the attack has sweep and improving accuracy/reducing dodge chance if so.
-    if sweep_boole:
+    if attack_instance.has_sweep:
         accuracy += 10
     # Checking to see if the defender is_rushing and improving accuracy if so.
-    if rush_boole:
+    if defender.db.is_rushing:
         accuracy += 5
     # Checking to see if the defender is_weaving and reducing accuracy/improving dodge chance if so.
-    if weave_boole:
+    if defender.db.is_weaving:
         accuracy -= 10
     # cap accuracy at 99%
     if accuracy > 99:
@@ -92,25 +94,27 @@ def dodge_calc(attack_acc, speed, sweep_boole, weave_boole, rush_boole):
     return accuracy
 
 
-def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole, brace_boole, block_penalty, rush_boole):
+def block_chance_calc(defender, attack_instance):
     def_stat = 0
-    if base_stat == "Power":
-        def_stat = parry
-    if base_stat == "Knowledge":
-        def_stat = barrier
+    if attack_instance.attack.base_stat == "Power":
+        def_stat = defender.db.parry
+    if attack_instance.attack.base_stat == "Knowledge":
+        def_stat = defender.db.barrier
+    speed = defender.db.speed
+    attack_acc = attack_instance.attack.acc
     averaged_def = modify_speed(speed) + def_stat*.5
     # accuracy = int(int(attack_acc) / (averaged_def/100))
     accuracy = 100.0 - (0.475 * (averaged_def - attack_acc))
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
-    if crush_boole:
+    if attack_instance.has_crush:
         accuracy += 10
-    if brace_boole:
+    if defender.db.is_bracing:
         accuracy -= 10
     # Checking to see if the defender is_rushing and improving accuracy if so.
-    if rush_boole:
+    if defender.db.is_rushing:
         accuracy += 5
     # Incorporating block penalty.
-    accuracy += block_penalty
+    accuracy += defender.db.block_penalty
     if accuracy > 99:
         accuracy = 99
     elif accuracy < 1:
@@ -118,21 +122,23 @@ def block_chance_calc(attack_acc, base_stat, speed, parry, barrier, crush_boole,
     return accuracy
 
 
-def endure_chance_calc(attack_acc, base_stat, speed, parry, barrier, brace_boole, rush_boole):
+def endure_chance_calc(defender, attack_instance):
     # Calculate the chance of successfully enduring. Like Block, should be based on both Speed and relevant defense.
     def_stat = 0
-    if base_stat == "Power":
-        def_stat = parry
-    if base_stat == "Knowledge":
-        def_stat = barrier
+    if attack_instance.attack.base_stat == "Power":
+        def_stat = defender.db.parry
+    if attack_instance.attack.base_stat == "Knowledge":
+        def_stat = defender.db.barrier
+    speed = defender.db.speed
+    attack_acc = attack_instance.attack.acc
     averaged_def = modify_speed(speed) + def_stat*.5
     # accuracy = int(int(attack_acc) / (averaged_def / 100))
     accuracy = 100.0 - (0.475 * (averaged_def - attack_acc))
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
-    if brace_boole:
+    if defender.db.is_bracing:
         accuracy -= 10
     # Checking to see if the defender is_rushing and improving accuracy if so.
-    if rush_boole:
+    if defender.db.is_rushing:
         accuracy += 5
     if accuracy > 99:
         accuracy = 99
@@ -141,16 +147,15 @@ def endure_chance_calc(attack_acc, base_stat, speed, parry, barrier, brace_boole
     return accuracy
 
 
-def interrupt_chance_calc(incoming_accuracy, outgoing_accuracy, bait_boole, rush_boole, incoming_priority_boole,
-                          outgoing_priority_boole):
-    interrupt_chance = 40 + int(outgoing_accuracy) - int(incoming_accuracy)
-    if bait_boole:
+def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interrupt):
+    interrupt_chance = 40 + int(outgoing_interrupt.acc) - int(incoming_attack_instance.attack.acc)
+    if interrupter.db.is_baiting:
         interrupt_chance += 10
-    if rush_boole:
+    if interrupter.db.is_rushing:
         interrupt_chance -= 5
-    if incoming_priority_boole:
+    if incoming_attack_instance.has_priority:
         interrupt_chance -= 15
-    if outgoing_priority_boole:
+    if "Priority" in outgoing_interrupt.effects:
         interrupt_chance += 15
     return interrupt_chance
 
@@ -232,31 +237,6 @@ def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
     return False
 
 
-# def check_for_effects(attack):
-#     # TODO: can we build this into append_to_queue? it's weird that we do this at the reaction stage.
-#     # TODO: instead, we can rebuild this function to adjust the chances depending on which reaction is being used.
-#     # This function checks for effects on an attack and modifies the attack object accordingly.
-#     # Modify this function as more effects are implemented.
-#     modified_attack = attack
-#     if attack.effects:
-#         for effect in attack.effects:
-#             if effect == "Crush":
-#                 modified_attack.has_crush = True
-#             if effect == "Sweep":
-#                 modified_attack.has_sweep = True
-#             if effect == "Priority":
-#                 modified_attack.has_priority = True
-#             if effect == "Rush":
-#                 modified_attack.has_rush = True
-#             if effect == "Weave":
-#                 modified_attack.has_weave = True
-#             if effect == "Brace":
-#                 modified_attack.has_brace = True
-#             if effect == "Bait":
-#                 modified_attack.has_bait = True
-#     return modified_attack
-
-
 def combat_tick(character):
     # This function represents a "tick" or the end of a turn. Any "action," like +attack or +pass, counts as a tick.
     # The attack command should cause a tick, then apply any new effects associated with the attack.
@@ -297,20 +277,20 @@ def apply_attack_effects_to_attacker(attacker, attack):
     return attacker
 
 
-def accrue_block_penalty(character, pre_block_damage, block_boole, crush_boole):
+def accrue_block_penalty(defender, pre_block_damage, block_bool, attack_instance):
     # If the block succeeds, accrue full block penalty. If the block fails, accrue a minor block penalty.
     # Crush makes the block penalty a lot worse if you block and a little worse if you fail to block.
-    if block_boole:
-        if crush_boole:
-            character.db.block_penalty += (pre_block_damage / 5)
+    if block_bool:
+        if attack_instance.has_crush:
+            defender.db.block_penalty += (pre_block_damage / 5)
         else:
-            character.db.block_penalty += (pre_block_damage / 10)
+            defender.db.block_penalty += (pre_block_damage / 10)
     else:
-        if crush_boole:
-            character.db.block_penalty += (pre_block_damage / 15)
+        if attack_instance.has_crush:
+            defender.db.block_penalty += (pre_block_damage / 15)
         else:
-            character.db.block_penalty += (pre_block_damage / 30)
-    return character.db.block_penalty
+            defender.db.block_penalty += (pre_block_damage / 30)
+    return defender.db.block_penalty
 
 
 def final_action_check(character):

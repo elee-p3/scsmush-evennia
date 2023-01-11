@@ -9,21 +9,6 @@ import copy
 from world.combat.attacks import AttackInstance
 
 
-# def append_to_queue(target, attack, attacker, aim_or_feint):
-#     # TODO: create class for queue_object instead of a dict
-    # append a tuple per attack: (id, attack)
-    # theoretically, you should always resolve all attacks in your queue before having more people attack you
-    # this code should always just tack on at the end of the list even if that doesn't happen
-    # if not target.db.queue:
-    #     last_id = 0
-    # else:
-    #     last_id = max((attack["id"] for attack in target.db.queue))
-    # target.db.queue.append({"id":last_id+1, "attack":attack_object, "modified_damage":attack_damage, "modified_accuracy":
-    #     modified_accuracy, "attacker":attacker, "aim_or_feint":aim_or_feint})
-    # target.db.queue.append({"id":last_id+1, "attack":attack, "attacker":attacker, "aim_or_feint":aim_or_feint})
-    # target.db.queue.append({"id": last_id + 1, "attack": attack, "attacker": attacker, "aim_or_feint": aim_or_feint})
-
-
 def display_queue(caller):
     # This function is called by both the "queue" command and by "check" when input without arguments.
     if not caller.db.queue:
@@ -32,33 +17,11 @@ def display_queue(caller):
         for atk_obj in caller.db.queue:
             attack = atk_obj.attack
             id = atk_obj.id
-            accuracy = attack.acc
-            weave_boole = False
-            brace_boole = False
-            crush_boole = False
-            sweep_boole = False
-            rush_boole = False
-            # Checking for persistent status effects on the defender.
-            if caller.db.is_weaving:
-                weave_boole = True
-            if caller.db.is_bracing:
-                brace_boole = True
-            if caller.db.is_rushing:
-                rush_boole = True
-            if atk_obj.has_crush:
-                crush_boole = True
-            if atk_obj.has_sweep:
-                sweep_boole = True
-            # Checking for block penalty.
-            block_penalty = caller.db.block_penalty
-            modified_acc_for_dodge = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
+            modified_acc_for_dodge = dodge_calc(caller, atk_obj)
             dodge_pct = 100 - modified_acc_for_dodge
-            modified_acc_for_block = block_chance_calc(accuracy, attack.base_stat, caller.db.speed,
-                                                       caller.db.parry, caller.db.barrier, crush_boole,
-                                                       brace_boole, block_penalty, rush_boole)
+            modified_acc_for_block = block_chance_calc(caller, atk_obj)
             block_pct = 100 - modified_acc_for_block
-            modified_acc_for_endure = endure_chance_calc(accuracy, attack.base_stat, caller.db.speed,
-                                                         caller.db.parry, caller.db.barrier, brace_boole, rush_boole)
+            modified_acc_for_endure = endure_chance_calc(caller, atk_obj)
             endure_pct = 100 - modified_acc_for_endure
             # TODO: replace this string with evtable?
             caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.base_stat,
@@ -109,8 +72,6 @@ class CmdAttack(default_cmds.MuxCommand):
             aim_or_feint = AimOrFeint.AIM
         if caller.db.is_feinting:
             aim_or_feint = AimOrFeint.FEINT
-        # caller.msg(target)
-        # caller.msg(action)
 
         # First, check that the character attacking is not KOed
         if caller.db.KOed:
@@ -179,14 +140,6 @@ class CmdAttack(default_cmds.MuxCommand):
         # Now apply any persistent effects that will affect the attacker regardless of the attack's future success.
         caller = apply_attack_effects_to_attacker(caller, action_clean)
 
-        # Append the attack to the target's queue and announce the attack.
-        # if caller.db.is_aiming:
-        #     append_to_queue(target_object, action_clean, caller, AimOrFeint.AIM)
-        # elif caller.db.is_feinting:
-        #     append_to_queue(target_object, action_clean, caller, AimOrFeint.FEINT)
-        # else:
-        #     append_to_queue(target_object, action_clean, caller, AimOrFeint.NEUTRAL)
-
         new_id = assign_attack_instance_id(target_object)
         target_object.db.queue.append(AttackInstance(new_id, action_clean, caller.key, aim_or_feint))
 
@@ -211,7 +164,6 @@ class CmdAttack(default_cmds.MuxCommand):
 
 
 class CmdQueue(default_cmds.MuxCommand):
-    # TODO: Replace both queue and check without arguments with a shared function using evtable?
     """
         Combat command. View all incoming attacks in your character's queue.
         Unlike the "check" command, this does not display additional information, such as status effects.
@@ -265,27 +217,12 @@ class CmdDodge(default_cmds.MuxCommand):
         action = caller.db.queue[id_list.index(input_id)]
         attack = action.attack
         attack_damage = attack.dmg
-        accuracy = attack.acc
         attacker = find_attacker_from_key(action.attacker_key)
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)
-        sweep_boole = False
-        weave_boole = False
-        rush_boole = False
-        # TODO: take these instances where reactions check for effects and create a meta "check for effects" function
-        # where, depending on which reaction it is, different effects are checked for. This will make it easier to
-        # modify what effects reactions will check for when I add new effects, instead of having to go to the reaction.
-        # Checking if the attack has the Sweep effect.
-        if hasattr(attack, "has_sweep"):
-            if attack.has_sweep:
-                sweep_boole = True
-        # Checking if the defender's previous attack had the Weave or Rush effects.
-        if caller.db.is_weaving:
-            weave_boole = True
-        if caller.db.is_rushing:
-            rush_boole = True
-        modified_acc = dodge_calc(accuracy, caller.db.speed, sweep_boole, weave_boole, rush_boole)
+
+        modified_acc = dodge_calc(caller, action)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         if aim_or_feint == AimOrFeint.AIM:
@@ -298,8 +235,7 @@ class CmdDodge(default_cmds.MuxCommand):
         attacker_stat = find_attacker_stat(attacker, attack.base_stat)
         if modified_acc > random100:
             # Since the attack has hit, check for glancing blow.
-            # attack_with_effects = check_for_effects(attack)
-            sweep_boolean = hasattr(attack, "has_sweep")
+            sweep_boolean = action.has_sweep
             is_glancing_blow = glancing_blow_calc(random100, modified_acc, sweep_boolean)
             if is_glancing_blow:
                 # For now, halving the damage of glancing blows.
@@ -371,31 +307,15 @@ class CmdBlock(default_cmds.MuxCommand):
         action = caller.db.queue[id_list.index(input_id)]
         attack = action.attack
         attack_damage = attack.dmg
-        accuracy = attack.acc
         attacker = find_attacker_from_key(action.attacker_key)
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)
-        crush_boole = False
-        brace_boole = False
-        rush_boole = False
-        # attack_with_effects = check_for_effects(attack)
-        if hasattr(attack, "has_crush"):
-            if attack.has_crush:
-                crush_boole = True
-        if caller.db.is_bracing:
-            brace_boole = True
-        if caller.db.is_rushing:
-            rush_boole = True
-        # Checking for block penalty.
-        block_penalty = caller.db.block_penalty
+
         # Find the attacker's relevant attack stat for damage_calc.
         attacker_stat = find_attacker_stat(attacker, attack.base_stat)
-        modified_acc = block_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry,
-                                         caller.db.barrier, crush_boole, brace_boole, block_penalty, rush_boole)
+        modified_acc = block_chance_calc(caller, action)
         modified_damage = damage_calc(attack_damage, attacker_stat, attack.base_stat, caller.db.parry, caller.db.barrier)
-        # caller.msg("Base damage is: " + str(attack.dmg))
-        # caller.msg("Modified damage is: " + str(modified_damage))
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         if aim_or_feint == AimOrFeint.AIM:
@@ -419,11 +339,11 @@ class CmdBlock(default_cmds.MuxCommand):
             new_attacker_ex = ex_gain_on_attack(modified_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
             # Modify the defender's block penalty (a little, since the block failed).
-            block_boole = False
-            new_block_penalty = accrue_block_penalty(caller, modified_damage, block_boole, crush_boole)
+            block_bool = False
+            new_block_penalty = accrue_block_penalty(caller, modified_damage, block_bool, action)
             caller.db.block_penalty = new_block_penalty
         else:
-            final_damage = block_damage_calc(modified_damage, block_penalty)
+            final_damage = block_damage_calc(modified_damage, caller.db.block_penalty)
             caller.msg("You have successfully blocked {attack}.".format(attack=attack.name))
             caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
             caller.db.lf -= final_damage
@@ -437,8 +357,8 @@ class CmdBlock(default_cmds.MuxCommand):
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
             # Modify the defender's block penalty (a lot, since the block succeeded). Based on modified, not final, dmg.
-            block_boole = True
-            new_block_penalty = accrue_block_penalty(caller, modified_damage, block_boole, crush_boole)
+            block_bool = True
+            new_block_penalty = accrue_block_penalty(caller, modified_damage, block_bool, action)
             caller.db.block_penalty = new_block_penalty
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
@@ -480,20 +400,12 @@ class CmdEndure(default_cmds.MuxCommand):
         action = caller.db.queue[id_list.index(input_id)]
         attack = action.attack
         attack_damage = attack.dmg
-        accuracy = attack.acc
         attacker = find_attacker_from_key(action.attacker_key)
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)
-        brace_boole = False
-        rush_boole = False
-        # Checking if the defender's previous attack had the Brace or Rush effect.
-        if caller.db.is_bracing:
-            brace_boole = True
-        if caller.db.is_rushing:
-            rush_boole = True
-        modified_acc = endure_chance_calc(accuracy, attack.base_stat, caller.db.speed, caller.db.parry, caller.db.barrier,
-                                          brace_boole, rush_boole)
+
+        modified_acc = endure_chance_calc(caller, action)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         if aim_or_feint == AimOrFeint.AIM:
@@ -597,35 +509,16 @@ class CmdInterrupt(default_cmds.MuxCommand):
         incoming_action = caller.db.queue[id_list.index(int(incoming_attack_arg))]
         incoming_attack = incoming_action.attack
         incoming_damage = incoming_attack.dmg
-        incoming_accuracy = incoming_attack.acc
         attacker = find_attacker_from_key(incoming_action.attacker_key)
         aim_or_feint = incoming_action.aim_or_feint
         modifier = incoming_action.modifier
         outgoing_interrupt = interrupt_clean
-        outgoing_damage = interrupt_clean.dmg
-        outgoing_accuracy = interrupt_clean.acc
         random100 = random.randint(1, 100)
-        bait_boole = False
-        rush_boole = False
-        incoming_priority_boole = False
-        outgoing_priority_boole = False
+
         incoming_attack_stat = find_attacker_stat(attacker, incoming_attack.base_stat)
         outgoing_interrupt_stat = find_attacker_stat(caller, outgoing_interrupt.base_stat)
-        # Checking if the attacker's attack has the Priority effect.
-        if hasattr(incoming_attack, "has_priority"):
-            if incoming_attack.has_priority:
-                incoming_priority_boole = True
-        # Checking if the defender's previous attack had the Bait or Rush effect.
-        if caller.db.is_baiting:
-            bait_boole = True
-        if caller.db.is_rushing:
-            rush_boole = True
-        # Checking if the defender's interrupt has the Priority effect.
-        if hasattr(outgoing_interrupt, "has_priority"):
-            if outgoing_interrupt.has_priority:
-                outgoing_priority_boole = True
-        modified_acc = interrupt_chance_calc(incoming_accuracy, outgoing_accuracy, bait_boole, rush_boole,
-                                             incoming_priority_boole, outgoing_priority_boole)
+
+        modified_acc = interrupt_chance_calc(caller, incoming_action, outgoing_interrupt)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         if aim_or_feint == AimOrFeint.AIM:
@@ -821,28 +714,7 @@ class CmdCheck(default_cmds.MuxCommand):
                 # this code block is copied from CmdInterrupt
                 # TODO: refactor CmdInterrupt and figure out how to move this all into a separate function
                 incoming_action = caller.db.queue[id_list.index(attack_id)]
-                incoming_attack = incoming_action.attack
-                incoming_accuracy = incoming_attack.acc
-                outgoing_accuracy = normal.acc
-                bait_boole = False
-                rush_boole = False
-                incoming_priority_boole = False
-                outgoing_priority_boole = False
-                # Checking if the attacker's attack has the Priority effect.
-                if hasattr(incoming_attack, "has_priority"):
-                    if incoming_attack.has_priority:
-                        incoming_priority_boole = True
-                # Checking if the defender's previous attack had the Bait or Rush effect.
-                if caller.db.is_baiting:
-                    bait_boole = True
-                if caller.db.is_rushing:
-                    rush_boole = True
-                # Checking if the defender's interrupt has the Priority effect.
-                if hasattr(normal, "has_priority"):
-                    if normal.has_priority:
-                        outgoing_priority_boole = True
-                modified_acc = interrupt_chance_calc(incoming_accuracy, outgoing_accuracy, bait_boole, rush_boole,
-                                                     incoming_priority_boole, outgoing_priority_boole)
+                modified_acc = interrupt_chance_calc(caller, incoming_action, normal)
 
                 stat_string = normal.base_stat
                 if stat_string == "Power":
@@ -863,31 +735,9 @@ class CmdCheck(default_cmds.MuxCommand):
             # If the character has arts, list them.
             if arts:
                 for art in arts:
-                    # art = check_for_effects(art)
                     # this code block is copied from CmdInterrupt
                     incoming_action = caller.db.queue[id_list.index(attack_id)]
-                    incoming_attack = incoming_action.attack
-                    incoming_accuracy = incoming_attack.acc
-                    outgoing_accuracy = art.acc
-                    bait_boole = False
-                    rush_boole = False
-                    incoming_priority_boole = False
-                    outgoing_priority_boole = False
-                    # Checking if the attacker's attack has the Priority effect.
-                    if hasattr(incoming_attack, "has_priority"):
-                        if incoming_attack.has_priority:
-                            incoming_priority_boole = True
-                    # Checking if the defender's previous attack had the Bait or Rush effect.
-                    if caller.db.is_baiting:
-                        bait_boole = True
-                    if caller.db.is_rushing:
-                        rush_boole = True
-                    # Checking if the defender's interrupt has the Priority effect.
-                    if hasattr(art, "has_priority"):
-                        if art.has_priority:
-                            outgoing_priority_boole = True
-                    modified_acc = interrupt_chance_calc(incoming_accuracy, outgoing_accuracy, bait_boole, rush_boole,
-                                                         incoming_priority_boole, outgoing_priority_boole)
+                    modified_acc = interrupt_chance_calc(caller, incoming_action, art)
 
                     stat_string = art.base_stat
                     if stat_string == "Power":
