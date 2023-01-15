@@ -61,11 +61,3 @@ class AttackInstance:
                     self.has_brace = True
                 if effect == "Bait":
                     self.has_bait = True
-        # TODO: To avoid getting in a pickle, 1) don't put target in AttackInstance, but just keep it in the attack
-        # command, and 2) only send the attacker's key and then add a function to find the attacker using its key.
-
-    # def __deepcopy__(self, memodict={}):
-    #     return AttackInstance(self.target, self.attack, self.attacker, self.aim_or_feint)
-    #
-    # def __str__(self):
-    #     return ""
