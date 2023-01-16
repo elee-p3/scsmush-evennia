@@ -77,6 +77,13 @@ You'll have to do some platform-specific installation.
    
    If that doesn't make sense, don't worry about it. Just blindly execute the following commands and move on ;)
    
+   First, make sure that you have `virtualenv` installed for the 3+ version of python:
+   
+   ```
+   $ pip3 install --upgrade pip
+   $ pip3 install virtualenv
+   ```
+   
    Make sure you are in your project directory!
    
    ```
@@ -95,13 +102,6 @@ You'll have to do some platform-specific installation.
    ```
 
 4. Activate your virtualenv prior to every working session.
-   
-   First, make sure that you have `virtualenv` installed for the 3+ version of python:
-   
-   ```
-   $ pip3 install --upgrade pip
-   $ pip3 install virtualenv
-   ```
    
    Change to your project directory and then execute the activation script in your current shell using `source`:
    
