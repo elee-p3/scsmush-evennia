@@ -4,7 +4,7 @@ This project uses the following underlying dependencies:
 
 * git ([installation instructions](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git))
 * Evennia v0.9.5
-* Python v3.7 to 3.9
+* Python v3.9.5
 * Django v3.2.x
 * Twisted v21.0+
 
@@ -51,7 +51,7 @@ You'll have to do some platform-specific installation.
 
 ### MacOS
 
-1. For local development, get the [Python 3.7.9 release](https://www.python.org/downloads/release/python-379/).
+1. For local development, get the [Python 3.9.5 release](https://www.python.org/downloads/release/python-395/).
    Technically you can use a number of other releases, but this is a guaranteed-to-work version that comes with
    out-of-the-box installers. **_For production use cases, you should use a more modern version that has all the
    subsequent security patches!_**
@@ -85,13 +85,13 @@ You'll have to do some platform-specific installation.
    Then create a new virtual environment called `evenv` (evennia env).
    
    ```
-   $ virtualenv -p <path-to-python3.7> evenv
+   $ virtualenv -p <path-to-python3.9.5> evenv
    ```
-   For instance, on this machine, `<path-to-python3.7>` is `/usr/local/bin/python3.7`. To figure out where python3.7 is
+   For instance, on this machine, `<path-to-python3.9.5>` is `/usr/local/bin/python3.9`. To figure out where python3.9 is
    installed on your machine, you can use `which`:
    
    ```
-   $ which python3.7
+   $ which python3.9
    ```
 
 4. Activate your virtualenv prior to every working session.
@@ -165,6 +165,3 @@ To shut down the servers when you're done, use:
 ```
 $ evennia stop
 ```
-
-
-
