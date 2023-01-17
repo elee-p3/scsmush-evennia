@@ -152,6 +152,25 @@ You'll have to do some platform-specific installation.
    $ cd <project-dir>/scsmush-evennia
    $ touch server/conf/secret_settings.py
    ```
+   
+8. Start the server for the first time to create the superuser account.
+   
+   ```
+   $ cd <project-dir>/scsmush-evennia
+   $ evennia start
+   ```
+   
+   You'll be prompted to set the username and credentials for the server's superuser (admin/first/primordial/uber) account. If you're only setting
+   up your local development copy you can input whatever you want. It's only going to affect the server that you run on your own machine to test
+   your own changes (scsmush.com will not be affected).
+   
+   **_DO_** remember the username/password you choose, however, as you'll need it to log in locally!
+   
+   Once you've finished this you can shut the server back down if you don't plan to do further development / playtesting:
+   
+   ```
+   $ evennia stop
+   ```
 
 ### Windows
 
