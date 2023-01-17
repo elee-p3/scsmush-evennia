@@ -5,7 +5,7 @@ This project uses the following underlying dependencies:
 * git ([installation instructions](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git))
 * Evennia v0.9.5
 * Python v3.9.5
-* Django v2.2.28
+* Django v3.2
 * Twisted v21.0+
 
 ## Install git
