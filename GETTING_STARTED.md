@@ -56,14 +56,16 @@ You'll have to do some platform-specific installation.
    out-of-the-box installers. **_For production use cases, you should use a more modern version that has all the
    subsequent security patches!_**
   
-2. Enter your `project-dir` (if you hadn't already) and clone the evennia repo **_at version 0.9.5_**:
+2. Enter your `project-dir` (if you hadn't already) and clone the evennia repo:
    
    ```
    $ cd <project-dir>
    $ git clone https://github.com/evennia/evennia.git
    $ cd evennia
-   $ git checkout tags/v0.9.5
+   $ git checkout master
    ```
+   
+   Counterintuitively, that `git checkout master` is CRUCIAL as it puts you on v0.9.5. The `main` branch--that's right, they named the two branches `master` and `main` to make it super clear--is the branch for v1.x. Yup. (╯°□°)╯︵ ┻━┻
   
 3. Set up your `virtualenv` for this project.
    
@@ -136,8 +138,20 @@ You'll have to do some platform-specific installation.
    ```
    $ cd <project-dir>/scsmush-evennia
    $ evennia migrate
+   ```
    
+7. Set up the stuff that isn't checked into version control:
    
+   If you're not familiar, git uses a file called `.gitignore` to specify files that, if detected locally, should NOT be committed and should
+   instead be ignored.
+   
+   The file `server/conf/secret_settings.py`, if used, contains sensitive credentials and should not be checked into source control. You'll need
+   to recreate your own. If developing locally (not a production deployment), you can get by with an empty secrets file, so just make an empty one:
+   
+   ```
+   $ cd <project-dir>/scsmush-evennia
+   $ touch server/conf/secret_settings.py
+   ```
 
 ### Windows
 
