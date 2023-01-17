@@ -7,7 +7,6 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('objects', '0012_character_defaultcharacter_defaultexit_defaultobject_defaultroom_object'),
         ('scenes', '0003_alter_log_scene'),
     ]
 

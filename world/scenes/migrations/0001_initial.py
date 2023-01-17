@@ -8,10 +8,6 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-        ('objects', '0012_character_defaultcharacter_defaultexit_defaultobject_defaultroom_object'),
-    ]
-
     operations = [
         migrations.CreateModel(
             name='Scene',
