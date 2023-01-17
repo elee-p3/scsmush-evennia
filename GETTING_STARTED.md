@@ -1,4 +1,4 @@
-# Getting Started
+# Create an SCSMUSH dev environment
 
 This project uses the following underlying dependencies:
 
