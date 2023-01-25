@@ -5,6 +5,7 @@ Misc Commands are either to be possibly replaced with overwritten Evennia comman
 of setdesc) or are idiosyncratic (roulette and gridscan).
 
 """
+import csv
 import random
 
 from evennia import ObjectDB
@@ -168,3 +169,41 @@ class CmdGridscan(default_cmds.MuxCommand):
         for location in ic_locations:
             caller.msg("ID: " + str(location.id) + " --- Name: " + location.db_key)
             caller.msg("Desc: " + location.db.desc + "\n")
+
+
+class CmdResetCombatFile(default_cmds.MuxCommand):
+    """
+    Deletes and recreates csv file for collecting combat data
+
+    Usage:
+    """
+    key = "+clearcombat"
+    locks = "cmd:perm(Admin)"
+    def func(self):
+        with open("combat_record.csv", "w", encoding='UTF8') as combat_csv:
+            csvwriter = csv.writer(combat_csv)
+            csvwriter.writerow(["attacker name",
+                                "power",
+                                "knowledge",
+                                "defender name",
+                                "parry",
+                                "barrier",
+                                "speed",
+                                "block penalty",
+                                "endure bonus",
+                                "final action",
+                                "weaving",
+                                "bracing",
+                                "baiting",
+                                "rushing",
+                                "attack name",
+                                "AP cost",
+                                "attack dmg",
+                                "attack acc",
+                                "attack stat",
+                                "attack effects",
+                                "AIM OR FEINT",
+                                "reaction name",
+                                "success",
+                                "final damage"])
+        self.caller.msg("Cleared combat log")

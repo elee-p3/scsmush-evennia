@@ -1,4 +1,6 @@
 import copy
+import csv
+import os
 import random
 from math import floor, ceil
 
@@ -10,6 +12,36 @@ from world.combat.effects import AimOrFeint
 from world.combat.normals import NORMALS
 from world.utilities.utilities import *
 
+
+def record_combat(defender, attack_instance, reaction_name, is_success, dmg):
+    attacker = find_attacker_from_key(attack_instance.attacker_key)
+    attack = attack_instance.attack
+    with open("combat_record.csv", "a", newline='') as combat_csv:
+        csvwriter = csv.writer(combat_csv)
+        csvwriter.writerow([attacker.key,
+                            attacker.db.power,
+                            attacker.db.knowledge,
+                            defender.key,
+                            defender.db.parry,
+                            defender.db.barrier,
+                            defender.db.speed,
+                            defender.db.block_penalty,
+                            defender.db.endure_bonus,
+                            defender.db.final_action,
+                            defender.db.is_weaving,
+                            defender.db.is_bracing,
+                            defender.db.is_baiting,
+                            defender.db.is_rushing,
+                            attack.name,
+                            attack.ap_change,
+                            attack.dmg,
+                            attack.acc,
+                            attack.base_stat,
+                            str(attack.effects),
+                            attack_instance.aim_or_feint,
+                            reaction_name,
+                            is_success,
+                            dmg])
 
 def display_queue(caller):
     # This function is called by both the "queue" command and by "check" when input without arguments.
@@ -304,7 +336,7 @@ class CmdDodge(default_cmds.MuxCommand):
         if input_id not in id_list:
             return caller.msg("Cannot find that attack in your queue.")
 
-        # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
+        # The attack is an AttackInstance object in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
         attack = action.attack
         attack_damage = attack.dmg
@@ -348,9 +380,11 @@ class CmdDodge(default_cmds.MuxCommand):
             # Modify the attacker's EX based on the damage inflicted.
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
+            record_combat(caller, action, "dodge", False, final_damage)
         else:
             caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
             msg = "|y<COMBAT>|n {target} has dodged {attacker}'s {modifier}{attack}."
+            record_combat(caller, action, "dodge", True, 0)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
@@ -363,6 +397,7 @@ class CmdDodge(default_cmds.MuxCommand):
             caller.location.msg_contents(combat_string)
             combat_log_entry(caller, combat_string)
         # Checking after the combat location messages if the attack has put the defender at 0 LF or below.
+        # TODO: this probably doesn't have to return the caller in the function
         caller = final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
 
@@ -433,6 +468,7 @@ class CmdBlock(default_cmds.MuxCommand):
             block_bool = False
             new_block_penalty = accrue_block_penalty(caller, modified_damage, block_bool, action)
             caller.db.block_penalty = new_block_penalty
+            record_combat(caller, action, "block", False, modified_damage)
         else:
             final_damage = block_damage_calc(modified_damage, caller.db.block_penalty)
             caller.msg("You have successfully blocked {attack}.".format(attack=attack.name))
@@ -451,6 +487,8 @@ class CmdBlock(default_cmds.MuxCommand):
             block_bool = True
             new_block_penalty = accrue_block_penalty(caller, modified_damage, block_bool, action)
             caller.db.block_penalty = new_block_penalty
+            record_combat(caller, action, "block", True, final_damage)
+
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
@@ -511,6 +549,7 @@ class CmdEndure(default_cmds.MuxCommand):
             caller.msg("You have been hit by {attack}.".format(attack=attack.name))
             caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
             msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
+            record_combat(caller, action, "endure", False, final_damage)
         else:
             caller.msg("You endure {attack}.".format(attack=attack.name))
             caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
@@ -519,6 +558,7 @@ class CmdEndure(default_cmds.MuxCommand):
             # you get to keep whatever endure bonus is higher. But endure bonus is not cumulative. (That's OP.)
             if endure_bonus_calc(final_damage) > caller.db.endure_bonus:
                 caller.db.endure_bonus = endure_bonus_calc(final_damage)
+            record_combat(caller, action, "endure", True, final_damage)
 
         caller.db.lf -= final_damage
         # Modify EX based on damage taken.
@@ -635,6 +675,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             # Modify the attacker's EX based on the damage inflicted.
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
+            record_combat(caller, incoming_action, "interrupt", False, final_damage)
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
             modified_int_damage = modify_damage(outgoing_interrupt, caller)
@@ -662,6 +703,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             attacker.db.ex = new_attacker_ex_first
             new_attacker_ex_second = ex_gain_on_defense(final_outgoing_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex_second
+            record_combat(caller, incoming_action, "interrupt", True, mitigated_damage)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier,
                                         attack=incoming_attack.name, interrupt=outgoing_interrupt.name)

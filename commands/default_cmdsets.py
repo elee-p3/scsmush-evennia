@@ -82,6 +82,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdInterrupt)
         self.add(CmdCheck)
         self.add(CmdPoseHeaders)
+        self.add(CmdResetCombatFile)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
