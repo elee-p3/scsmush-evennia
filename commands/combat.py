@@ -1,12 +1,14 @@
-from world.combat.normals import NORMALS
-from evennia import default_cmds
-from world.utilities.utilities import *
+import copy
 import random
+from math import floor, ceil
+
+from evennia import default_cmds
+from evennia.utils import evtable
+from world.combat.attacks import AttackInstance
 from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
-from math import floor, ceil
-import copy
-from world.combat.attacks import AttackInstance
+from world.combat.normals import NORMALS
+from world.utilities.utilities import *
 
 
 def display_queue(caller):
@@ -27,6 +29,95 @@ def display_queue(caller):
             caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.base_stat,
                                                                            round(dodge_pct), round(block_pct),
                                                                            round(endure_pct)))
+
+
+class CmdSheet(default_cmds.MuxCommand):
+    # TODO(RF): New command. Tied to combat commands. Add to combat.py? Also contains some finger info.
+    """
+    List attributes
+
+    Usage:
+      sheet, score
+
+    Displays a list of your current ability values.
+    """
+    key = "sheet"
+    aliases = ["score"]
+    lock = "cmd:all()"
+    help_category = "General"
+
+    def func(self):
+        client_width = self.client_width()
+        char = self.caller.get_abilities()
+        arts = self.caller.db.arts
+        sheetMsg = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"  # top border
+
+        header = ""
+        alias_list = [x for x in self.caller.aliases.all() if " " not in x]
+        # find all aliases that don't contain spaces (this was to get rid of "An Ivo" or "One Ivo")
+        if alias_list:
+            alias = min(alias_list, key=len).title()
+            header = char["name"] + " (" + alias + ")" + " - " + char["occupation"]
+        else:
+            header = char["name"] + " - " + char["occupation"]
+
+        left_spacing = " " * ((floor(client_width / 2.0) - floor(len(header) / 2.0)) - 2)  # -2 for the \/
+        right_spacing = " " * ((floor(client_width / 2.0) - ceil(len(header) / 2.0)) - 2)  # -2 for the \/
+        nameBorder = "\\/" + left_spacing + header + right_spacing + "\\/"
+        sheetMsg += nameBorder + "\n"
+
+        charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
+                                        border_bottom_char=" ", width=client_width, border="table")
+        charInfoTable.add_column()
+        charInfoTable.add_column()
+        charInfoTable.add_column()
+        charInfoTable.add_column()
+        charInfoTable.reformat_column(0, align='l')  # resource label
+        charInfoTable.reformat_column(1, align='r')  # resource value
+        charInfoTable.reformat_column(2, align='l')  # stat label
+        charInfoTable.reformat_column(3, align='l')  # stat value
+        charInfoTable.add_row("LF",
+                              "{0}/{1}  ".format(int(char["lf"]), int(char["maxlf"])),
+                              "  Power",
+                              "  {0}".format(char["power"]))
+        charInfoTable.add_row("[future hp vis]",
+                              "",
+                              "  Knowledge",
+                              "  {0}".format(char["knowledge"]))
+        charInfoTable.add_row("AP",
+                              "{0}/{1}  ".format(int(char["ap"]), int(char["maxap"])),
+                              "  Parry",
+                              "  {0}".format(char["parry"]))
+        charInfoTable.add_row("[future hp vis]",
+                              "",
+                              "  Barrier",
+                              "  {0}".format(char["barrier"]))
+        charInfoTable.add_row("EX",
+                              "{0}%/{1}%  ".format(int(char["ex"]), int(char["maxex"])),
+                              "  Speed",
+                              "  {0}".format(char["speed"]))
+        charInfoTable.add_row("[future ex vis]",
+                              "",
+                              "",
+                              "")
+
+        charInfoString = charInfoTable.__str__()
+        sheetMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
+
+        # print Arts table, attached to the bottom of the character sheet
+        left_spacing = floor(client_width / 2.0) - 3  # -2 for the borders
+        right_spacing = ceil(client_width / 2.0) - 3  # -2 for the borders
+        sheetMsg += "|" + "=" * left_spacing + "ARTS" + "=" * right_spacing + "|"
+
+        arts_table = setup_table(client_width, is_sheet=True)
+        populate_table(arts_table, arts)
+        arts_string = arts_table.__str__()
+        sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
+
+        sheetMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
+        sheetMsg += "\\/" + (client_width - 4) * " " + "\\/" + "\n"
+
+        self.caller.msg(sheetMsg)
 
 
 class CmdAttack(default_cmds.MuxCommand):

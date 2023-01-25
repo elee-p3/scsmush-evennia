@@ -14,14 +14,16 @@ own cmdsets by inheriting from them or directly from `evennia.CmdSet`.
 
 """
 
-from evennia import default_cmds
-# from evennia.contrib import dice
 from commands.scs_dice import *
-import commands.command
 from commands.command import *
 from commands.bboards import *
-from commands.combat_commands import *
-from commands.chargen_commands import *
+from commands.combat import *
+from commands.chargen import *
+from commands.event import *
+from commands.misc import *
+from commands.visuals import *
+from commands.mush_core import *
+
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
     """
@@ -80,6 +82,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdInterrupt)
         self.add(CmdCheck)
         self.add(CmdPoseHeaders)
+
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
     """

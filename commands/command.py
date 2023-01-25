@@ -3,25 +3,22 @@ Commands
 
 Commands describe the input the account can do to the game.
 
+"Command.py" contains commands native to Evennia that SCSMUSH has overriden or modified.
 """
-import random
 import re
 import time
-from datetime import datetime
-from math import floor, ceil
 
 from evennia.server.sessionhandler import SESSIONS
 from evennia import ObjectDB, AccountDB
 from evennia import default_cmds
 from evennia.utils import utils, create, evtable, make_iter, inherits_from, datetime_format
 from evennia.comms.models import Msg
-from typeclasses.rooms import Room
 from world.scenes.models import Scene, LogEntry
 from world.supplemental import *
 from world.utilities.utilities import setup_table, populate_table, logger
 
+
 def add_participant_to_scene(character, scene):
-    # TODO(RF): Event code
     '''
     Given a character, checks the given scene's participants for that character and, if
     NOT present, adds the character as a participant to the scene.
@@ -41,7 +38,6 @@ def ireplace(old, repl, text):
 
 
 def prune_sessions(session_list):
-    # TODO(RF): +pot is core MUSHing functionality; who is a modified Evennia command.
     # This function modifies the display of "who" and "+pot" so that, if the same player is connected from multiple
     # devices, their character name is only displayed once to avoid confusion. Admin still see all connected sessions.
     session_accounts = [session.account.key for session in session_list]  # get a list of just the names
@@ -142,79 +138,7 @@ def update_pose_timer(caller):
         caller.set_obs_mode(False)
 
 
-class CmdFinger(default_cmds.MuxCommand):
-    # TODO(RF): New command; core MUSH functionality for OOC information.
-    """
-        +finger
-        Usage:
-          +finger <character>
-        Displays finger'd character's information
-        """
-
-    key = '+finger'
-    aliases = ["finger", "oocfinger", "+oocfinger"]
-    locks = "cmd:all()"
-
-    def func(self):
-        if not self.args:
-            self.caller.msg("Please specify a character.")
-            return
-
-        # We've tried changing the evennia-master code in evennia/objects/object.py to allow for non-exact string
-        # matching with global_search=True, but this seems to cause "examine <db_id>" to fail
-        # TODO: figure out a way to have partial string matching AND db_id referencing. Might be able to do this with more playing around with the if-else logic in objects.py
-        target = self.caller.search(self.args, global_search=True)
-
-        # TODO: actually figure out error handling. Need to be able to differentiate between "ambiguous search" error and "not a character" error
-        try:
-            client_width = self.client_width()
-            char = target.get_abilities()
-            charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
-                                            border_bottom_char=" ", width=client_width)
-            charInfoTable.add_column()
-            charInfoTable.add_column()
-            charInfoTable.add_row("Sex: {0}".format(char["sex"]), "Group: {0}".format(char["group"]))
-            charInfoTable.add_row("Race: {0}".format(char["race"]), "Domain: {0}".format(char["domain"]))
-            charInfoTable.add_row("Origin: {0}".format(char["origin"]), "Element: {0}".format(char["element"]))
-
-            charDescTable = evtable.EvTable(border="table", border_left_char="|", border_right_char="|",
-                                            border_top_char="-",
-                                            border_bottom_char="_", width=client_width)
-            charDescTable.add_column()
-            charDescTable.add_row('"{0}"'.format(char["quote"]))
-            charDescTable.add_row("")
-            charDescTable.add_row("{0}".format(char["profile"]))
-
-            fingerMsg = ""
-            fingerMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"  # top border
-
-            header = ""
-            alias_list = [x for x in target.aliases.all() if " " not in x]
-            # find all aliases that don't contain spaces (this was to get rid of "An Ivo" or "One Ivo")
-            if alias_list:
-                alias = min(alias_list, key=len).title()
-                header = char["name"] + " (" + alias + ")" + " - " + char["occupation"]
-            else:
-                header = char["name"] + " - " + char["occupation"]
-
-            left_spacing = " " * ((floor(client_width/2.0) - floor(len(header)/2.0)) - 2) # -2 for the \/
-            right_spacing = " " * ((floor(client_width / 2.0) - ceil(len(header) / 2.0)) - 2)  # -2 for the \/
-            nameBorder = "\\/" + left_spacing + header + right_spacing + "\\/"
-            fingerMsg += nameBorder + "\n"
-
-            charInfoString = charInfoTable.__str__()
-            fingerMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
-            fingerMsg += charDescTable.__str__() + "\n"
-            fingerMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
-            fingerMsg += "\\/" + (client_width - 4) * " " + "\\/" + "\n"
-
-            self.caller.msg(fingerMsg)
-        except:
-            self.caller.msg("Target is either not a character or there are multiple matches.")
-
-
 class CmdPose(default_cmds.MuxCommand):
-    # TODO(RF): Modified Evennia command.
     """
     strike a pose
     Usage:
@@ -274,8 +198,8 @@ class CmdPose(default_cmds.MuxCommand):
                 scene.addLogEntry(LogEntry.EntryType.POSE, self.args, caller)
                 add_participant_to_scene(caller, scene)
 
+
 class CmdEmit(default_cmds.MuxCommand):
-    # TODO(RF): Modified Evennia command.
     """
     @emit
     Usage:
@@ -353,8 +277,9 @@ class CmdEmit(default_cmds.MuxCommand):
 
         return
 
+
 class CmdOOC(default_cmds.MuxCommand):
-    # TODO(RF): New command; core MUSH functionality; replaces Evennia's wacky OOC command.
+    # New command; core MUSH functionality; replaces Evennia's wacky OOC command.
     # More details: Evennia's OOC command unpuppets the current character and moves the player to a special room
     # where they (hypothetically?) can puppet a different character and return to the grid. But there's no built-in
     # functionality to actually switch puppeted characters (as far as we could figure out). Also, there's no login
@@ -399,132 +324,9 @@ class CmdOOC(default_cmds.MuxCommand):
             speech, from_obj=caller, options={"is_pose": True}
         )
 
-class CmdSheet(default_cmds.MuxCommand):
-        # TODO(RF): New command. Tied to combat commands. Add to combat_commands.py? Also contains some finger info.
-        """
-        List attributes
-
-        Usage:
-          sheet, score
-
-        Displays a list of your current ability values.
-        """
-        key = "sheet"
-        aliases = ["score"]
-        lock = "cmd:all()"
-        help_category = "General"
-
-        def func(self):
-            client_width = self.client_width()
-            char = self.caller.get_abilities()
-            arts = self.caller.db.arts
-            sheetMsg = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"  # top border
-
-            header = ""
-            alias_list = [x for x in self.caller.aliases.all() if " " not in x]
-            # find all aliases that don't contain spaces (this was to get rid of "An Ivo" or "One Ivo")
-            if alias_list:
-                alias = min(alias_list, key=len).title()
-                header = char["name"] + " (" + alias + ")" + " - " + char["occupation"]
-            else:
-                header = char["name"] + " - " + char["occupation"]
-
-            left_spacing = " " * ((floor(client_width / 2.0) - floor(len(header) / 2.0)) - 2)  # -2 for the \/
-            right_spacing = " " * ((floor(client_width / 2.0) - ceil(len(header) / 2.0)) - 2)  # -2 for the \/
-            nameBorder = "\\/" + left_spacing + header + right_spacing + "\\/"
-            sheetMsg += nameBorder + "\n"
-
-            charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
-                                            border_bottom_char=" ", width=client_width, border="table")
-            charInfoTable.add_column()
-            charInfoTable.add_column()
-            charInfoTable.add_column()
-            charInfoTable.add_column()
-            charInfoTable.reformat_column(0, align='l') # resource label
-            charInfoTable.reformat_column(1, align='r') # resource value
-            charInfoTable.reformat_column(2, align='l') # stat label
-            charInfoTable.reformat_column(3, align='l') # stat value
-            charInfoTable.add_row("LF",
-                                  "{0}/{1}  ".format(int(char["lf"]), int(char["maxlf"])),
-                                  "  Power",
-                                  "  {0}".format(char["power"]))
-            charInfoTable.add_row("[future hp vis]",
-                                  "",
-                                  "  Knowledge",
-                                  "  {0}".format(char["knowledge"]))
-            charInfoTable.add_row("AP",
-                                  "{0}/{1}  ".format(int(char["ap"]), int(char["maxap"])),
-                                  "  Parry",
-                                  "  {0}".format(char["parry"]))
-            charInfoTable.add_row("[future hp vis]",
-                                  "",
-                                  "  Barrier",
-                                  "  {0}".format(char["barrier"]))
-            charInfoTable.add_row("EX",
-                                  "{0}%/{1}%  ".format(int(char["ex"]), int(char["maxex"])),
-                                  "  Speed",
-                                  "  {0}".format(char["speed"]))
-            charInfoTable.add_row("[future ex vis]",
-                                  "",
-                                  "",
-                                  "")
-
-            charInfoString = charInfoTable.__str__()
-            sheetMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
-
-            # print Arts table, attached to the bottom of the character sheet
-            left_spacing = floor(client_width / 2.0) - 3  # -2 for the borders
-            right_spacing = ceil(client_width / 2.0) - 3  # -2 for the borders
-            sheetMsg += "|" + "=" * left_spacing + "ARTS" + "=" * right_spacing + "|"
-
-            arts_table = setup_table(client_width, is_sheet=True)
-            populate_table(arts_table, arts)
-            arts_string = arts_table.__str__()
-            sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
-
-            sheetMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
-            sheetMsg += "\\/" + (client_width - 4) * " " + "\\/" + "\n"
-
-            self.caller.msg(sheetMsg)
-
-
-class CmdSetDesc(default_cmds.MuxCommand):
-    # TODO(RF): I made this command because "desc" in Evennia is a builder command with builder permissions.
-    # This is similar to why I made +warp as a modified @tel: because @tel was very complex. If I could figure out
-    # how to curtail or modify the docstring or automatically generated help file depending on the permissions
-    # of the person accessing it, it might be more elegant or make more sense to just have desc and @tel, not setdesc.
-    """
-    describe yourself
-
-    Usage:
-      setdesc <description>
-
-    Add a description to yourself. This
-    will be visible to people when they
-    look at you.
-    """
-
-    key = "setdesc"
-    aliases = ["@desc"]
-    locks = "cmd:all()"
-    arg_regex = r"\s|$"
-
-    # Here I overwrite "setdesc" from the Evennia master so it has an alias, "@desc."
-    def func(self):
-        """add the description"""
-
-        if not self.args:
-            self.caller.msg("You must add a description.")
-            return
-
-        message = self.args
-        message = sub_old_ansi(message)
-        self.caller.db.desc = message
-        self.caller.msg("You set your description.")
-
 
 class CmdWho(default_cmds.MuxCommand):
-    # TODO(RF): Overwritten Evennia command. Players see each other's locations now and multiple sessions are pruned.
+    # Overwritten Evennia command. Players see each other's locations now and multiple sessions are pruned.
     """
     list who is currently online
 
@@ -622,133 +424,8 @@ class CmdWho(default_cmds.MuxCommand):
         )
 
 
-class CmdPot(default_cmds.MuxCommand):
-    # TODO(RF): Original command; core MUSH functionality. We kicked ass making this one.
-    """
-    View the pose tracker (pot). The pose tracker displays the name,
-    time connected, time idle, and time since last posed of every
-    character in the room, ordered starting with whomever posed
-    longest ago. Thus, during an ongoing scene, the person whose
-    turn it is to pose will appear at the top of the list.
-
-    Those who have not posed are listed below all those who have.
-    To signify that you are leaving an ongoing scene, type +observe
-    to reset your pose timer and move to the bottom (see "help observe").
-
-    Usage:
-      +pot
-
-    """
-
-    key = "+pot"
-    aliases = ["pot"]
-    locks = "cmd:all()"
-
-    # this is used by the parent
-    account_caller = True
-
-    def func(self):
-        """
-        Get all connected accounts by polling session.
-        """
-
-        all_sessions = SESSIONS.get_sessions()
-
-        all_sessions = sorted(all_sessions, key=lambda o: o.account.character.get_pose_time()) # sort by last posed time
-        pruned_sessions = prune_sessions(all_sessions)
-
-        # TODO: replace styled_table with evtable?
-        table = self.styled_table(
-            "|wCharacter",
-            "|wOn for",
-            "|wIdle",
-            "|wLast posed",
-            "|wLF"
-        )
-
-        old_session_list = []
-
-        for session in pruned_sessions:
-            if not session.logged_in:
-                continue
-
-            puppet = session.get_puppet()
-            delta_cmd = time.time() - session.cmd_last_visible
-            delta_conn = time.time() - session.conn_time
-            delta_pose_time = time.time() - puppet.get_pose_time()
-            lf = str(int(puppet.db.lf))
-            max_lf = str(int(puppet.db.maxlf))
-
-            # If you have been idle for an hour, you are moved to the bottom and your pose timer is hidden.
-            if delta_pose_time > 3600:
-                old_session_list.append(session)
-                continue
-
-            if puppet.location == self.caller.character.location:
-                # logic for setting up pose table
-                table.add_row(puppet.key,
-                              utils.time_format(delta_conn, 0),
-                              utils.time_format(delta_cmd, 1),
-                              utils.time_format(delta_pose_time, 1),
-                              lf + "/" + max_lf)
-
-        for session in old_session_list:
-            puppet = session.get_puppet()
-            delta_cmd = time.time() - session.cmd_last_visible
-            delta_conn = time.time() - session.conn_time
-            lf = str(int(puppet.db.lf))
-            max_lf = str(int(puppet.db.maxlf))
-
-            # Changes display depending on if someone has set themselves as an observer or not.
-            if puppet.location == self.caller.character.location:
-                if puppet.get_obs_mode() == True:
-                    table.add_row("|y" + puppet.key + " (O)",
-                                  utils.time_format(delta_conn, 0),
-                                  utils.time_format(delta_cmd, 1),
-                                  "-",
-                                  lf + "/" + max_lf)
-                else:
-                    table.add_row(puppet.key,
-                                  utils.time_format(delta_conn, 0),
-                                  utils.time_format(delta_cmd, 1),
-                                  "-",
-                                  lf + "/" + max_lf)
-
-        self.caller.msg(table)
-
-
-class CmdObserve(default_cmds.MuxCommand):
-    # TODO(RF): Original command; complements +pot.
-    """
-        Enter observer mode. This signifies that you are observing,
-        and not participating, in a scene. In +pot, you will be
-        displayed at the bottom of the list with an "(O)" before
-        your name. If you have previously posed, your pose timer
-        will also be reset.
-
-        If your character is leaving an ongoing scene, +observe
-        will help to  prevent anyone accidentally waiting on a pose
-        from you.
-
-        Usage:
-          +observe
-
-    """
-
-    key = "+observe"
-    aliases = ["observe"]
-    locks = "cmd:all()"
-
-    def func(self):
-        self.caller.set_pose_time(0.0)
-        self.caller.set_obs_mode(True)
-        self.msg("Entering observer mode.")
-        self.caller.location.msg_contents(
-            "|y<SCENE>|n {0} is now an observer.".format(self.caller.name))
-
-
 class CmdMail(default_cmds.MuxAccountCommand):
-    # TODO(RF): Overwritten Evennia command; incorporated MUSH parsing.
+    # Overwritten Evennia command; incorporated MUSH parsing.
     """
     Communicate with others by sending mail.
 
@@ -1059,7 +736,7 @@ class CmdMail(default_cmds.MuxAccountCommand):
 
 
 class CmdSay(default_cmds.MuxCommand):
-    # TODO(RF): Overwritten Evennia command; added event code and posecolors (commented out).
+    # Overwritten Evennia command; added event code and posecolors (commented out).
     """
     speak as your character
 
@@ -1109,216 +786,9 @@ class CmdSay(default_cmds.MuxCommand):
             add_participant_to_scene(self.caller, scene)
 
 
-class CmdWarp(default_cmds.MuxCommand):
-    # TODO(RF): Original command, like setdesc, it's a truncated version of @tel without switches and with perms:all.
-    # Again, not sure if it's worth keeping around as a distinct command; it's just easier than trying to overwrite tel.
-    """
-    teleport to another location
-
-    Usage:
-      warp <target location>
-
-    Examples:
-      warp granse - zerhem kingdom
-
-    """
-
-    key = "warp"
-    aliases = "+warp"
-    locks = "cmd:all()"
-
-    # This is a copy-paste of @tel (or teleport) with reduced functions. @tel is an admin
-    # command that takes objects as args, allowing you to teleport objects to places.
-    # Warp only allows you to teleport yourself. I chose to make a new command rather than
-    # expand on @tel with different permission sets because the docstring/help file is
-    # expansive for @tel, as it has many switches in its admin version.
-    def func(self):
-        """Performs the teleport"""
-
-        caller = self.caller
-        args = self.args
-
-        destination = caller.search(args, global_search=True)
-        if not destination:
-            caller.msg("Destination not found.")
-            return
-        if destination:
-            if not isinstance(destination, Room):
-                caller.msg("Destination is not a room.")
-                return
-            else:
-                caller.move_to(destination)
-                caller.msg("Teleported to %s." % destination)
-
-
-class CmdEvent(default_cmds.MuxCommand):
-    # TODO(RF): Autologger command; original!
-    """
-    The @event command is used to log scenes.
-
-    Usage:
-            @event/start: Create a scene and begin logging poses in the current room.
-            @event/stop: Stop the log currently running in the room.
-            @event/info: Display the current log's ID number, name, etc.
-            @event/name [string]: Set the current log's name as [string].
-            @event/desc [string]: Set the current log's desc as [string].
-    """
-
-    key = "@event"
-    aliases = ["event", "@scene", "scene"]
-    locks = "cmd:all()"
-
-    def is_running(self):
-        # Check that there is a log running.
-        caller = self.caller
-        is_running = True
-        if not caller.location.db.active_event:
-            caller.msg("There is no active event running in this room.")
-            is_running = False
-        return is_running
-
-    def are_args(self):
-        # Check that the user has inputted a string.
-        caller = self.caller
-        are_args = True
-        if not self.args:
-            caller.msg("Name the log description what?")
-            are_args = False
-        return are_args
-
-    def find_event(self):
-        # Find the scene object that matches the scene/event reference on the
-        # location.
-        caller = self.caller
-        try:
-            events = Scene.objects.filter(id=caller.location.db.event_id).get()
-        except Exception as original:
-            raise Exception("Found zero or multiple Scenes :/") from original
-        return events
-
-    def func(self):
-        caller = self.caller
-
-        if not self.switches:
-            caller.msg("You must add a switch, like '@event/start' or '@event/stop'.")
-            return
-
-        elif "start" in self.switches:
-            # Make sure the current room doesn't already have an active event, and otherwise mark it
-            if caller.location.db.active_event:
-                caller.msg("There is currently an active event running in this room already.")
-                return
-            caller.location.db.active_event = True
-            event = Scene.objects.create(
-                name='Unnamed Event',
-                start_time=datetime.now(),
-                description='Placeholder description of scene plz change k thx bai',
-                location=caller.location,
-            )
-
-            caller.location.db.event_id = event.id
-
-            self.caller.location.msg_contents("|y<SCENE>|n A log has been started in this room with scene ID {0}.".format(event.id))
-            return
-
-        elif "stop" in self.switches:
-            # Make sure the current room's event hasn't already been stopped
-            if not self.is_running():
-                return
-
-            events = self.find_event()
-
-            # Stop the Room's active event by removing the active event attribute.
-            Scene.objects.filter(id=caller.location.db.event_id).update(end_time=datetime.now())
-            self.caller.location.msg_contents("|y<SCENE>|n A log has been stopped in this room with scene ID {0}.".format(events.id))
-            del caller.location.db.active_event
-            return
-
-        elif "info" in self.switches:
-            if not self.is_running():
-                return
-
-            events = self.find_event()
-
-            caller.msg("This event has the following information:\nName = {0}\nDescription = {1}\nLocation = {2}\nID = {3}".format(events.name, events.description, events.location, events.id))
-
-        elif "name" in self.switches:
-            if not self.is_running():
-                return
-
-            if not self.are_args():
-                return
-
-            Scene.objects.filter(id=caller.location.db.event_id).update(name=self.args)
-            caller.msg("Scene name set.")
-
-        elif "desc" in self.switches:
-            if not self.is_running():
-                return
-
-            if not self.are_args():
-                return
-
-            Scene.objects.filter(id=caller.location.db.event_id).update(description=self.args)
-            caller.msg("Scene description set.")
-
-
-class CmdPoseColors(default_cmds.MuxCommand):
-    # TODO(RF): Original command; modifies emit/pose/say ("IC Commands"?)
-    # Create category of commands that increase readability of the core RP commands (posecolors, poseheaders)?
-    """
-    Toggle colored names in poses. Posecolors/self and
-    posecolors/others are used to set the colors of one's
-    own name and other names, respectively. Type "color
-    xterm256" to see the list of eligible color codes.
-
-    Usage:
-      posecolors on/off
-      posecolors/self <xterm256 code>
-      posecolors/others <xterm256 code>
-
-    Examples:
-      posecolors on
-      posecolors/self 555
-      posecolors/others 155
-
-    """
-
-    key = "posecolors"
-    aliases = "+posecolors"
-    switch_options = ("self", "others")
-    locks = "cmd:all()"
-
-    def func(self):
-        """Changes pose colors"""
-
-        caller = self.caller
-        args = self.args
-        switches = self.switches
-
-        if switches or args:
-            if args == "on":
-                caller.db.pose_colors_on = True
-                caller.msg("Name highlighting enabled")
-            elif args == "off":
-                caller.db.pose_colors_on = False
-                caller.msg("Name highlighting disabled")
-            elif "self" in switches:
-                if len(args) == 3 and args.isdigit:
-                    caller.db.pose_colors_self = str(args)
-                    caller.msg("Player's name highlighting color updated")
-            elif "others" in switches:
-                if len(args) == 3 and args.isdigit:
-                    caller.db.pose_colors_self = str(args)
-                    caller.msg("Other's name highlighting color updated")
-            else:
-                caller.msg("Unknown switch/argument!")
-                return
-
-
 class CmdPage(default_cmds.MuxCommand):
-    # TODO(RF): Overwritten Evennia command; there was no multipaging! That was fucked up. We fixed that.
-    # Something that continues to weird me out is that paging is between Accounts, not Characters.
+    # Overwritten Evennia command; there was no multipaging! That was fucked up. We fixed that.
+    # TODO: Something that continues to weird me out is that paging is between Accounts, not Characters.
     # That means that a character can show up in a room and if you try to page them, the game will tell you that
     # they do not exist because it is looking for an Account with that name. You have to type "who" to get the Account
     # and then you can page that. I kind of get it: the same person is reading the page if you are paging different
@@ -1502,116 +972,3 @@ class CmdPage(default_cmds.MuxCommand):
         if rstrings:
             self.msg("\n".join(rstrings))
         self.msg("You paged %s with: '%s'." % (", ".join(received), message))
-
-
-class CmdRoulette(default_cmds.MuxCommand):
-    # TODO(RF): Original command; classify as Devin's Wacky Stuff. Maybe useful to other people?
-    # The scene types/premises are specific to SCSMUSH's fantasy theme, but in principle, a roulette to help you
-    # pick a location for a random scene or something is not totally useless.
-    """
-    Randomly generate a scene location, scene type or premise, and "fortune."
-
-    Usage:
-      +roulette
-    """
-
-    key = "+roulette"
-    aliases = ["roulette"]
-
-    def func(self):
-        caller = self.caller
-        # Create a list of Room objects that are not the OOC Room, Sparring Room, or World Map.
-        ic_locations = [obj for obj in ObjectDB.objects.all() if (obj.id not in [2, 8, 11] and "Room" in obj.db_typeclass_path)]
-        # Randomly select the key of a IC room.
-        ic_location = random.choice(ic_locations)
-        # First, print the name of the selected location as a string.
-        self.caller.location.msg_contents("{} spins the Scene Roulette.".format(caller.key))
-        self.caller.location.msg_contents("|wThe wheel of fate is turning...|n")
-        self.caller.location.msg_contents("Location: " + ic_location.db_key)
-        # Second, roll 1d20 to pull from a list of scene types or premises.
-        type_roll = random.randint(1, 20)
-        if type_roll == 1:
-            self.caller.location.msg_contents("Type: |rWild Card.|n A shocking and transformative event occurs.")
-        elif type_roll in range(2, 6):
-            self.caller.location.msg_contents("Type: |yCombat.|n Defeat your foe(s).")
-        elif type_roll in range(6, 10):
-            self.caller.location.msg_contents("Type: |gSocial.|n Get to know each other better.")
-        elif type_roll in range(10, 12):
-            self.caller.location.msg_contents("Type: |cInvestigation.|n Seek knowledge or solve a mystery.")
-        elif type_roll in range(12, 14):
-            self.caller.location.msg_contents("Type: |gGathering.|n Acquire new resources.")
-        elif type_roll in range(14, 16):
-            self.caller.location.msg_contents("Type: |yEscape.|n Elude some hazard or pursuer.")
-        elif type_roll in range(16, 18):
-            self.caller.location.msg_contents("Type: |cPursuit.|n Hunt down an elusive target.")
-        elif type_roll in range(18, 20):
-            self.caller.location.msg_contents("Type: |yTraining.|n Practice a skill or technique.")
-        else:
-            self.caller.location.msg_contents("Type: |rDate.|n Increase your Affection Meters.")
-        # Third, roll 1d20 to pull from a list of "fortunes."
-        fortune_roll = random.randint(1, 20)
-        if fortune_roll in range(1, 3):
-            self.caller.location.msg_contents("The party's luck will be |rcatastrophically bad.|n Somehow, it's all Reize's fault.")
-        elif fortune_roll in range(3, 8):
-            self.caller.location.msg_contents("The party's luck will be |ybad.|n But grit and finesse may still see you through!")
-        elif fortune_roll in range(8, 14):
-            self.caller.location.msg_contents("The party's luck will be |caverage.|n The result could go either way.")
-        elif fortune_roll in range(14, 19):
-            self.caller.location.msg_contents("The party's luck will be |ggood.|n Something exciting and beneficial will happen.")
-        else:
-            self.caller.location.msg_contents("The party's luck will be |wextraordinarily good.|n An event akin to a miracle will occur!")
-
-
-class CmdGridscan(default_cmds.MuxCommand):
-    # TODO(RF): Original command; extremely miscallenous. Literally only I care about this. I used it like twice.
-    """
-    This is a command to print all of the room names and descs
-    to check if I have repeated any turns of phrase. I just want
-    to be able to read all my room descs in one place.
-
-    Usage:
-      +gridscan
-    """
-    key = "+gridscan"
-    aliases = ["gridscan"]
-    locks = "cmd:perm(Admin)"
-
-    def func(self):
-        caller = self.caller
-        # Create a list of Room objects that are not the OOC Room, Sparring Room, or World Map.
-        ic_locations = [obj for obj in ObjectDB.objects.all() if (obj.id not in [2, 8, 11] and "Room" in obj.db_typeclass_path)]
-        for location in ic_locations:
-            caller.msg("ID: " + str(location.id) + " --- Name: " + location.db_key)
-            caller.msg("Desc: " + location.db.desc + "\n")
-
-
-class CmdPoseHeaders(default_cmds.MuxCommand):
-    # TODO(RF): Original command; like posecolors, improve readability of RP commands.
-    """
-    Toggle pose headers, which inform you who has posed
-    whenever the @emit command is used.
-
-    Usage:
-      poseheaders on/off
-
-    """
-
-    key = "poseheaders"
-    aliases = "+poseheaders"
-    locks = "cmd:all()"
-
-    def func(self):
-        """Changes pose headers"""
-
-        caller = self.caller
-        args = self.args
-
-        if args:
-            if args == "on":
-                caller.db.pose_headers_on = True
-                caller.msg("Pose headers enabled.")
-            elif args == "off":
-                caller.db.pose_headers_on = False
-                caller.msg("Pose headers disabled.")
-        else:
-            caller.msg("Command not recognized. Please input on or off as an argument.")
