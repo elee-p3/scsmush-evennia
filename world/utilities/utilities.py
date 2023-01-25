@@ -1,5 +1,6 @@
 from evennia import EvTable
 
+
 def location_character_search(location):
     location_objects = location.contents
     characters = []
@@ -7,6 +8,7 @@ def location_character_search(location):
         if "Character" in obj.db_typeclass_path:
             characters.append(obj)
     return characters
+
 
 # creates the approriate evtable object given the contextual bools
 def setup_table(client_width, is_sheet=False, is_check=False):
@@ -28,6 +30,7 @@ def setup_table(client_width, is_sheet=False, is_check=False):
         table.reformat_column(6, width=7)
     return table
 
+
 # in-place modification of the evtable that populates it with attacks or arts. Note that CmdCheck duplicates this code
 # because there wasn't an overdesigned way to have this function take care of that edge case too
 def populate_table(table, actions):
@@ -45,6 +48,7 @@ def populate_table(table, actions):
                       stat_string,
                       effects_abbreviator(action.effects))
     return table
+
 
 def effects_abbreviator(effects_list):
     effects_string = ""
@@ -67,3 +71,12 @@ def effects_abbreviator(effects_list):
             effects_string += "BT "
 
     return effects_string
+
+
+def logger(caller, message, level="info"):
+    # This is for administrative logging and debugging purposes. Not to be confused with the Scenes system or LogEntry.
+    if level == "info":
+        caller.msg("|yINFO:|n " + message)
+    # We're just putting in this if/else statement provisionally for when we implement more involved debug logging.
+    else:
+        caller.msg("|cDEBUG:|n " + message)

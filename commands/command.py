@@ -18,7 +18,7 @@ from evennia.comms.models import Msg
 from typeclasses.rooms import Room
 from world.scenes.models import Scene, LogEntry
 from world.supplemental import *
-from world.utilities.utilities import setup_table, populate_table
+from world.utilities.utilities import setup_table, populate_table, logger
 
 def add_participant_to_scene(character, scene):
     # TODO(RF): Event code
