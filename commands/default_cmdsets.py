@@ -83,6 +83,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdCheck)
         self.add(CmdPoseHeaders)
         self.add(CmdResetCombatFile)
+        self.add(CmdRoomDesc)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):

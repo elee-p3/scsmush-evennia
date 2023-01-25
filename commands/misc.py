@@ -97,8 +97,17 @@ class CmdRoulette(default_cmds.MuxCommand):
     """
     Randomly generate a scene location, scene type or premise, and "fortune."
 
+    If typed without an argument (+roulette), selects any room on the grid,
+    excluding OOC-only rooms (e.g., OOC Room). If typed with an argument (+roulette
+    <string>), selects any room containing that string.
+
+    Since the names of all IC rooms begin with their region (e.g., "Granse,"
+    "Cosmopolis"), use the latter feature to specify a region within which to
+    generate a random location. See "roomdesc" for roulette's companion command.
+
     Usage:
       +roulette
+      +roulette granse
     """
 
     key = "+roulette"
@@ -106,8 +115,19 @@ class CmdRoulette(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
-        # Create a list of Room objects that are not the OOC Room, Sparring Room, or World Map.
-        ic_locations = [obj for obj in ObjectDB.objects.all() if (obj.id not in [2, 8, 11] and "Room" in obj.db_typeclass_path)]
+        args = self.args
+        if not args:
+            # Create a list of Room objects that are not the OOC Room, Sparring Room, or World Map.
+            ic_locations = [obj for obj in ObjectDB.objects.all() if (obj.id not in [2, 8, 11] and "Room" in obj.db_typeclass_path)]
+        if args:
+            # Create a list of Room objects that contain the specified string.
+            args_list = ObjectDB.objects.filter(db_key__contains=args)
+            ic_locations = []
+            for obj in args_list:
+                if "Room" in obj.db_typeclass_path:
+                    ic_locations.append(obj)
+            if not ic_locations:
+                return caller.msg("No location name containing the specified string was found.")
         # Randomly select the key of a IC room.
         ic_location = random.choice(ic_locations)
         # First, print the name of the selected location as a string.
@@ -146,6 +166,41 @@ class CmdRoulette(default_cmds.MuxCommand):
             self.caller.location.msg_contents("The party's luck will be |ggood.|n Something exciting and beneficial will happen.")
         else:
             self.caller.location.msg_contents("The party's luck will be |wextraordinarily good.|n An event akin to a miracle will occur!")
+
+
+class CmdRoomDesc(default_cmds.MuxCommand):
+    # Original command riffing off of Gridscan that's actually meant to be useful for players using +roulette.
+    """
+    This command displays the description of any room on the grid with the
+    specified name. When using "roulette," use "roomdesc" to check the
+    random room's description for help in developing a premise for a scene.
+
+    Usage:
+      +roomdesc <string>
+    """
+    key = "roomdesc"
+    aliases = "+roomdesc"
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        args = self.args
+        if not args:
+            # Create a list of Room objects that are not the OOC Room, Sparring Room, or World Map.
+            return caller.msg("Please include a string contained in the name of a specific room.")
+        if args:
+            # Create a list of Room objects that contain the specified string.
+            args_list = ObjectDB.objects.filter(db_key__contains=args)
+            ic_locations = []
+            for obj in args_list:
+                if "Room" in obj.db_typeclass_path:
+                    ic_locations.append(obj)
+            if not ic_locations:
+                return caller.msg("No location name containing the specified string was found.")
+            if len(args_list) > 1:
+                return caller.msg("Multiple possible locations were found. Please try a longer string.")
+            else:
+                return caller.msg("The description of " + ic_locations[0].key + " is: \n\n" + ic_locations[0].db.desc)
 
 
 class CmdGridscan(default_cmds.MuxCommand):
