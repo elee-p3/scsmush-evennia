@@ -80,3 +80,14 @@
     font-size: 14px;
     margin: 1em 0;
 }
+.board-summary {
+    border-radius: 10px;
+    border: 1px solid #3d5c7a;
+    padding: 10px;
+    font-size: 12px;
+}
+
+.board-summary h1 {
+    font-weight: bold;
+    font-size: 1.6em;
+}
