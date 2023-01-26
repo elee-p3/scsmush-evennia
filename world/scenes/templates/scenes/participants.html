@@ -1,5 +1,5 @@
 {% for participant in participants %}
-    <a href={{ participant.web_get_detail_url }}>{{ participant.key }}</a>
+    <a href={{ participant.web_get_detail_url }}>{{ participant.key }}</a>{% if not forloop.last %},{% endif %}
 {% empty %}
     <em>none</em> (womp womp)
 {% endfor %}
