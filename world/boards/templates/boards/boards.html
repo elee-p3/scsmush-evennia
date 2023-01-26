@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block titleblock %}SCSMUSH Boards{% endblock %}
+
+{% block header_ext %}
+    <link rel="stylesheet" type="text/css" href="{% static 'boards/boards.css' %}">
+{% endblock %}
+
+{% block content %}
+{% for board in all_boards %}
+<article class="board-summary">
+    <p>{{ board.name }}</p>
+</article>
+{% endfor %}
+{% endblock %}
