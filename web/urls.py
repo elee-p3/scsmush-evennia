@@ -9,9 +9,9 @@ from django.conf.urls import url, include
 # Default evennia URLs
 from evennia.web.urls import urlpatterns as evennia_urlpatterns
 from django.conf.urls import url, include
-from world.scenes.urls import urlpatterns as scene_urlpatterns
 
 scsmush_urlpatterns = [
+    url('boards/', include(("world.boards.urls", "boards"), namespace="boards")),
     url('scenes/', include(("world.scenes.urls", "scenes"), namespace="scenes")),
     url('character/', include(("world.character.urls", "character"), namespace="character"))
 ]

@@ -42,6 +42,7 @@ INSTALLED_APPS += [
     "django.contrib.humanize",
     "web.template_overrides",
     "world.arts",
+    "world.boards",
     "world.character",
     "world.minions",
     "world.msgs",
