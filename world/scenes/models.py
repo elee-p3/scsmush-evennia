@@ -1,5 +1,6 @@
 from django.db import models
 from django.urls import reverse
+from evennia import ObjectDB
 
 # Represents one RP scene or "event".
 #
@@ -13,6 +14,10 @@ class Scene(models.Model):
     # but has not yet started.
     #
     # End time can be null, and that indicates that the event is still un-ended.
+    class Meta:
+        # Simple sorting of scenes by most recent start time, for now.
+        ordering = ['-start_time']
+
     start_time = models.DateTimeField(
         'Scene start time',
         blank=True,
@@ -115,9 +120,11 @@ class LogEntry(models.Model):
     )
 
     # The character responsible for this particularly heinous activity.
+    # characters_in_DB = ObjectDB.objects.filter(db_typeclass_path__contains="Character")
     character = models.ForeignKey(
         "objects.ObjectDB",
         blank=True,
         null=True,
         on_delete=models.SET_NULL,
     )
+    # "objects.ObjectDB"
