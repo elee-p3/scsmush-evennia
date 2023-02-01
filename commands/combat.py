@@ -1,6 +1,5 @@
 import copy
 import csv
-import os
 import random
 from math import floor, ceil
 
