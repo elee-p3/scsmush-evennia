@@ -11,10 +11,11 @@
 {% block content %}
 {% for board in all_boards %}
 <article class="board-summary">
+    <div class="board-post-count">
+        {{ board.posts.count }} post{{ board.posts.count|pluralize }}
+    </div>
     <h1>{{ board.name }}</h1>
-    <p>This would be a tagline/description were this not TOTAL BULLSHIT.</p>
-    <p style="float: right;">{{ board.posts.count }} post{{ board.posts.count|pluralize }} so far</p>
-    <div style="clear: both;"></div>
+    <p>{% autoescape off %}{{ board.description }}{% endautoescape %}</p>
 </article>
 {% endfor %}
 {% endblock %}

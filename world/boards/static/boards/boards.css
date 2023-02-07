@@ -81,13 +81,38 @@
     margin: 1em 0;
 }
 .board-summary {
+    border-color: #3d5c7a;
+    border-width: 10px 1px 1px 1px;
     border-radius: 10px;
-    border: 1px solid #3d5c7a;
-    padding: 10px;
-    font-size: 12px;
+    border-style: solid;
+    box-shadow: 2px 2px 3px 1px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    margin: 20px 0;
+    position: relative;
+}
+
+.board-summary .board-post-count {
+    font-style: italic;
+    font-weight: bold;
+    font-size: 1.5rem;
+    text-transform: lowercase;
+    position: absolute;
+    top: 20px;
+    right: 20px;
 }
 
 .board-summary h1 {
+    font-size: 1.75rem;
+}
+
+.board-summary .scene-attribute {
     font-weight: bold;
-    font-size: 1.6em;
+}
+
+.board-summary .scene-time {
+    margin-right: 50px;
+}
+
+.board-summary p {
+    margin: 0.5rem 0 0 0;
 }
