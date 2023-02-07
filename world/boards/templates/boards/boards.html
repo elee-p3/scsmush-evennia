@@ -13,6 +13,8 @@
 <article class="board-summary">
     <h1>{{ board.name }}</h1>
     <p>This would be a tagline/description were this not TOTAL BULLSHIT.</p>
+    <p style="float: right;">{{ board.posts.count }} post{{ board.posts.count|pluralize }} so far</p>
+    <div style="clear: both;"></div>
 </article>
 {% endfor %}
 {% endblock %}
