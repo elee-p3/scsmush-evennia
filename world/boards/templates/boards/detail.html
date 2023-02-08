@@ -10,6 +10,8 @@
 {% endblock %}
 
 {% block content %}
+<a href={% url 'boards:list' %} class="back-button">Back to list</a>
+
 <h1>Viewing Board: {{ board.name }}</h1>
 {% for post in sorted_posts %}
   {% render_post_summary post %}
