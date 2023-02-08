@@ -91,14 +91,32 @@
     position: relative;
 }
 
-.board-summary .board-post-count {
+.board-summary .board-overview {
+    margin-right: 170px;
+}
+
+.board-summary .board-post-info {
+    position: absolute;
+    text-align: right;
+    top: 20px;
+    right: 20px;
+    width: 150px;
+}
+
+.board-post-count {
     font-style: italic;
     font-weight: bold;
     font-size: 1.5rem;
     text-transform: lowercase;
-    position: absolute;
-    top: 20px;
-    right: 20px;
+}
+
+.board-last-post {
+    clear: both;
+}
+
+.board-last-post p {
+    margin: 0 0 0.05em 0;
+    font-size: 10px;
 }
 
 .board-summary h1 {
@@ -113,6 +131,6 @@
     margin-right: 50px;
 }
 
-.board-summary p {
+.board-overview p {
     margin: 0.5rem 0 0 0;
 }
