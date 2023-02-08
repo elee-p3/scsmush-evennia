@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% load boards_tags %}
+
+{% block titleblock %}SCSMUSH Board: {{ board.name }}{% endblock %}
+
+{% block header_ext %}
+    <link rel="stylesheet" type="text/css" href="{% static 'boards/boards.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1>Viewing Board: {{ board.name }}</h1>
+{% for post in sorted_posts %}
+  {% render_post_summary post %}
+{% endfor %}
+{% endblock %}

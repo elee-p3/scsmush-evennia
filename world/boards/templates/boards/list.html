@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% load boards_tags %}
+
+{% block titleblock %}SCSMUSH Boards{% endblock %}
+
+{% block header_ext %}
+    <link rel="stylesheet" type="text/css" href="{% static 'boards/boards.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1>Message Boards</h1>
+{% for board in all_boards %}
+  {% render_board_summary board %}
+{% endfor %}
+{% endblock %}

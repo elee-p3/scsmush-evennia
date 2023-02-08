@@ -1,0 +1,10 @@
+{% load tz %}
+
+<div class="summary-item">
+    <h1 class="post-title">{{ post.title }}</h1>
+    <p class="post-metadata">
+        Posted by Post Author
+        on {{ post.created_at|localtime }}
+    </p>
+    <p class="post-body">{{ post.body }}</p>
+</div>
