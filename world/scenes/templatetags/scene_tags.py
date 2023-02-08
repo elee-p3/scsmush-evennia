@@ -1,4 +1,5 @@
 from django import template
+from django.urls import reverse
 
 register = template.Library()
 
@@ -11,3 +12,7 @@ def show_participants(scene):
 def render_scene_log(scene):
     log_entries = list(scene.logentry_set.all())
     return { "entries" : log_entries }
+
+@register.simple_tag
+def get_scene_detail_url(scene):
+    return reverse('scenes:detail', kwargs={'scene_id': scene.id})

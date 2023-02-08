@@ -17,7 +17,7 @@
     <div class="scene-pose-count">
         {{ scene.logentry_set.count }} pose{{ scene.logentry_set.count|pluralize }}
     </div>
-    <h1><a href={{ scene.web_get_detail_url }}>{{ scene.name }}</a></h1>
+    <h1><a href={% get_scene_detail_url scene %}>{{ scene.name }}</a></h1>
     <div class="scene-times">
         <span class="scene-time">
             <span class="scene-attribute">Start time:</span> {{ scene.start_time|localtime }}

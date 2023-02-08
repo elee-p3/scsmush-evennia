@@ -70,9 +70,6 @@ class Scene(models.Model):
             character=character
         )
 
-    def web_get_detail_url(self):
-        return reverse('scenes:detail', kwargs={'scene_id': self.id})
-
 
 # Contains the complete log of every participant interaction throughout the lifetime
 # of a parent Scene.
