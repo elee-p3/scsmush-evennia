@@ -35,6 +35,15 @@ class Post(models.Model):
         null=True,
         related_name="posts",
         on_delete=models.CASCADE)
+    
+    # The character responsible for authoring this messageboard post.
+    # characters_in_DB = ObjectDB.objects.filter(db_typeclass_path__contains="Character")
+    author = models.ForeignKey(
+        "objects.ObjectDB",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
 
     created_at = models.DateTimeField(null=False, auto_now_add=True)
     updated_at = models.DateTimeField(null=False, auto_now=True)

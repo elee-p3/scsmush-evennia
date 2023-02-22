@@ -7,7 +7,12 @@
         <div class="board-last-post">
             <p>Last post</p>
             <p>{{ board.posts.last.created_at|naturaltime }}</p>
-            <p>by Post Author</p>
+            <p>
+                by
+                <a href="{{ board.posts.last.author.web_get_detail_url }}">
+                    {{ board.posts.last.author.name }}
+                </a>
+            </p>
         </div>
     </div>
     <div class="board-overview">
