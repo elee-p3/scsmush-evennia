@@ -34,7 +34,7 @@ class CmdLogmunch(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         # First, get the log. I'm new to this, so I'll just put a single text file in the same directory.
-        premunched_log = open(".\commands\log.txt", "r")
+        premunched_log = open("./commands/log.txt", "r")
         caller.msg("Opening premunched_log.")
         # Split up the text by line breaks.
         munched_log = []
