@@ -8,8 +8,8 @@ of setdesc) or are idiosyncratic (roulette and gridscan).
 import csv
 import random
 
-from evennia import ObjectDB
-from evennia import default_cmds
+from evennia import default_cmds, ObjectDB
+from evennia.commands import command
 from typeclasses.rooms import Room
 from world.supplemental import *
 from world.utilities.utilities import logger
@@ -262,3 +262,29 @@ class CmdResetCombatFile(default_cmds.MuxCommand):
                                 "success",
                                 "final damage"])
         self.caller.msg("Cleared combat log")
+
+
+class CmdTeach(default_cmds.MuxCommand):
+    # Original command that some MU*s have to display both input and output.
+    """
+    Display the input for a command before executing it. Used to teach others
+    how to execute commands.
+
+    Usage:
+      +teach <command>
+    """
+    key = "teach"
+    aliases = "+teach"
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        args = self.args
+        if not args:
+            return caller.msg("Error: teach must be followed by a separate command to execute.")
+        # Display the input to the room.
+        caller.location.msg_contents(caller.key + " |yinputs|n: " + str(args))
+        # Use Evennia's "execute_cmd" method to execute the args as a separate command.
+        caller.location.msg_contents("This |youtputs|n:")
+        command.Command.execute_cmd(self, raw_string=str(args))
+        # TODO: Would be nice if, when the command doesn't exist, teach doesn't run. Review cmdhandler.py.

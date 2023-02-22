@@ -50,3 +50,5 @@ nosetests.xml
 
 # PyCharm config
 .idea
+/server/evennia.db3.gz
+/world/help/timeline.csv

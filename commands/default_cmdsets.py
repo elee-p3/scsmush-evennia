@@ -24,6 +24,7 @@ from commands.misc import *
 from commands.visuals import *
 from commands.mush_core import *
 from commands.minions import *
+from commands.logmuncher import *
 
 
 class CharacterCmdSet(default_cmds.CharacterCmdSet):
@@ -86,6 +87,8 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdResetCombatFile)
         self.add(CmdRoomDesc)
         self.add(CmdCreateMinion)
+        self.add(CmdLogmunch)
+        self.add(CmdTeach)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):
