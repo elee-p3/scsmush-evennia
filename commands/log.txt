@@ -1,276 +1,370 @@
-IVO
-        With a small scraping sound barely audible over the birdsong and buzzing of insects, Ivo scratches a mark into a towering cedar. Stepping back, he looks over his shoulder at the rest of the party, smiling. The almost coy playfulness he usually evinces on adventures is offset by a barely-restrained genuine enthusiasm in his eyes.
-        "Shall we proceed, friends?"
-        The glade had seemed small as they had approached it from the east, leaving the river running north of Zerhem behind them and venturing into the grasslands of Granse toward this isolated copse of trees. But as soon as they reached it, the sheer density of the forest seemed overwhelming. Though lonely on the horizon, up close it teems with the smells and sounds of natural life, reminiscent of the Proliferation near Cosmopolis that the adventurers once forged through.
-        "None have ever found the lost shrine of the druids, or so the records in Zerhem state," Ivo proclaims as he proceeds, "so there are few to no clues on how to proceed, but I believe in us. The wild roses, however, are said to grow by a limpid pool. I would be surprised to find any pond that weren't also a breeding ground for insects, but let's keep our eyes peeled for that too. I-- huh? But that's--"
-        Ivo is staring blankly at a tree with a familiar mark in it. The party has hardly gone thirty paces during Ivo's soliloquy, in what seemed like a straight line, and it's barely been a minute.
-        "But," he blurts out in his bafflement, "Reize wasn't even leading the way!"
+|IVO
+        The air of the shrine is eerily still, as though long undisturbed even by the breath of the living. The adventurers pass through the forest path revealed on their previous journey, mysteriously opened by the whirring of the crowned beetle's wings, and after walking under the impenetrable shadow of dense bowers, they emerge into a darkened clearing illuminated only by the flickering lights of crimson candles. It had been daytime only moments ago. Now a starless night reigns above.
+        "This statue..."
+        Seemingly unperturbed by their surreal environs, Ivo steps toward the totem pole in the center of the clearing, examining the animals layered upon it: the owl, the bear, the cat, the stag.
+        "They did worship a stag, as written," he murmurs. "As a symbol of Faleh, perhaps? Was the key being a beetle just a symbolic relation or play on words, then? But how would it open the-- eh?"
+        A tapping sound is emerging from Ivo's cloak, its blue dye black in the dim light. Blinking, he reaches within to remove the vial containing the captive beetle. Before he can act, the stopper bursts free of its own accord, the beetle fluttering out and circling around the pole, as ever in no hurry to get wherever it's going.
+        "Oh, there's an altar back here."
+        Approaching, his footsteps muffled nearly unto silence upon the grayscale grass, the Cosmpolitan kneels down to examine a small basin upon a little pedestal.
+        "'To Lead is to Sacrifice,'" he recites. "'Let One Who Would Rise Show Resolve.' Is this a... trial of some sort? If the basin is any indication, we're supposed to put a physical object here. But what could we 'sacrifice'? Is there something we've acquired on our adventures that would count...?" He starting to mutter to himself again. "If Argent were here, we could try the athame... was there anything else we found the aqueduct...?"
+        As Ivo's lost in thought, the beetle lazily flutters by, passing over the altar and into the shadows beyond.
+        "Whatever we do, I think it would be prudent to play along," he says, straightening, "and not to lose sight of that beetle." He looks over his shoulder at the party, candlelight gleaming in his thoughtful eyes. "Any ideas, friends?"
 
-RUI
-Ruidosa has come along on this adventure, and is holding her book to her chest as she normally does. Ivo wants to find the shrine of the druids, as she looks at the marking Ivo is making. "What are you do---oh.... OH... right... um..."
+|RUI
+Ruidosa has come along for the second visit, and finds the sudden change of time venue strange and odd, since it was light and now it's... night? She isn't sure. Druids sure liked their dark. She eyes the tapping though , as the beetle escapes and she follows along with the group, as she eyes the basin and Ivo reads the inscription.
 
-"It's in case we get lost, right?" she asks. Her mom never sought out druids, or according to the first half of the book she's read a hundred times over, so she has no information on this in her book. She'll take notes if they discover a way thou. But for now she's walking along with the group when...
+"I'm not sure. But if you're asking me to put my family tome in there, I'm biting someone's hand." she says bluntly, the vampiress tugging the book to her form with a huff.
 
-They're at the same marking? She blinks and looks behind her, expecting to see themselves, but nope. She looks back to the tree.
+"Um. Usually. A sacrifice means something significant thou..." she frowns. "Not just some... random thing we bought as supplies..." she says. She hesitantly flips through her book a moment in thought.
 
-"Um. Mom used to tell me. That if you find yourself in a loop, you need to twist your way of thinking..." she says quietly, as she taps her bottom lip...
+|ANNA
+        So, hah hah, one of the princesses in line for the throne of the Suryle Kingdom has gone missing. That's a thing that has happened recently. And as odd timing and coincidences would have it, someone new has joined the party; a young noble-seeming girl who clearly has no idea what she's doing. No backpack, no supplies, no vital adventuring equipment save for a keenly honed woodcutter's axe, she seems woefully underprepared for a life of adventuring. She's still wearing a pretty pink frilled dress to boot. Not the best outfit for exploring ancient shrines brimming with possible danger. And yet somehow she's wound up here at the shrine with Ivo and company, axe slung over her back, lips pursed in quiet thought as jade eyes follow the beetle as it flits about once free of its container.
+        "Um..." She does eventually pipe up, voice soft and hesitant at first before she clears her throat. "Something significant or cherished, yes." She echoes Ruidosa's statement before lifting her slim shoulders into a shrug.
+        Don't look at her, it looks like her only worldly possession right now is that woodsman's axe.
 
-There's a long pause before she asks the loaded question of: "Why would Reize leading change the outcome...?" she asks.
+|REIZE
+         The journey was quite the long one, but it gave the travelers plenty of time to prepare. Unfortunately, given that was spent before, Reize had to do a few more tasks to get enough to purchase enough supplies.
 
-REIZE
+        In fact, Reize was so happy that he was able to get the hookshot repaired! That is right! The one advanced tool that Reize had been waiting to use.
 
-         The young explorer and beginner Vanguard decided to join Ivo in the trip. Given that this was an official request in the bulletin board of the Vanguards, Reize opted to take it. There is a bit of an obligation to take these tasks and it would be good to explore unknown territory. 
+        This takes them through the dense forest and out towards the temple itself. As they now find themselves at the totem pole at the center of the clearing, Reize examines the layered animals. "...What do---ah...?"
 
-        If they're lucky, they can find clues about the Star-crowned.
+        Reize watches the beetle flutter out and circle the pole. He follows Ivo as the Cosmpolitan examines the basin. After a moment, Reize is taking the time to admire his newly repaired treasure: a device with a hand-sized metal shaft, mysterious button, and has a sharp point. It is glimmering with a bright green crystal that's attached.
 
-        For now, Reize follows suit of Ivo as they travel westward, given their approach from the east. His eyes cannot help but stare in awe at the sight of the forest. In a way, it feels like home. Or at least, Reize feels like he knows his way around.
+        That's right, Reize has his hookshot. Nothing will make him part from it! Destiny shall not tear him away------
 
-        He starts examining the flora, giving a thoughtful look.
+        "....No. You're kidding me."
 
-        "....Wait, what does my leading have to do with this...?" He squints at Ivo.
+        "What. No no no no no no no! I just repaired it! I haven't even used this for an actual adventure yet!"
+
+        There it is.
+
+        Given what's at stake, Reize has no choice. With his head hung low and filled with comical river of tears, he makes his approach. He places the NEWLY RESTORED Hook Shot onto the altar.
+
+        "This always happens... _Always_" 
+
+|IVO
+        "Only their hand?" Ivo grins at Ruidosa. "Don't worry, we wouldn't dream of it. How else will you take notes on how cute our fearless leader is?" Not that he's been reading what she writes over her shoulder or anything. Having seen entertaining flashes of anger from her now, the young man has gotten a bit more comfortable teasing the seemingly shy vampire girl. Smiling to himself, his thoughts drift from thoughts of vampire bites to thoughts of Ruidosa's voluptuous mother.
+        Uh oh, better think about something else.
+        "I don't think Reize will fit in the basin, though," he quips back to Anna, turning his smile to the blonde princess. With the aid of their magitech speedboat, the Romancing SaGa, the party had traveled to Verdios for what had seemed like an easy job to help properly outfit them for this venture into the shrine. Instead, they'd ended up having a rather traumatic experience with a vicious devil of an eidolon -- and a new party member. Ivo can only hope that their adventures will give her the experience she needs to refine, and control, her terrifying talents.
+        Speaking of Reize.
+        "Oh, well, uh--" Ivo's smile fades, the young man looking a bit shocked and dismayed at the boy's profound emotional reaction. "I mean, I don't know if-- there might be another way to--"
+        The very moment that Reize sets down the newly repaired and unused hook shot, there is a flash of light as the flames upon the candles ripple, slowly parting like a glittering sea, until a path framed by light candles appears before them, heading in the same general direction as the beetle's flight path.
+        Ivo wordlessly sets his hand upon Reize's shoulder and lowers his head, sparing a moment of silence for their fearless leader's noble sacrifice. At last, the trial passed, he begins to walk forward, quietly pressing on, knowing that no words of comfort will suffice.
+        The path winds and wends and at last opens into another darkened clearing indistinguishable from the first save for one striking fact: in place of the totem pole, there is a veritable pillar of fire, somehow inexplicably invisible until the very moment one enters the clearing itself. If one squints, one can see within what appears to be a bear-shaped statuette, apparently unarmed by the flame.
+        "I don't see any inscriptions anywhere this time," Ivo murmurs, reaching out curiously before abruptly withdrawing his hand. "Ow! No, it's-- really hot, actually! What is this, just a test of pain tolerance or something...? These druids are cruel..." Not exactly Ivo's forte.
+
+|RUI
+"I DON'T KNOW WHAT YOU'RE TALKING ABOUT!" she suddenly yells at Ivo, as she ''huffs!'', She frowns though as Reize has to give something up... something? What is that... "Oh! Is that a ..... grappling device? Mom actually traveled with someone that used one... I should...read closer about it..." she mutters as she flips through her book a bit as she follows. Her eyes travel to Anna as she purses her lips as she looks back to Reize and looks sympathetic. "S..sorry.... I'm sure we can find a new one somehow....maybe there's one in the catacombs under the manor somewhere..."
+
+There is not a pile of hookshots down there, only more zombies.
+
+She follows along as she gently frowns.
+
+"Fire. Is bad." she says softly. "But..."
+
+"Maybe I can try....maybe...?" she asks. "I can heal faster if I can get blood from someone anyways..." she says.
+
+|ANNA
+
+        So yeah that trip to Verdios sure happened.
+        Right now though, Anna Primrose is biting her lip as Reize gives up his cherished hookshot. The girl cringes slightly as the beloved tool is placed in the basin, sacrificed, so that the party may continue onward.
+        "Ah... Sorry." She mumbles, one hand rubbing the back of her neck awkwardly. "M-maybe you'll find another one, yeah."
+        Anna knows nothing about the zombies under the manor.
+        But moving on.
+        Following after the beetle into the next clearing, the runaway princess blinks at the sight of the flaming pillar and bear statue, while Ivo tests the flames.
+        And he is found wanting.
+        Normally, walking into a blazing pillar goes against all the rules of self preservation. Normally it would be a very, very, bad, painful, and lethal idea. And for a beat, the meek seeming princess bites on her lower lip.
+        "... I understand." Anna says very simply.
+        A slow breath and she closes her eyes.
+        No sooner than she does, visions dance before her in the darkness. Small, green figures, slaughtered right before her eyes come back to dance merrily in her memories-- only to be cut down once again.
+        The floodgate opens.
+        The fury comes forth.
+        And then, the girl opens her eyes, wide and wild and bloodshot, more red than green as she trudges right into the roaring flames, her face a snarling rictus of absolute and utter wrath.
+        Briefly, ever so briefly, her eyes glaze over from the pain. Only to regain their clarity an instant later, more furious than they had been just seconds before as she soaks in the flames on sheer pain-suppressing willpower.
+
+|REIZE
+
+
+        It is just like that, Reize watches his hopes and dreams of using the newly acquired Hook Shot dissipates and instead lets loose the flames and opens the path before them.
+
+        "Ugh... why...?"
+
+        Well, at least they have their path now. Reize will get over his loss of the Hook Shot. It'll take some time. But he'll get over it. The collective comfort from the group is nice though, for as little good it does. However, there is a glimmer of hope from Ruidosa's offered comfort. "R--really?!" A hookshot within the catacombs of manor! Yes, this sounds like a great idea! To explore deep to find a new hook shot!
+
+        As they press onward, Reize walks along after the group until they arrive at the clearing. The place where there should be a totem pole is instead a pillar of fire. He looks over towards it and then he looks over towards the bear-shaped statuette.
+
+        "So we have to push this out of the fire?"
+
+        He winces at Ivo's reaction and he runs a hand over to his chin. He glances over towards Anna, "Ah? What do you have pla---..." He falls silent as she seemed to go in a focus and the abrupt display of fury that overwhelms her. "Whoa...!" He leaps back, yelping at such a sight.
+
+|IVO
+        Ivo, nursing his singed hand, smiles wanly at their boy leader, admiring how Reize's spirits already seem restored. The mild pain helps him to suppress his amusement at Ruidosa's hyperbolic reaction to his teasing, lest he push her too far. Having her in the party is going to be fun. He'll have to get Priel in on the torment-- uh, good-natured joshing.
+        "Anna, be care--"
+        He blurts out a warning without thinking, trailing off as soon as he sees how her features have transformed. The young man's jaw slackens, the rest of his body freezing like prey before a predator as a chill runs down his spine. He's seen this once before, but he's certainly not used to it, and he's not sure he ever will be.
+        The implacable berserker princess thrusts her hand into the flames, withstanding the searing pain, and finds that the statuette is just a hollow carving, quite lightweight and easily plucked from the pedestal on which it stands in midst of that roaring pillar. As soon as she lifts it from its place, the flames die down, revealing that though the pain was all too real, her arm has not been burned.
+        Blinking, Ivo looks down at his hand in wonder, only now noticing that the apparent damage to it has also disappeared, while just as before, the candles beyond ripple and part to form another path. The beetle, its iridescent scales flickering white in the candlelight, may be espied slowly fluttering on.
+        "W--well done, your highness," the Cosmopolitan manages. Maybe he should be embarrassed, but really, he's just impressed. "Are you-- um, alright?" That is to say, are you able to calm down? Very hesitantly, he attempts to place his hand on Anna's slim shoulder, just as he had with Reize before.
+        Whether or not Ivo keeps his arm, the party will presumably venture on soon enough, and once they enter the next candlelit clearing, they will likely be puzzled to find it entirely vacant.
+        "The trial of the forest cat?" Ivo will mutter. "What could it be...?"
+        Moments will pass before someone with keener senses than Ivo may detect a ripple in the shadows. A small animal is darting silently back and forth through the clearing, only barely detectable, cunningly avoiding the light.
+
+|REIZE
+Reize Seatlan rolls 1d20.
+ Roll(s): 19. Total result is 19.
+
+|ANNA
+        Statuette of the bear in hand, Anna rips it from its place with a snarl. It's when the flames die down and the next path is revealed that she... Growls as Ivo's hand plants on her shoulder, head turning slowly to look back at him with pure murder in her eyes.
+        It's a look that lasts for only a second longer.
+        "I'm fine." She answers tersely at first, eyes blinking away the scarlet haze from the corners of her vision, shifting from that bloodlusting red color back to green as her heavy breaths slow and return to normal.
+        "I... I'm fine." She says again, more gently. "And- just call me Anna, please." It's easier and less embarrassing than 'your highness'.
+        That's it, Anna. Put that fury back in the cage. Save it. Nurture it. Let it hide in that secret and pained place behind your heart. This is what she thinks to herself as she slowly calms.
+        But the truth is harder than that. There's no 'putting it away'. It's always there. Lurking. Waiting. Patiently seeking out the next opportunity to rear its ugly face.
+        Ivo gets to keep his arm.
+        The party moves on.
+        "Uhhhhh..."
+        With her heart still hammering in her ears and red still flickering in the periphery of her vision, there's no way she's spotting that animal, right now.
+
+|REIZE
+         As they continue along to the next candlelit clearing, Reize looks around to find that there is not much of a presence around.
+
+        Reize can see a ripple in the shadows.  It is one of the few times that his passive perception has served him well, able to detect that something is amiss. He starts wandering along, glancing over to where he saw that ripple.
+
+        He starts walking backwards from Ivo, Anna, and Rui, idly just moving his head around.  And then he leaps out towards the spot of the shadow.
+
+        "Gotcha!" 
+
+|IVO
+        "Eh?"
+        Ivo just looks baffled as Reize suddenly dives to the side like his player accidentally hit the dodge button. But within moments the boy has a very fluffy cat in his hands, its black fur complemented by a mane of silver about its throat. Whereas a typical cat would be hissing and clawing, this one, upon being caught, simply looks up at the boy with luminescent green-gray eyes, its foreign gaze eerily fixed as though piercing to his very essence.
+        It stares unblinking for some long moments, until Reize may notice that the warmth has faded from its body and the texture of its fur has slightly changed. He finds himself holding not a live cat but a stuffed animal, by all indication lovingly handcrafted long ago. Only its arresting eyes remain identical to the creature that Reize was -- wasn't he? -- holding just moments ago.
+        "That's a charming toy," Ivo remarks, "but did you have to dive for it?" Maybe Reize is emotionally distraught after losing his hook shot. The Cosmopolitan decides to go easy on the boy and not pass judgment on his behavior.
+        Yet the candles form another path again, Ivo looking up in surprise as they do. Whatever Reize did, it seems to have worked, and as though they were at a festival, he's earned a maybe-magical token of his troubles.
+
+> Shadowcat Plushie acquired.
+
+        "Well, nicely done!" Ivo flashes a smile again. Other than some grayish grass stains on Reize, the party seems to have made it fairly safely through the third trial. "If the historical records are correct, we should be nearing the end..."
+        Sure enough, the beetle, its lazy pace having been steady this entire time, seems to pick up speed as the path opens up, eventually disappearing into the distance. The party will have to walk a longer ways than before to reach the next clearing.
+        "What in..."
+        Awaiting them is an extraordinary carving of a stag almost triple the size of any natural one, its body pockmarked with holes as though ridden with termites. The crowned beetle they had captured, its wings shining with the sunlight gathered on its journey outdoors, burrows into one of those holes, and the eyes of the statue then begin to gleam.
+        "SEEKERS OF THE CRUX, YOU FACE THE TRIAL OF HOPE."
+        A deep bone-rattling call issues forth from the carving.
+        "TELL ME TRUE, FOR WHAT DOES YOUR HEART MOST YEARN?"
+
+|ANNA
+        Reize goes for the catch!
+        His QTE skills are up to snuff and he snags... A plushie.
+        "...?"
+        Anna looks more baffled than angry right now. But if it worked it worked.
+        "Cute." She does murmur at the sight of it, though as the party follows the much longer path to follow the beetle. ... To a magnificent statue of a stag, albeit devoured by bugs and time.
+        It speaks.
+        Anna visibly shrinks.
+        Will it accept her desire?
+        "... I want..."
+        Will it accept her answer as one of hope?
+        "To find the Eidola that killed my tribe..."
+        Is her fury valid?
+        Her voice lowers subtly as she finishes her desire.
+        "...And rip it limb from limb with my bare hands."
+
+|REIZE
+         Reize banked on his surprise attack yielding him the truth to the figure sneaking past them. He expected a creature hiding within the woods, ready to fight. However, he also expected to encounter an Athu. Reize was ready...
+
+         ...Or not.
+
+         Reize did have a fluffy cat with a silver mane in his hands. However, what he did not expect was...
+
+         'That's a charming toy'.
+
+         "Huh?" Reize looks back at Ivo and then back to the plush. "... Oh." Maybe Lily may like it. Or Ruidosa. So he'll keep that in his satchel for now.
+
+         They follow the beetle as it goes deeper and speeding along the clearing.  What awaits them is the massive extraordinary carving of the stag. As that beetle buries into the hole, the statue gleams to life.
+
+         "...Hm, 'heart most yearn'."
+
+         His eyes cast to the ground, narrowing as they lower. In Reize's mind, there is an image in his head that is fuzzy. He can barely see her. The vision is there.
+
+         'M--..'
+
+         No. This is not something a supernatural being should grant him. He will find her himself. No. They are here for a very important reason. This entire trip is here because...
+
+         "We're here to wake up a close friend who has been in a deep sleep. We are seeking the Star-crowned." 
         
-FARU
+|IVO
+        Ivo looks surprised at Anna's honesty, then saddened, the young man lowering his gaze in a display of the melancholy he typically hides from his friends. The statue's eyes pulse when the avenging princess finishes her sentence, but Ivo hardly notices.
+        He has no doubt they all must answer this time. What does he yearn for, now? After ascending to recognition in Cosmopolis, after easing his loneliness with friendship born of adventure, after succeeding his father and retrieving his family's emblem--
+        "To see all the wonders of this world."
+        He should say something specific about Lily's predicament. But in this hallowed place, Ivo, somewhat shaken, finds himself looking within and speaking unbidden. Yes, now at last, his curiosity is free to thrive without shame. But his guilt still lingers, checking his desires. His own virtue, he still doubts.
+        "And to be... to feel... worthy of them."
+        He doesn't know how to lift the shrouds of guilt and doubt that remain draped over him. But maybe, on his continued adventures with his friends, he'll find an answer, or at least the right question.
+        He looks up, seemingly startled out of a reverie, and hearing Reize's words, feels a flash of embarrassment. See, right there, that's why he still doubts himself: because in a moment like this, he thinks obsessively about himself, not about what he's actually here to do. If he were truly virtuous, a voice whispers in the depths of his mind, he wouldn't be so stuck on the matter of his own virtue. With a somewhat queasy expression, as though he'd rather look away, Ivo forces himself to look up at the statue.
+        But just as those eyes flash for Anna's words and for Reize's, they flash for him as well. And even though he knows not the being who dwells within the carving or the trustworthiness of its judgment, Ivo can't help but feel a wave of deep relief.
+        "YOU SPEAK TRULY," it intones. "MORTALS OF GOOD FAITH, YOU WARRANT MY PRESENCE."
+        The little flames of the surrounding candles ripple and sway as though in a strong wind, though the party feels nothing. As though fed, their fire rises up impossibly until a curtain of flame surrounds them in all directions. The carving begins to crack and crumble, countless glittering beetles spiralling into the void above as though populating the night with stars. Wood fragments and falls like a molting shell and then, and only then, do our heroes feel a wave of force, an overwhelming pressure, pushing at them.
+        "Reize!" Ivo calls, his cloak flapping wildly as he half-crouches to keep his balance and shields his eyes. "I was wrong! This isn't a shrine to Faleh at all! The stag isn't some symbol or metaphor! It's..."
+        Shining so bright as to be blinding, a stag of pure white sunlight now stands before them, its eyes like emeralds, its antlers like diamonds, majestic and forbidding.
+        "...a sapient eidola!!"
 
+> KERNUNNOS, THE HORNED DEMIGOD has appeared.
 
-Faruja Senra has shown - as seems to be his way - less outright fire for the whole thing, but the enthusiasm in Ivo's gaze has the rodent with a warm smile on his face. His aims are, like usual, first and foremost keeping this band of wonderful idiots from getting themselves killed. Some old rotting flowers from some cult of leaf-snorters is tertiary at best. 
+        "Ah, my people." The stag's voice no longer booms, yet its deep and resonant voice echoes nonetheless. "How I yearn for you, as you once yearned. You who have passed my trials, though not of my people: have you come to strike me down again?" This eloquent presence is beyond even what they experienced in Verdios. Though its shrine has been long abandoned, its gathered power seems hardly diminished by the years. "Life offers me little, yet I must live. My people..."
+        Kernunnos' dignified voice is riven with sorrow.
+        "...someone must remember them."
 
-That said, his tail is twitching, a good sign that he's not as unaffected by the idea of adventuring as the paladin-rat would have others believe. 
+> Challenge Kernunnos?
+>> Yes
+>> No
 
-Of course they quickly encounter a problem. Faruja's brows tense, one ear flicks, and he sighs. "Miss Ruidosa, Squire Seatlan's appreciation for and adherence to minor matters such as geography, sense of direction, or the location of sudden cliff faces is questionable at best." It is said with /all/ of the affection for the young Vanguard. 
+|REIZE
+         There is something deep down that Reize truly wants. However, it is nothing that an outsider should provide him. Furthermore, it is not something he'd confide in front of anyone. Instead, they came to Granse with a purpose: To restore a dear friend. He had not been able to explain much of their friend to their new companions. It may be worth talking about it later.
 
-"That said, and until mine own lessons in cartography are drilled into your mind Reize, this isn't your fault. Nor Ivo's for that matter. Bad feeling. A moment, you all. Back in a yart." HUP! Those beastman legs rocket this ratling through canopy with a contemptuous slice of lance and pump of knees, the male getting impressive hang-time as only his nigh-extinct race can. Sharp eyes and ears look out as he gets the lay of the land from on high.
+        ...Should they survive.
 
-IVO
-        "Th-that's right!" Ivo recovers his composure somewhat at Ruidosa's query. Given the opportunity to explain something, he's able to feel right at home even in this confounding situation. "Or that was the idea..." He hesitates as he reflects on the vampire girl's words. "Twist my way of thinking..."
-        He decides that he can't admit he has no idea what that means for fear that Ruidosa will make note of it, thereby eventually lowering his Love Interest Points with the lovely Lady La Crima.
-        "Your mother is a wise and beautiful woman," he murmurs. "I must contemplate this advice." It's not clear what her being beautiful has anything to do with it. While Ivo ponders, Reize, examining the nearby flora, has his eye caught by the pleasant pale pink flowers of a common nettle, and there espies a striking unidentified beetle with a very impressive horn and an almost iridescent shell. It lazily takes flight and begins buzzing into the undergrowth.
-        He is interrupted by the almost twinned query of the two younger adventurers. Ivo grins as Faruja responds and, having had time to recover from his accidental admission, chimes in.
-        "With Reize in charge, the unexpected always occurs!"
-        Euphemisms are a diplomat's stock in trade.
-        As Faruja effortlessly clears the canopy with his beastkin cheat code, he is able to take in the gorgeous view of the vivacious forest from above. The density of that canopy means that much of the forest is obscured to view, but there, further to the west, is a gap in the trees indicating the presence of a body of water. Distance-wise, it is not far, but as to if there is a ready path straight there, it's hard to say.
-        "Hmmm..."
-        Doing his best not to be one-upped, Ivo, below, strokes his chin, furrowing and quirking his brow, making the expression of someone thinking in the hopes that thoughts will come. He murmurs to himself at a barely audible volume.
-        "Twist my way of thinking... hah, I can hardly think at all over all this chirping and buzzing... is nature always so noisy?... noise?" He blinks. "Could we navigate not by sight... but sound?..."
+        Witnessing the flash in the eyes, Reize looks at the statue with awe and a bit of fear.  As the carvings crack and crumble and the glittering beetles spiral into the void, Reize's eyes widen at the overwhelming pressure. "Ugh..." He calls out, "Rui, Anna, get ready!"
 
-RUI
-Ruidosa eyes Ivo, and Faru's answers about Reize as she looks over to her similarly aged traveling companion and says. "Is that true? Do you get lost often? I'll have to... make a note of that..." she says, opening her book, producing her quill pen and quickly jotting something down. She then closes the book and frowns a little.
+        And then, a familiar, unexpected sequence happens.
 
-"It seems someone wants to keep people out, regardless. Unless this is a natural phenomena. There has to be a ... key. right?" she asks Ivo, who then mentions sound.
+        The gathered party, from Ivo to Anna, can feel time ripple. There is a separation from the physical world, in a sense, as the presence of an Outsider ripples into the fabric of existence. Their sense of color within the surroundings are distorted as a chromatic abberation within vignette with flickering appears.
 
-Her eyes peek around. "It was always noisy in the swamp. Crickets and bugs and lots and lots of mosquitos are good deterrents to keep normal folk away. So I'd say 'yes'. But..."
+        "An eidola?!"
 
-"I'll just follow for now. I wouldn't know what to listen for." she says. "Unless it's. Noise in general." she adds.
+         However, even as he draws his boomerangs, he becomes more subdued as it seems like, it's... tired. Reize closes his eyes before looking over towards the horned creature, "....Strike down again?"  He offers a frown, "...How do you want your people to be remembered?" 
 
-REIZE
-         Reize is getting a beating courtesy of Faruja here! Reize physically deflates as he feels an arrow shooting him in the heart from each comment about his sense of directions! Indignantly, Reize furrows his eyebrows. "Oooi!" He squints at Faruja, "Name the one time that I got us lost?"
+|IVO
+        "As good, as kind," groans Kernunnos, "as martyrs and heroes. Oh, those cursed kings did lay them low, cruel stars ablaze upon their brows. My faithful were besmirched as traitors, slaughtered and cast out, and my temple razed. Our crux was broken, our remnants scattered, my essence preserved in this sanctum. But to what end? I awakened only to find them gone."
+        Ivo, straining against the force of the demigod's presence, squints through his fingers at the stag's shining form.
+        "Stars upon their brows... Kernunnos!" he calls, mustering his courage. "Were your people persecuted by the Star-Crowned!? Is that why they fled to Zerhem?"
+        "Star-Crowned? Zerhem? I know not these names, children," Kernunnos replies. "An old man like me cannot help you."
+        "I think you can, if you will!" Ivo calls back before looking to the party's leader with a hint of desperation. "Reize..." He then looks over to Anna. Can she contain herself in the presence of another eidola, albeit one seemingly utterly opposite to her nemesis?
+        What will the party choose?
 
-        Bubbles come up as there is flash back to First Flight...
+|ANNA
+        Anna has no reason to be dishonest. That simple bloody desire is all she wants in this world, it is all she can think about day in, day out, and even as she lays her head down to sleep. The eyes flash and something feels off...
+        Though she looks to Reize and Ivo as they give their replies and the statue... Is no longer a statue.
+        The fires rise, beetles scatter, and a familiar sense of wrongness and dread fills Anna's breast.
+        Reize doesn't need to tell Anna Primrose to ready herself.
+        Her axe is already in her hand.
+        And when the creature before them is revealed not to be some aspect of Faleh, but an Eidola...
+        The girl grips her axe with a white-knuckled force.
+        Her teeth clench and grind as she stares the creature down.
+        Her breath hitches, growing ragged and rasping in her breast.
 
-        ~ Within the deep, thick, crystalized jungle of death.... Reize and Lily got separated from everyone. Twice. To be fair, the second time was not their fault.~ 
-        ~...Insert the trap door that Reize touched when they were in the venerable, stone-carved Panacea Temple. ~
-        ~ Insert the time that in the futuristic, steel-plated building of Aediograd, Reize activated a switch and got him and Lily separated... ~ 
+        > Challenge Kernunnos?
 
-        </Bubble bursts>
+        ...
 
-        "I said one time!" Reize snaps!  As Ruidosa asks about the rumors being true, his face becomes heavy as sweat profusely runs down his face, "I... I just have a few issues now and then..." His pride is taking a beating here! In fact, seeing Ruidosa jot that down in her notebook with a frown has the boy deflate.
+        >>Yes.
+        >>YES.
+        >>YESYESYESYESYES!
 
-        Sigh. Strike one for the adventurer's pride!
+        Her body quakes as her mind and her heart tear in two different directions. This *thing* is an Eidola. An Eidola killed her beloved tribe. ... But it is not like *that* Eidola.
+        Anna Primrose stands locked in place, a hair's breadth away from exploding into full on bloodthirsty violence just *looking* at Kernunnos.
+        But logically she knows this creature is something else entirely.
+        Can she truly kill something so placid, serene, and sad?
 
-        Nevertheless, Reize watches the beetle.. and follows after it.
+        >>YESYESYESYESYESYESYESYESYESYESYES!!! 
 
-        Be one with the beautiful looking beetle. Follow the beetle. 
+        Her heart hammers in her chest as she exerts every ounce of willpower she has to not go off like a gunshot for the sake of Reize and Ivo right now.
 
-         ....Hope everyone kept an eye on Reize, because if not...
+|REIZE
 
-        There may be a Reize dotted line where he previously was at. 
-        
-FARU
+         Listening carefully, the boy lifts his head up. Matyrs and heroes. The cursed kings? There is a frown that follows suit as the tale continues. So their kind was branded as traitors. However, the figure before them stands.
 
+        What good would fighting him do? Kernunnos seems to know something.
 
-Sailing high in the air, gravity finally releasing its' grip for a few precious seconds, Faruja indulges in that feeling of being free. A breath of the lovely air in way almost wholly unique to his kind, the beastkin finds tears falling down his cheeks unbidden. Oh, how he missed his home, his kind. Truly, he loves those he finds himself beside, he loves the Church, but there is something deeply /missing/ inside of him. Can he fill it with the love of his friends, with being able to teach am ambitious young man, by safeguarding people he cares for? 
+        ...Reize cannot let this knowledge die. Not now.
 
-Melancholy thoughts are banish as he deftly touches down, and he regards the others seriously. 
+        "... This is the first time that we've come across an eidola that... was not an immediate threat." 
 
- "A break in the treelines to the west. Hard to say much more. Mayhaps I could make my way over there with several creative leaps, yet that isn't assured, and bluntly many predators make their homes within them. The wiser and more difficult course is best in this situation." The scout-adin tells the party with a mild shrug and mumbled prayer of acceptance of problems. 
+> Challenge Kernunnos?
+>>>>> No.
 
-Completely ignoring Reize's grumblings, he nods to Rui. "My unfortunately cursed dear, perhaps you've the sight for complex magicks as well? My senses are great for the physical, not so much for the rest..." Pause. Pauuuuse. 
+        Soon, Reize brings his boomerangs back to his sides and then places a hand out for Anna, as if signalling for her to not arm herself. Instead, the boy choose to approach Kernunnos, "As it stands now, you may be the last being and clue that can help us. You may not know their names, but you have an idea as to the Star-crowned." He extends his hand out towards the great stag.
 
-"Where, by Aijanu's pants, is Reize?" There's an edge of exasperation in his voice as he reaches out to poke at the Vanguard-shaped outline of white airchalk that once contained a young man.
-ooc Lmao Aijanu's pants
+        "... We need your help. Maybe this will be your chance to make things right to your people as well." 
 
-IVO
-        "A key?" Ivo is roused from his contemplative reverie by Ruidosa's insight. "Yes... yes, let's assume that's the case," he affirms. "It seems safe to presume that either the druids contrived this phenomenon or made use of it and were able to navigate the forest safely themselves. Our best bet would thus be to determine somehow what *they* did." He sighs softly. "But there's so little record of the who the druids were or what they did or believed. They worshipped Faleh in his various natural incarnations... the chronicle emphasized the symbol of a white stag, but... I haven't seen any large animals since we arrived."
-        He then nods.
-        "Yes, what *should* we listen for? All I can hear are birds and insects. I couldn't say where the druids located their shrine, but as for the roses, if they're near a pond, then--" He blinks. "--like I said-- it'd probably be a breeding ground for insects--" Then he brightens. "Reize! Let's follow the sound of insec-- Reize?"
-        Uh oh.
-        "That took longer than I expected," Ivo, looking at the figurative dotted outline where Reize once was, quips as Faruja descends. "Well scouted, my friend." He smiles at the beastkin lancer, only to hesitate briefly, noticing that Faruja's eyes seem somewhat reddened. Perhaps it was the winds above, or-- he'll ask later. "The ferns are still swaying there. Shall we follow our fearless leader? He seems, incidentally, to have gone in the correct-ish direction. Westward, ho!" Setting aside his aversion to getting himself dirty, the Cosmopolitan gamely gets on his hands and knees to crawl through the undergrowth, following in the wake of his more agile friend. "Watch your-- ow--" He bumps his head on a low-hanging branch anyway. "--your head."
-        Reize, following the beetle's meandering path, is able to admire it more closely as he goes. Its horn really is quite something: a single protrusion that branches out like a pair of antlers emerging from its head. Its shell is a rich loamy brown but shines like an oil slick, and when it catches the light just so, it appears bright white, blinding like snow in the sun.
-        Eventually the adventurers manage to emerge into a clearing and see the pond before them just where Faruja located it, its waters reflecting the canopy that rings it. The sound of insects is indeed intense here. As the beetle drifts around the shore of the pond, Ivo, clambering back to his feet and dusting off his knees, sniffs the air. "Smells oddly sweet here, yes?" He glances around hopefully. "Anyone see any roses?" There are none immediately visible, but there do seem to be quite a few insects of all sorts in something of a tizzy, darting to and fro.
-        Ivo's gaze follows the busy bugs back toward the tangle of vegetation whence they emerged before his expression suddenly freezes, eyes widening.
-        "Those... aren't roses..."
-        Two giant towering pitcher plants loom above the adventurers, surrounded by insects lured to their doom by the nectar within. It seems that our heroes blithely wandered between them to reach the pond. The very moment that Ivo notices them, vines can be heard and seen wriggling through the earth near the water.
-        "Ruidosa, Reize, watch out!"
-        Perhaps sensing the vibrations of the party's passing, the giant carnivorous plants reach out for the smaller adventurers, attempting to seize them and drag vampire and explorer toward separate awaiting maws!
+|IVO
 
+        "To make things right..."
+        Kernunnos' emerald eyes flicker.
+        "Boy... that, about your neck... hm. I see now."
+        As Ivo stares at Anna in mingled awe and fear, seemingly more struck by her fury and will than by the veritable deity in their presence, the sapient eidola gathers his thoughts.
+        "Perhaps you did come to call them the Star-Crowned in your day," Kernunnos concludes. "My people were one with them once, you know. Worshippers of my master, Faleh, they yearned to reach the sun and join him. I, left to roam this sundered earth, took pity on them -- or perhaps they took pity on me. I led them to a fallen star to aid in their ascendence. But some of those imbued with the fragments of that star hungered for more, more power, more reverence, more respect. That great quest for the heaven was forgotten, abandoned in favor of seeking earthly glory. I shepherded those who would reject the path of conquest. For that, we all were punished."
+        He lowers his mighty head to gaze into Reize's eyes, his antlers almost touching the boy, the eidola's shining form rippling like a mirage.
+        "If you seek the secrets of the ones you call the Star-Crowned, then it is the Crux of Creation, our crowning achievement, that you must reassemble. The path to my true temple shall than be revealed, and with it, whatever -- or whomever -- remains of those fateful days." The stag steps back, flames leaping from his hooves, fading within moments having turned the gray grass green, the first flash of natural color to be seen in this sacred place. "But the four arms of the crux quadrata were scattered to four corners of Granse, or so it was intended. I know not of their eventual destination, but... mm. Yes."
+        Before their eyes, the stag begins to shrink.
+        "I *would* be able to sense their proximity."
+        Eventually the demigod becomes a little ball of light that darts, before anyone can react, into Reize's pendant. The crystal shines as bright as the stag had for a moment, blindingly so, until all at once the light has faded and their vision is restored. The party finds themselves back at the entrance, the totem pole before them, and daylight returned, filtered through the soothing shadows of the canopy above. The crimson candles have all gone out, the tiny shrine now surrounded by the forest, none of the paths they walked in evidence.
+        "Hmm, rather cramped in here, boy," a small yet familiar voice echoes from the pendant, its crystal pulsing faintly. "Have you allowed her power to be so diminished? Disgraceful, I must say."
 
-RUI
-Ruidosa looks to where Reize ''was'' and she looks around suddenly. "Huh?" she asks as she tries to sniff him out. This doesn't work very well, given the various other smells and scents around but then they get to the a small pond as she eyes the water... before she looks down at the surface as she eyes Reize chasing a beetle all the way to....
+> Kernunnos, the Horned Demigod has joined the party as a guest (uninvited).
+> "Summons" has been added to the menu.
+> At Affinity Rank 1, no summoning commands are available.
+> Reize's pendant's current Spirit Capacity (SC): 1/1
 
-Oh, two giant carnivorous plants. That are now sliding viney tendrils at them.
+        "So, this Zerhem... might anyone there recall me?"
 
-Ruidosa is grabbed by one by the leg before she can do much thou, before she ''squeaks!'' out almost like a bat would and starts flailing. "A..aah!" she lets loose. "Help!" she calls out. She points a finger at the plant, and something like a spark comes from her finger tip, but it fizzles as she can't concentrate enough in her current predicament. She's gonna need help. ;_;
+|ANNA
 
-REIZE
-As beetles goes, Reize follows
-Chittering along, step-by-step
-Clickity-Clack, Snap snap.
+        >>YESYESYESYESY-... No...
+        Everyone knows the main character's decision's trump those of the brand new party member.
+        But for Reize to bid Anna not be armed in the presence of an Eidola... Is like asking water to not be wet, asking a typhoon to not be a force of nature.
+        Breath coming in ragged pants, Anna takes a struggling step forward, murder in her eyes. Before she manages to rein herself in.
+        . o O (Put it away... Back in its cage. Back into the secret place behind your heart, Anna...) She thinks to herself, before collapsing to a knee.
+        Planting the head of her axe in the ground she leans on it panting for breath as she blinks away the red haze from her vision.
+        The Eidola shrinks. It joins Reize's pendant.
+        Anna holds her head, doing her best to fend off the incipient headache beginning to mount within her skull.
+        "Ugh..."
+        Give her a minute to regain herself, guys.
 
-        The reasoning behind following the beetle was not for pure admiration, as pretty as it was. Given the fauna, it is more than likely that the beetle would lead to a path that may land them to rare flora that matches its own taste. Given Reize's small stature (compared to Ivo and Faruja), he makes it past the low-hanging branch with no issues.
+|REIZE
 
-        There is a glint of its shell, given that light. "...Okay, we should be close to the flora."
+         "Huh...?"
 
-        However, there is a frown as Reize senses the sweet smell. ...
+        Around his neck? Oh! The pendant. Reize looks over towards the gem that hangs around his neck. It seems that the eidola recognized the pendant. However, didn't the Greater Eidola, Adrastus, recognized a 'presence'. He is uncertain, but between his connection with Lily and the recognition between the Eidola, Great Beasts, and being able to hear the wishes of the people, the boy brings his hand to the pendant to clutch against it.
 
-        .... is too familiar!
+        There is a blink, "So you're a Child of Faleh as well!" He furrows his eyebrows. That means that Kernunnos may be familiar with Adrastus then.  As the creature nearly touches with his antlers, the boy remains in awe. "...The Crux of Creation..." So that is their next destination.  
 
-        The boy's hands reach out towards his sides to draw his crystal boomerangs boomerangs in response of a triggering memory reflecting a not too distant adventure.
+        The change in the stag, from the flames leaping from his hooves to its form shrinking into a ball of light, Reize's eyes focus in awe. The crystal of his pendant, shining as bright as the stag, is met with a blinding light.
 
-         And that is where Reize's eeys widen as he sees the towering pitcher plants. "Deja vu... except there's two of them." He frowns, immediately taking the iniative to  meet with the vines half-way. Instead of letting himself grabbed, he swings the crystalized weapon to smack against the vines.   
+        ...Now, they are back at the entrance. His eyes widen a bit. Reize does offer to Kernunnos, "It's.. slowly regaining its power. ...There is another that is connected, in a way." He offers a smile, "...That person is who I am trying to restore." 
  
-        His eyes snap wide, "Rui!" He immediately lunges out her way, gaining a burst of speed to send him off like a bullet towards her path. He swipes at the tendrils ensnaring the girl to free her. "Yaaaah!" 
-        
-FARU
+         He looks over towards Anna, who is just holding onto her head. He can see that she's.. conflicted. 
 
+         "...Oi, Anna." He waits for things to calm. He doesn't get closer, just to give her space and not be in the receiving end of pain. "...We'll find the actual eidola responsible." He offers a faint smile, "That said, I think we may encounter those that aren't malevolent." 
 
- Siiiigh. Reize. Oh /Reize/. He was trying to /not/ blame Reize this time, but oh dear is he getting a headache. CRACK. There's his skull going into a branch. ...The branch shatters under hard knightly forehead. Frown. 
+|IVO
 
-"...Weak." He glares at the tree, as if judging it for its' lack of toughness. 
+        "Ah, then its diminishment is because..." Kernunnos' voice softens. "I withdraw my criticism of your efforts with my apologies, b... no. Hero, impart to me your name."
+        Ivo would be attempting to comfort Anna again but, seeming dazed, he is looking around the clearing instead. Unlike their leader, he is unused to suddenly finding himself in unexpected environs.
+        "Uh, Reize, I... I have some bad news."
+        What could possibly happen at this point?
+        "I don't see the first altar or its basin anywhere. With... you know."
+        The pendant flickers.
+        "Your sacrifice? That was consumed by my sacred fire. Why?"
+        Ivo sighs.
+        "Victory... but at what cost...?"
+        Well, we know exactly what cost.
 
-Scowl. "Those are quite possibly the most ugly flowers I have ever seen. Ser Ivo, I do believe you are a failure as a botanist my friend!" 
+|ANNA
 
-The rodent gives the plant trying to drag off poor Rui an absolute /snarl/ better associated with a lion than the rat he resembles. "By the Holy One you shall NOT have this vampire! She is HIS to judge, not to make your lunch you overgrown weed! Taste divine judgement knave!" He raises his lance, the tip of it glows, and then /points/! 
+        Alas poor hookshot. Reize loved thee well. But it was a love that was not meant to be.
+        Anna, on the other hand, lets out an audible gulp as she slowly picks herself up to stand once again, hands trembling from adrenaline overflow as her breath slows.
+        "I'll be fine... I'm fine..." She mumbles, still a little breathless.
+        Yeah. They'll find that Eidola that killed her tribe. But today is not that day. But for the record...
+        Anna is not fine.
 
-The sky lights up with holy light, and then the conflagration of cleansing fury begins to fall like the hand of a deity. It is.../uncomfortably/ close to Rui, but he's clearly trying to keep her out of the blast zone.
+|REIZE
 
-IVO
-        Ivo is briefly caught by surprise not by the ambush but by Reize's alacrity in responding to it. The boy's experience adventuring thus far seems to have paid off, the Cosmopolitan thinks, grinning lopsidedly a little despite the perilous situation.
-        The crystal boomerang smacks at the vines fiercely, the plant initially tightening its hold on the vampire girl -- squeeze! -- before, when the vines begin to fray from the damage, relaxing and withdrawing to protect itself. The magitech fencer, having reached for Hauteclare's hilt, pauses as he sees that Reize's attack seems effective and, moreover, that Faruja is preparing a fearsome attack indeed. Oh, boy. Looking a little alarmed, Ivo instead reaches into his cloak, withdrawing the elemental amplifier.
-        "I may not be much of a botanist," he concedes, "but I know one thing about these plants: they can't chase us! Reize, get her out of there, quick--!"
-        As the searing light descends from the sky, blasting through the canopy with a shower of verdant leaves and searing through the remains of the vines, insects scattering with a frantic buzz as the now-smoldering plants curl in on themselves in a defensive reflex, Ivo activates the amplifier. Targeting the ground before the plants, the earth stirs, its soil rich with life-giving aether, and a pillar of stone bursts forth, forming a makeshift shield to absorb the brunt of Faruja's collateral damage. It'll crumble within moments, but it may help the two kids get out of there.
-        "Follow that beetle!"
-        Ivo's voice sounds almost amused as he sounds the retreat, in a manner of speaking. There's no need to battle these plants any further once the party moves out of range, after all. And that shining beetle, seemingly blissfully unaware of any battle, is slowly circling the pond, in just the direction that they would want to go to get away from this vile vegetation.
-        "I can see why Reize pursued," he says more or less to himself as he hightails it away from the fight. "It looks like a variant of a stag beetle, but I've never seen one quite like it." Pausing for breath some distance away, he suddenly startles, looking toward the bug minding its own business again. "...*Stag* beetle?"
-
-RUI
-In another universe, Ruidoa falls gracefully into Reize's arms. She blushes. He blushes. She's princess carried away and they follow the beetle to the land of the druids....!
-
-In this universe Ruidosa basically, falls on top of Reize and starts swearing curse words in Gransian as they fall into a pile and having to shield herself from holy attacks near her- but not on top of her thankfully, with help from Ivo there.
-
-She stands up... he's Reize up if he needs the help getting up and just starts to get away from the awful monstrous plants.
-
-"I HATE GIANT PLANTS!" she yells angrily, as she continues to say strong language in that other tongue.
-
-REIZE
-         One can attribute to Reize's experience for his alertness.
-
-        ... One can also attribute to that the Heart of the Jungle, to this day, still gives Reize nightmares. The plant creature that calculatedly separated him and Lily from the others... The darkness, the fact of a living plant leading them of what was a maw of doom.  Even worse... they were outmatched until Ivo, Priel, and Faruja were able to jump in near the end of it.
-
-        ...If it wasn't for them, that would had been their last trip.
-
-        These, in comparison, are not as threatening. 
-
-        However, that is put on hold, as Ruidosa falls into the boy's arms... who then collapses with her atop him. Unfortunately, that drop was not graceful. Even worse was hearing various words that are rather incomprehensible to him. 
-
-        After they do get up, Reize manages to take Ruidosa's hands as she help him up, and then he nods at Ivo. "Right!" Luckily, the pillar of stone helps with their protection against the vine creatures.
+         "Oh! Reize!" 
  
-         Reize follows suit of the shining beetle. "Whew." 
-        
-FARU
+        The news of the Hook Shot reaches Reize's ears. 
+ 
+         "Wh--what....?"
 
+         Consumed by the sacred fire?
 
- Faruja proudly watches his handiwork, the rodent limbering an arm. That felt good! A glance to Rui, and Reize, and he sighs in relief since the two are safe for now. One ear twitches. 
+        Reize drops down to his knees and cries out to the heavens.  "NNNNNNNNNNNNNNNNNNOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
-"/Lady Ruidosa/! Language!!!! Show a touch of class my dear!" No he doesn't know the exact language, but he's been around enough foul mouthed adventurers to be able to pick out tone very well. He has /adult voice/ going on. 
+|END
 
-"Are you both alright?" Reize gets a light blast of healing magic just in case, though he's certain to not do that with Rui. 
-
-Back in formation! "That was good work with the beetle, Reize. Unconventional. But good work." A note of pride in his voice. See? He might browbeat you but he still /believes/ in you!
-
-IVO
-        "I assume your mother doesn't like them either?" Ivo says cheerily, completely unfazed by Ruidosa's outrage as they collectively retreat. "Of course, if she does..." He glances back thoughtfully.
-        It's not worth it, man.
-        "If we can count on the chief for anything, it's defying convention," he follows up Faruja's praise with some sounding suspiciously fainter, his eyes following that beetle still. "Say, have you noticed how that shell catches the light? You don't suppose that the 'white stag' is--"
-        He stops short. The beetle has settled onto a shrub tucked behind a small hillock, in a space where the sun breaks through the clustered trees, bathing a cluster of blossoms in lifegiving light.
-        "There they are! The wild roses!"
-        Ivo stares in honest amazement at their success. Wild roses, though sweet-smelling and a valuable addition to herbal concoctions, lack the complex layered appearance of their cultivated cousins. These appear to be an unusual hybrid, a missing link between the wild and the domestic, their broad petals twice-layered and painted the hues of sunset, fading red to orange to yellow. The beetle alights upon one rare bloom, said to open only for a few days each year, and after a moment of stillness, begins to flicker its wings.
-        An odd buzzing sound emerges, faint at first, then somehow intensifying. Before the adventurers' very eyes, the pondside brush nearby begins to stir and then part, a path appearing before them. And there, tucked deep within the tranquil shadows of this long undisturbed idyll, may be seen the remains of a shrine, vivid white and red, standing out amidst the surrounding green.
-        "We found the key," Ivo breathes, "and the lock."
-
-RUI
-Ruidosa huffs dramatically. "I don't know if any plants tried to eat her before!" she says to Ivo as she watches the beetle curiously... before she opens her book to a new page and starts to sketch it... though she can't really convey it's beauty, she can sketch but she isn't an artist. She does right 'follow stag beetle' in the book as a note and starts writing other bites. 'I dislike pitcher plants that try to eat me.'
-
-She looks left...and right, and blushes  and writes 'that cute boy- see page 'Reize' aaved me from it, with the paladin and the knight covering him and attacking aswell.' she writes.
-
-Still, she looks up ahead at the shrine as she looks to Ivo...
-
-"Um. We're these the roses you we're looking for?" she asks as she sketches one a moment and gently leans forward and taps the petals of one carefully.
-
-"Um..."
-
-"Should we pick one...?" she asks.
-
-REIZE
-         "I'm alright," Reize answers the a paladin. The affirmation from Faruja is met with a smile, "Thank you, Faruja!" He does look thoughtful a moment later, "I couldn't help but notice how rare the beetle looks. Given the rarity of its appearance, I figured it would lead us to the rare flora within this forest." 
-
-        There is a frown, running a hand over his forehead as sweat runs across his face, "...Unfortunately, that sweet scent triggered a memory." Ugh, that thing. No matter how long, that one was definitely a thing of nightmares.
-
-        What comes into fruitation is watching the beetle settling on the shrub that reveals the wild roses. His eyes widen in awe, followed by a smile. "We did it!" He is quite excited.
-
-        For Reize, it is not just the fact that they found what they were looking for, but there is a reaffirmation to his pride as a hunter. After all, Reize grew up and lived his life in a forest hamlet. He should be mostly familiar with the fauna and flora more than anyone.
-
-        Forests are his favored terrain, after all.
-
-        Now this is more of his lane. There is great interest as the idyll reveals the remains of the shrine. Reize takes a few steps forward, no longer interested in the rose that Ivo sought. Instead, the shrine his captivated his attention enough for him to explore ahead.  
-        
-
-FARU
-It really /did/ work! Druids may be inscrutible, but Reize's knack for the odd and - seemingly - clever has Faruja beaming. And Reize confirms it, too. The boy knows his stuff, clearly. Newfound respect is in his gaze, and he favors the young Vanguard with an approving nod. 
-
-"Remind me to take a course in insectology the next time we stop in a place of learning." He wiggles his nose, then eyes Ruidora. "Perhaps you could impart your knowledge to our darkling friend, hmm?" 
-
-Is Faruja...plotting? Maybe. Rarely does deviousness shine in his eyes, but /oh/ the paladin is getting ideas. He'll have to collaborate with Ivo soon. 
-
-Right, there's bugs and keys. And weird druid shrines. Luckily he isn't smashing them just yet. 
-
-Faruja is down to work though, offering out a bag, and looking to Ivo briefly. "My friend? Anything to worry about? I trust these things shall not rott away my fur nor poison me?" Claws snippity-slice as he prepares to start some gardening!
-
-IVO
-        "Well," Ivo quietly half-replies to Ruidosa, "I wouldn't blame them if they did." Hush, man, she's just a girl. As always, he shamelessly leans as subtly as he can to try to peer over her shoulder and read what she's writing, looking quite amused indeed. Imagine a shot of Ruidosa busily writing, book mostly shielding her from view, with him sloooowly sliding into frame at an angle behind her.
-        He will then try to be mysteriously back where he was and appearing innocent by the time she addresses him.
-        "Yes, let's!" he enthuses to Ruidosa, and then to Faruja: "Nothing but thorns." He grins. "But you wouldn't let a few thorns stand between you and beauty, would you, Ser Senra?" Look who's talking. "We needn't take them all, but they won't bloom for long, and it's not as though others will come to admire them here. Let's gather a bunch for your mother and take a few for pressing and drying, too." As long as enough are left for the plant to reproduce and insects to feed, it should be fine. "Great work, Reize. This is thanks to you. We got lost out of getting lost. It seems," he asides to Faruja, "his talent can provide double-negatives of a sort."
-        They're always so supportive.
-        "We don't know what we'll find within, but we know for certain that defensive magics are at work here and we know how to open the path," he supplies. "Why don't we take the 'key' with us, gather and deliver the roses, confirm the presence of the shrine to the Vanguards, and return equipped to deal with magical tricks and traps?" He knows Reize will likely be disappointed, but Ruidosa is rather new to adventuring and, even if she's unharmed, that was a direct threat on her person they faced. "Here we go. We'll feed you... uh, whatever you eat," he says as, while Faruja gathers the roses, Ivo gently plucks the beetle from a blossom and slips it into a glass tube. It looks rather like the ones sticking out of the zombies from the catacombs -- it seems he grabbed a few useful odds and ends after all.
-
-> Ivo has acquired a Crowned Beetle (*****)!
-> Beetledex has been unlocked in the Journal submenu.
-> 1 out of 347,982 beetle varieties acquired.
-
-        For some reason, the Cosmopolitan shivers.
-        "Strange," he mutters. "I just had the odd sense that my ultimate weapon is very, very hard to acquire."
-
-
-REIZE
-         "There are a few things familiar to me, I grew up in a hunting village, after all." He gives a thoughtful look, "The forest that we had didn't have man-eating flora, though... But there were numerous of fauna that can be quite dangerous." 
-
-        He wanders closer to the temple, not hearing Ivo or Faruja. His eyes have been gazing up at the shrine with awe. His hand reaches out to touch the building. He feels...
-
-        Adventure.
-
-        This is an unexplored place. 
-
-        The well of excitement ignites like a fire, until he hears something about 'confirm the presence of the shrine and return equipped'.
-
-        Ugh. Deflating...
-
-        Reize hangs his head low, already knowing that they will have to retreat. With a heavy sigh, the boy looks over towards the group. "A good idea..." He bears a smile, "We'll report back and visit the manor." He approaches Ruidosa to take her, "I'm sure your mother and sister would be delighted to hear your tale of adventure." 
-END

@@ -31,6 +31,10 @@ class CmdLogmunch(default_cmds.MuxCommand):
     aliases = ["logmuncher"]
     locks = "cmd:perm(Admin)"
 
+    # TODO: Currently using "|" to indicate new LogEntries. On one hand, this symbol is rarely to never used in RP.
+    # On the other, someone could, hypothetically, try using an Evennia text tag and mess up. Better option?
+    # TODO: In any case, at some point, adapt this function for more general use. Currently for admin use only.
+
     def func(self):
         caller = self.caller
         # First, get the log. I'm new to this, so I'll just put a single text file in the same directory.
@@ -57,18 +61,19 @@ class CmdLogmunch(default_cmds.MuxCommand):
         all_characters = Character.objects.all()
         # Let's try making the default character Headwiz, just so there's never any NoneTypes.
         character = all_characters[0]
+        # new_character_found = False
         for line in munched_log:
-            if line.isupper() and not entering_log:
+            if line[0] == "|" and not entering_log:
                 # This is the first line of the log, the name of the first poser.
-                posing_character_name = line
+                posing_character_name = line.strip("|")
                 entering_log = True
                 caller.msg("Character name is now " + posing_character_name)
-            elif not line.isupper() and entering_log:
+            elif not line[0] == "|" and entering_log:
                 # This is (part of) the contents of a LogEntry. Adding Evennia newline text tags.
                 line += "|/|/"
                 log_entry_contents.append(line)
                 caller.msg("Line appended.")
-            elif line.isupper() and entering_log:
+            elif line[0] == "|" and entering_log:
                 # This is the end of a log and the start of a new one. First, join the log_contents, adding line breaks.
                 new_log_entry = '\n'.join(log_entry_contents)
                 # Second, find the Character object from the posing_character_name.
@@ -76,22 +81,24 @@ class CmdLogmunch(default_cmds.MuxCommand):
                     for_comparison = obj.key.upper()
                     caller.msg("Comparing " + posing_character_name + "to " + for_comparison)
                     if posing_character_name.strip() in for_comparison.strip():
+                        # new_character_found = True
                         character = obj
                         caller.msg("Actual character name is " + obj.key)
                         break
-                if not character:
-                    # return caller.msg("Error: no character found for a LogEntry. Aborting process.")
-                    # Assume that if this is an all caps sentence with no character name, it's another line.
-                    # E.g., "EARLIER THAT DAY"
-                    line += "|/|/"
-                    log_entry_contents.append(line)
-                    caller.msg("Line appended.")
+                # if not new_character_found:
+                #     # return caller.msg("Error: no character found for a LogEntry. Aborting process.")
+                #     # Assume that if this is an all caps sentence with no character name, it's another line.
+                #     # E.g., "EARLIER THAT DAY"
+                #     line += "|/|/"
+                #     log_entry_contents.append(line)
+                #     caller.msg("Attempting to skip LogEntry append. Line appended.")
                 # Most LogEntries will be EMIT, so I'm just gonna declare that and edit it manually when not. Screw you!
+                new_character_found = False
                 new_scene.addLogEntry(LogEntry.EntryType.EMIT, new_log_entry, character)
                 caller.msg("LogEntry appended")
                 # Finally, find out if this is the start of a new log entry or the end of the Scene.
-                if line != "END":
-                    posing_character_name = line
+                if line != "|END":
+                    posing_character_name = line.strip("|")
                     log_entry_contents = []
                     caller.msg("Continuing to new logentry. Character name is now " + posing_character_name)
         caller.msg("process complete.")
