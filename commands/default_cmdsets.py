@@ -89,6 +89,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdCreateMinion)
         self.add(CmdLogmunch)
         self.add(CmdTeach)
+        self.add(CmdConvertArts)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):

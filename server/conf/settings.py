@@ -40,11 +40,12 @@ WEBSERVER_PORTS = [(80, 4005)]
 # config (i.e., use "+=") or we'll drop all the core evennia and django stuff.
 INSTALLED_APPS += [
     "django.contrib.humanize",
-    "world.msgs",
-    "world.scenes",
-    "world.character",
     "web.template_overrides",
-    "world.minions"
+    "world.arts",
+    "world.character",
+    "world.minions",
+    "world.msgs",
+    "world.scenes"
 ]
 
 # This is mostly copy-pasta from Evennia default-config to facilitate the addition

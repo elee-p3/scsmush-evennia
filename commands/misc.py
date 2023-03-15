@@ -11,7 +11,9 @@ import random
 from evennia import default_cmds, ObjectDB
 from evennia.commands import command
 from typeclasses.rooms import Room
+from typeclasses.characters import Character
 from world.supplemental import *
+from world.arts.models import Arts
 from world.utilities.utilities import logger
 
 
@@ -288,3 +290,16 @@ class CmdTeach(default_cmds.MuxCommand):
         caller.location.msg_contents("This |youtputs|n:")
         command.Command.execute_cmd(self, raw_string=str(args))
         # TODO: Would be nice if, when the command doesn't exist, teach doesn't run. Review cmdhandler.py.
+
+# TODO: once we run this command to convert all the arts to table form, we should delete this class/command and check in the change since this isn't meant to be reusable
+class CmdConvertArts(default_cmds.MuxCommand):
+    key = "convertarts"
+    locks = "cmd:perm(Admin)"
+
+    def func(self):
+        allCharacters = Character.objects.all()
+        for char in allCharacters:
+            artsList = char.db.arts
+            if artsList:
+                for art in artsList:
+                    Arts.addArt(art)
