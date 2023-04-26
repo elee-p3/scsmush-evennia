@@ -85,9 +85,7 @@ class CmdSCSDice(CmdDice):
         if "call" in self.switches:
             roll_string = roll_string.split("=", 1)[1]
         parts = [part for part in RE_PARTS.split(roll_string) if part]
-        caller.msg(parts)
         len_parts = len(parts)
-        caller.msg(len_parts)
         modifier = None
         conditional = None
 
