@@ -301,5 +301,6 @@ class CmdConvertArts(default_cmds.MuxCommand):
         for char in allCharacters:
             artsList = char.db.arts
             if artsList:
-                for art in artsList:
+                for idx,art in enumerate(artsList):
                     Arts.addArt(art)
+                    char.db.arts[idx] = Arts.objects.latest("pk")
