@@ -71,7 +71,6 @@ class CmdSCSDice(CmdDice):
         comment = ""
         roll_string = ""
         comment_parts = [part for part in RE_COMMENT.split(args) if part]
-        caller.msg(comment_parts)
         # check if there is a comment at all. This will catch when there isn't specifically a hashtag+string
         if len(comment_parts) == 3:
             comment = comment_parts[2]  # in theory, the last element of the list should be the comment string
@@ -192,22 +191,21 @@ class CmdSCSDice(CmdDice):
             except IndexError:
                 return caller.msg("Please input a target and a roll for +roll/call.")
             characters = location_character_search(caller.location)
-            # TODO: add alias_list_in_room to a utility?
-            # alias_list_in_room = [(character, character.aliases.all()) for character in characters]
-            # target_alias_list = [idx for idx, alias_tuple in enumerate(alias_list_in_room) if target.lower() in alias_tuple[1]]
+            # TODO: turn alias_list_in_room function into utility (along with the target_object code below)
+            alias_list_in_room = [(character, character.aliases.all()) for character in characters]
+            target_alias_list = [idx for idx, alias_tuple in enumerate(alias_list_in_room) if target.lower() in alias_tuple[1]]
             target_object = None
-            # if target_alias_list:
-            #     target_alias_idx = target_alias_list[0]
-            #     target_object = alias_list_in_room[target_alias_idx][0]
-            if target not in [character.key for character in characters]:
-                return caller.msg("Your specified target for +roll/call cannot be found in this room.")
+            if target_alias_list:
+                target_alias_idx = target_alias_list[0]
+                target_object = alias_list_in_room[target_alias_idx][0]
             # Find the actual character object using the input string
             # TODO: this is copied code, so refactor and make a function
-            # target_object = None
             for obj in caller.location.contents:
                 if not target_object:
                     if target in obj.db_key:
                         target_object = obj
+            if not target_object:
+                return caller.msg("Your specified target for +roll/call cannot be found in this room.")
             # Use the silent "test" switch to test the roll before sending it off.
             command.Command.execute_cmd(self, raw_string=str("roll/test " + roll))
             if test_failed:
@@ -215,6 +213,7 @@ class CmdSCSDice(CmdDice):
             if not target_object.db.rollcall:
                 target_object.db.rollcall = roll
                 target_object.msg(caller.key + " has called for you to roll " + roll + ". Type 'roll' to do so.")
+                caller.msg("You called for " + target_object.key + " to make the roll " + roll + ".")
             else:
                 return caller.msg("The target has an outstanding +roll/call and cannot receive another.")
         else:
