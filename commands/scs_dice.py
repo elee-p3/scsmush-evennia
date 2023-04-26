@@ -71,7 +71,6 @@ class CmdSCSDice(CmdDice):
         comment = ""
         roll_string = ""
         comment_parts = [part for part in RE_COMMENT.split(args) if part]
-        caller.msg(comment_parts)
         # check if there is a comment at all. This will catch when there isn't specifically a hashtag+string
         if len(comment_parts) == 3:
             comment = comment_parts[2]  # in theory, the last element of the list should be the comment string
