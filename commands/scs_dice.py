@@ -18,7 +18,7 @@ class CmdSCSDice(CmdDice):
       dice[/switch] <nr>d<sides> [modifier] [success condition] #[comment]
 
     Switch:
-      call - request a roll from the target
+      call - request a roll from the target. Multiple targets separated by comma
       cancel - cancel a received call for a roll
       hidden - tell the room the roll is being done, but don't show the result
       secret - don't inform the room about neither roll nor result
@@ -28,6 +28,7 @@ class CmdSCSDice(CmdDice):
       dice 1d100 - 2 < 50
       dice 1d20#Reize rolls saving throw against seasickness
       dice/call reize=1d20-2>=10#Seasickness check
+      dice/call reize, ivo=1d20>=10#Bromance check
 
     This will roll the given number of dice with given sides and modifiers.
     So e.g. 2d6 + 3 means to 'roll a 6-sided die 2 times and add the result,
@@ -186,36 +187,45 @@ class CmdSCSDice(CmdDice):
                 return caller.msg("Please input a target and a roll for +roll/call.")
             split_args = args.split("=", 1)
             target = split_args[0]
+            target_list = None
+            # Check for multiple targets
+            if "," in target:
+                target_list = target.split(",")
+            if not target_list:
+                target_list = [target]
             try:
                 roll = split_args[1]
             except IndexError:
                 return caller.msg("Please input a target and a roll for +roll/call.")
-            characters = location_character_search(caller.location)
-            # TODO: turn alias_list_in_room function into utility (along with the target_object code below)
-            alias_list_in_room = [(character, character.aliases.all()) for character in characters]
-            target_alias_list = [idx for idx, alias_tuple in enumerate(alias_list_in_room) if target.lower() in alias_tuple[1]]
-            target_object = None
-            if target_alias_list:
-                target_alias_idx = target_alias_list[0]
-                target_object = alias_list_in_room[target_alias_idx][0]
-            # Find the actual character object using the input string
-            # TODO: this is copied code, so refactor and make a function
-            for obj in caller.location.contents:
+            for target in target_list:
+                target = target.lstrip()
+                characters = location_character_search(caller.location)
+                # TODO: turn alias_list_in_room function into utility (along with the target_object code below)
+                alias_list_in_room = [(character, character.aliases.all()) for character in characters]
+                target_alias_list = [idx for idx, alias_tuple in enumerate(alias_list_in_room) if target.lower() in alias_tuple[1]]
+                target_object = None
+                if target_alias_list:
+                    target_alias_idx = target_alias_list[0]
+                    target_object = alias_list_in_room[target_alias_idx][0]
+                # Find the actual character object using the input string
+                # TODO: this is copied code, so refactor and make a function
+                for obj in caller.location.contents:
+                    if not target_object:
+                        if target.lower() in obj.db_key.lower():
+                            target_object = obj
                 if not target_object:
-                    if target.lower() in obj.db_key.lower():
-                        target_object = obj
-            if not target_object:
-                return caller.msg("Your specified target for +roll/call cannot be found in this room.")
-            # Use the silent "test" switch to test the roll before sending it off.
-            command.Command.execute_cmd(self, raw_string=str("roll/test " + roll))
-            if test_failed:
-                return caller.msg("Due to an error with the roll, your +roll/call was not sent to the target.")
-            if not target_object.db.rollcall:
-                target_object.db.rollcall = roll
-                target_object.msg(caller.key + " has called for you to roll " + roll + ". Type 'roll' to do so.")
-                caller.msg("You called for " + target_object.key + " to make the roll " + roll + ".")
-            else:
-                return caller.msg("The target has an outstanding +roll/call and cannot receive another.")
+                    return caller.msg("Your specified target for +roll/call cannot be found in this room.")
+                # Use the silent "test" switch to test the roll before sending it off.
+                command.Command.execute_cmd(self, raw_string=str("roll/test " + roll))
+                if test_failed:
+                    return caller.msg("Due to an error with the roll, your +roll/call was not sent to the target.")
+                if not target_object.db.rollcall:
+                    target_object.db.rollcall = roll
+                    target_object.msg(caller.key + " has called for you to roll " + roll + ". Type 'roll' to do so or type"
+                                                                                           " 'roll/cancel' to decline.")
+                    caller.msg("You called for " + target_object.key + " to make the roll " + roll + ".")
+                else:
+                    return caller.msg("The target has an outstanding +roll/call and cannot receive another.")
         else:
             # normal roll
             logstring = ""
