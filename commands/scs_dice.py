@@ -202,7 +202,7 @@ class CmdSCSDice(CmdDice):
             # TODO: this is copied code, so refactor and make a function
             for obj in caller.location.contents:
                 if not target_object:
-                    if target in obj.db_key:
+                    if target.lower() in obj.db_key.lower():
                         target_object = obj
             if not target_object:
                 return caller.msg("Your specified target for +roll/call cannot be found in this room.")
