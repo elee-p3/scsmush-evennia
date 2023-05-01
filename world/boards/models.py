@@ -16,6 +16,13 @@ class Board(models.Model):
     # bother with error handling on content length.
     description = models.TextField(null=False, blank=True)
 
+    # The set of characters who are subscribed to this board.
+    subscribers = models.ManyToManyField(
+        "objects.Character",
+        blank=True,
+        related_name="subscribed_boards",
+    )
+
 
 # A Post is a single announcement, message, article, etc. that is posted to a parent
 # Board (above). Posts are strictly owned by their parent Board: they cannot be included
