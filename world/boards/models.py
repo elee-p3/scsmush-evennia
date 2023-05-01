@@ -48,7 +48,7 @@ class Post(models.Model):
     # The character responsible for authoring this messageboard post.
     # TODO(daniel): add validation so that only Characters can be set here.
     author = models.ForeignKey(
-        "objects.ObjectDB",
+        "objects.Character",
         blank=True,
         null=True,
         on_delete=models.SET_NULL,
