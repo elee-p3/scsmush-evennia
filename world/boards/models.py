@@ -44,9 +44,8 @@ class Post(models.Model):
         on_delete=models.CASCADE)
     
     # The character responsible for authoring this messageboard post.
-    # characters_in_DB = ObjectDB.objects.filter(db_typeclass_path__contains="Character")
     author = models.ForeignKey(
-        "objects.ObjectDB",
+        "objects.Character",
         blank=True,
         null=True,
         on_delete=models.SET_NULL,
