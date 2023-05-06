@@ -35,14 +35,14 @@ def setup_table(client_width, is_sheet=False, is_check=False):
 # because there wasn't an overdesigned way to have this function take care of that edge case too
 def populate_table(table, actions):
     for action in actions:
-        stat_string = action.base_stat
+        stat_string = action.stat
         if stat_string == "Power":
             stat_string = "PWR"
         else:
             stat_string = "KNW"
 
         table.add_row(action.name,
-                      "|g" + str(action.ap_change) + "|n",
+                      "|g" + str(action.ap) + "|n",
                       action.dmg,
                       action.acc,
                       stat_string,

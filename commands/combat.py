@@ -5,12 +5,14 @@ from math import floor, ceil
 
 from evennia import default_cmds
 from evennia.utils import evtable
+from world.arts.models import Arts
 from world.combat.attacks import AttackInstance
 from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
-from world.combat.normals import NORMALS
+# from world.combat.normals import NORMALS
 from world.utilities.utilities import *
 
+NORMALS = Arts.objects.filter(isNormal=True)
 
 def record_combat(defender, attack_instance, reaction_name, is_success, dmg):
     attacker = find_attacker_from_key(attack_instance.attacker_key)
@@ -32,10 +34,10 @@ def record_combat(defender, attack_instance, reaction_name, is_success, dmg):
                             defender.db.is_baiting,
                             defender.db.is_rushing,
                             attack.name,
-                            attack.ap_change,
+                            attack.ap,
                             attack.dmg,
                             attack.acc,
-                            attack.base_stat,
+                            attack.stat,
                             str(attack.effects),
                             attack_instance.aim_or_feint,
                             reaction_name,
@@ -57,7 +59,7 @@ def display_queue(caller):
             modified_acc_for_endure = endure_chance_calc(caller, atk_obj)
             endure_pct = 100 - modified_acc_for_endure
             # TODO: replace this string with evtable?
-            caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.base_stat,
+            caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.stat,
                                                                            round(dodge_pct), round(block_pct),
                                                                            round(endure_pct)))
 
@@ -225,7 +227,7 @@ class CmdAttack(default_cmds.MuxCommand):
             if action not in arts:
                 return caller.msg("Your selected action cannot be found.")
         if action in NORMALS:
-            action_clean = NORMALS[NORMALS.index(action)]    # found action with correct capitalization
+            action_clean = NORMALS.get(name__iexact=action)    # found action with correct capitalization
         else:
             action_clean = arts[arts.index(action)]
 
@@ -243,7 +245,7 @@ class CmdAttack(default_cmds.MuxCommand):
 
         # If the character has insufficient AP or EX to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
-        total_ap_change = action_clean.ap_change
+        total_ap_change = action_clean.ap
         if caller.db.is_aiming or caller.db.is_feinting:
             total_ap_change -= 10
         if caller.db.ap + total_ap_change < 0:
@@ -354,18 +356,18 @@ class CmdDodge(default_cmds.MuxCommand):
 
         msg = ""
         is_glancing_blow = False
-        attacker_stat = find_attacker_stat(attacker, attack.base_stat)
+        attacker_stat = find_attacker_stat(attacker, attack.stat)
         if modified_acc > random100:
             # Since the attack has hit, check for glancing blow.
             sweep_boolean = action.has_sweep
             is_glancing_blow = glancing_blow_calc(random100, modified_acc, sweep_boolean)
             if is_glancing_blow:
                 # For now, halving the damage of glancing blows.
-                final_damage = damage_calc(attack_damage, attacker_stat, attack.base_stat, caller.db.parry, caller.db.barrier) / 2
+                final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller.db.parry, caller.db.barrier) / 2
                 caller.msg("You have been glanced by {attack}.".format(attack=attack.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
             else:
-                final_damage = damage_calc(attack_damage, attacker_stat, attack.base_stat, caller.db.parry, caller.db.barrier)
+                final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller.db.parry, caller.db.barrier)
                 caller.msg("You have been hit by {attack}.".format(attack=attack.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
 
@@ -438,9 +440,9 @@ class CmdBlock(default_cmds.MuxCommand):
         random100 = random.randint(1, 100)
 
         # Find the attacker's relevant attack stat for damage_calc.
-        attacker_stat = find_attacker_stat(attacker, attack.base_stat)
+        attacker_stat = find_attacker_stat(attacker, attack.stat)
         modified_acc = block_chance_calc(caller, action)
-        modified_damage = damage_calc(attack_damage, attacker_stat, attack.base_stat, caller.db.parry, caller.db.barrier)
+        modified_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller.db.parry, caller.db.barrier)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         if aim_or_feint == AimOrFeint.AIM:
@@ -542,8 +544,8 @@ class CmdEndure(default_cmds.MuxCommand):
             modified_acc += 15
 
         msg = ""
-        attacker_stat = find_attacker_stat(attacker, attack.base_stat)
-        final_damage = damage_calc(attack_damage, attacker_stat, attack.base_stat, caller.db.parry, caller.db.barrier)
+        attacker_stat = find_attacker_stat(attacker, attack.stat)
+        final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller.db.parry, caller.db.barrier)
         if modified_acc > random100:
             caller.msg("You have been hit by {attack}.".format(attack=attack.name))
             caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
@@ -621,12 +623,12 @@ class CmdInterrupt(default_cmds.MuxCommand):
             if outgoing_interrupt_arg not in arts:
                 return caller.msg("Your selected interrupt action cannot be found.")
         if outgoing_interrupt_arg in NORMALS:
-            interrupt_clean = NORMALS[NORMALS.index(outgoing_interrupt_arg)]  # found action with correct capitalization
+            interrupt_clean = NORMALS.get(name__iexact=outgoing_interrupt_arg)  # found action with correct capitalization
         else:
             interrupt_clean = arts[arts.index(outgoing_interrupt_arg)]
         # If the character has insufficient AP or EX to use that move, cancel the interrupt.
         # Otherwise, if EX move, set their EX from 100 to 0.
-        total_ap_change = interrupt_clean.ap_change
+        total_ap_change = interrupt_clean.ap
         if caller.db.ap + total_ap_change < 0:
             return caller.msg("You do not have enough AP to do that.")
         if "EX" in interrupt_clean.effects:
@@ -645,8 +647,8 @@ class CmdInterrupt(default_cmds.MuxCommand):
         outgoing_interrupt = interrupt_clean
         random100 = random.randint(1, 100)
 
-        incoming_attack_stat = find_attacker_stat(attacker, incoming_attack.base_stat)
-        outgoing_interrupt_stat = find_attacker_stat(caller, outgoing_interrupt.base_stat)
+        incoming_attack_stat = find_attacker_stat(attacker, incoming_attack.stat)
+        outgoing_interrupt_stat = find_attacker_stat(caller, outgoing_interrupt.stat)
 
         modified_acc = interrupt_chance_calc(caller, incoming_action, outgoing_interrupt)
 
@@ -659,7 +661,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         msg = ""
         if modified_acc > random100:
             # attack_with_effects = check_for_effects(attack)
-            final_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_attack.base_stat, caller.db.parry, caller.db.barrier)
+            final_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_attack.stat, caller.db.parry, caller.db.barrier)
             caller.msg("You have failed to interrupt {attack}.".format(attack=incoming_attack.name))
             caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
 
@@ -678,9 +680,9 @@ class CmdInterrupt(default_cmds.MuxCommand):
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
             modified_int_damage = modify_damage(outgoing_interrupt, caller)
-            final_outgoing_damage = damage_calc(modified_int_damage, outgoing_interrupt_stat, outgoing_interrupt.base_stat, attacker.db.parry, attacker.db.barrier)
+            final_outgoing_damage = damage_calc(modified_int_damage, outgoing_interrupt_stat, outgoing_interrupt.stat, attacker.db.parry, attacker.db.barrier)
             # Determine how much damage the incoming attack would do if unmitigated.
-            unmitigated_incoming_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_attack.base_stat, caller.db.parry, caller.db.barrier)
+            unmitigated_incoming_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_attack.stat, caller.db.parry, caller.db.barrier)
             # Determine how the Damage of the outgoing interrupt mitigates incoming Damage.
             mitigated_damage = interrupt_mitigation_calc(unmitigated_incoming_damage, final_outgoing_damage)
             caller.msg("You interrupt {attack} with {interrupt}.".format(attack=incoming_attack.name, interrupt=outgoing_interrupt.name))
@@ -736,7 +738,8 @@ class CmdArts(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
-        arts = caller.db.arts
+        # arts = caller.db.arts
+        arts = caller.arts.all()
         if arts is None:
             return caller.msg("Your character has no Arts. Use +setart to create some.")
 
@@ -848,14 +851,14 @@ class CmdCheck(default_cmds.MuxCommand):
                 incoming_action = caller.db.queue[id_list.index(attack_id)]
                 modified_acc = interrupt_chance_calc(caller, incoming_action, normal)
 
-                stat_string = normal.base_stat
+                stat_string = normal.stat
                 if stat_string == "Power":
                     stat_string = "PWR"
                 else:
                     stat_string = "KNW"
 
                 normals_table.add_row(normal.name,
-                                      "|g" + str(normal.ap_change) + "|n",
+                                      "|g" + str(normal.ap) + "|n",
                                       normal.dmg,
                                       normal.acc,
                                       stat_string,
@@ -871,14 +874,14 @@ class CmdCheck(default_cmds.MuxCommand):
                     incoming_action = caller.db.queue[id_list.index(attack_id)]
                     modified_acc = interrupt_chance_calc(caller, incoming_action, art)
 
-                    stat_string = art.base_stat
+                    stat_string = art.stat
                     if stat_string == "Power":
                         stat_string = "PWR"
                     else:
                         stat_string = "KNW"
 
                     arts_table.add_row(art.name,
-                                      "|g" + str(art.ap_change) + "|n",
+                                      "|g" + str(art.ap) + "|n",
                                       art.dmg,
                                       art.acc,
                                       stat_string,

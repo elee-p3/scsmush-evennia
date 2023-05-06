@@ -14,6 +14,7 @@ from typeclasses.rooms import Room
 from typeclasses.characters import Character
 from world.supplemental import *
 from world.arts.models import Arts
+from world.combat.normals import NORMALS
 from world.utilities.utilities import logger
 
 
@@ -297,10 +298,17 @@ class CmdConvertArts(default_cmds.MuxCommand):
     locks = "cmd:perm(Admin)"
 
     def func(self):
+        caller = self.caller
         allCharacters = Character.objects.all()
         for char in allCharacters:
             artsList = char.db.arts
             if artsList:
-                for idx,art in enumerate(artsList):
+                for art in artsList:
                     Arts.addArt(art)
-                    char.db.arts[idx] = Arts.objects.latest("pk")
+                    Arts.objects.latest("pk").characters.add(char)
+                    # char.db.arts[idx] = Arts.objects.latest("pk")
+                    logger(caller, "Added " + art.name + " to Arts table")
+            caller.msg("Finished adding " + char.name + "'s Arts to Arts table")
+        for normal in NORMALS:
+            Arts.addArt(normal, is_normal=True)
+            logger(self.caller, "Added " + normal.name + " to Arts table")

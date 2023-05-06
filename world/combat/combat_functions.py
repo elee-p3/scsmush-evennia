@@ -56,9 +56,9 @@ def modify_accuracy(action, character):
 def modify_damage(action, character):
     damage = action.dmg
     # Modify attack damage based on base stat.
-    if action.base_stat == "Power":
+    if action.stat == "Power":
         base_stat = character.db.power
-    if action.base_stat == "Knowledge":
+    if action.stat == "Knowledge":
         base_stat = character.db.knowledge
     damage_multiplier = (0.00583 * damage) + 0.708
     total_damage = (damage + base_stat) * damage_multiplier
@@ -96,9 +96,9 @@ def dodge_calc(defender, attack_instance):
 
 def block_chance_calc(defender, attack_instance):
     def_stat = 0
-    if attack_instance.attack.base_stat == "Power":
+    if attack_instance.attack.stat == "Power":
         def_stat = defender.db.parry
-    if attack_instance.attack.base_stat == "Knowledge":
+    if attack_instance.attack.stat == "Knowledge":
         def_stat = defender.db.barrier
     speed = defender.db.speed
     attack_acc = attack_instance.attack.acc
@@ -125,9 +125,9 @@ def block_chance_calc(defender, attack_instance):
 def endure_chance_calc(defender, attack_instance):
     # Calculate the chance of successfully enduring. Like Block, should be based on both Speed and relevant defense.
     def_stat = 0
-    if attack_instance.attack.base_stat == "Power":
+    if attack_instance.attack.stat == "Power":
         def_stat = defender.db.parry
-    if attack_instance.attack.base_stat == "Knowledge":
+    if attack_instance.attack.stat == "Knowledge":
         def_stat = defender.db.barrier
     speed = defender.db.speed
     attack_acc = attack_instance.attack.acc

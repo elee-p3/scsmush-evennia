@@ -2,6 +2,11 @@ from django.db import models
 from world.combat.attacks import Attack
 
 class Arts(models.Model):
+    # characters who use this art
+    characters = models.ManyToManyField(
+        "objects.Character",
+        related_name="arts")
+
     name = models.TextField(
         'Art name',
         default='Default art name'
@@ -45,7 +50,7 @@ class Arts(models.Model):
     )
 
     @classmethod
-    def addArt(cls, art: Attack):
+    def addArt(cls, art: Attack, is_normal=False):
         Arts.objects.create(
             name=art.name,
             ap=art.ap_change,
@@ -53,5 +58,14 @@ class Arts(models.Model):
             acc=art.acc,
             stat=art.base_stat,
             effects=art.effects,
-            isNormal=False
+            isNormal=is_normal
         )
+
+    def __str__(self):
+        return self.name
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.name.lower() == other.lower()
+        elif isinstance(other, Arts):
+            return self.name.lower() == other.name.lower()

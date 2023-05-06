@@ -1,4 +1,5 @@
 from evennia import default_cmds
+from world.arts.models import Arts
 from world.combat.effects import EFFECTS
 from world.combat.attacks import Attack
 
@@ -110,12 +111,40 @@ class CmdSetArt(default_cmds.MuxCommand):
             # Having confirmed the Art is well-formed, add it to the character's list of Arts.
             # Check if it is regular Art (120 points between Damage/Acc) or EX (140 points).
             if ex_move:
-                new_art = Attack(name, true_ap_change, damage_int, (140 - damage_int), base_stat, title_split_effects)
+                final_acc = 140 - damage_int
+                Arts.objects.create(
+                    name=name,
+                    ap=true_ap_change,
+                    dmg=damage_int,
+                    acc=final_acc,
+                    stat=base_stat,
+                    effects=title_split_effects,
+                )
+                # new_art = Attack(name, true_ap_change, damage_int, (140 - damage_int), base_stat, title_split_effects)
             else:
-                new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat, title_split_effects)
+                final_acc = 120 - damage_int
+                Arts.objects.create(
+                    name=name,
+                    ap=true_ap_change,
+                    dmg=damage_int,
+                    acc=final_acc,
+                    stat=base_stat,
+                    effects=title_split_effects,
+                )
+                # new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat, title_split_effects)
         else:
-            new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat)
-        caller.db.arts.append(new_art)
+            final_acc = 120 - damage_int
+            Arts.objects.create(
+                name=name,
+                ap=true_ap_change,
+                dmg=damage_int,
+                acc=final_acc,
+                stat=base_stat,
+                effects=""
+            )
+            # new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat)
+        caller.db.arts.append(Arts.objects.latest("pk"))
+        # caller.db.arts.append(new_art)
         # Change the message to the player depending on if the Art was added or edited.
         if not art_modified:
             caller.msg("{0} has been added to your list of Arts.".format(name))
