@@ -1,8 +1,8 @@
 from django.shortcuts import render
-from evennia import ObjectDB
+from typeclasses.characters import Character
 
 def character(request):
-    character_list = ObjectDB.objects.filter(db_typeclass_path__contains="Character") # filter by Character typeclass, since ObjectDB contains all objects
+    character_list = Character.objects.all()
     guest_list = []
     player_list = []
     admin_list = []
