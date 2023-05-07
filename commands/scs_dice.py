@@ -310,16 +310,25 @@ class CmdSCSDice(CmdDice):
                 modifier_value = int(modifier_side)
         else:
             # Let's unpack from the right
+            base_roll = rollcall
             if "#" in rollcall:
+                base_roll = rollcall.split("#", 1)[0]
+                self.caller.msg("# detected. Base_roll now " + base_roll)
                 comment = rollcall.split("#", 1)[1]
             if ">" in rollcall:
+                # Careful not to include the comment in the target number string
+                if comment:
+                    target_number_string = ">" + base_roll.split(">")[1]
+                else:
+                    target_number_string = ">" + rollcall.split(">")[1]
+                # Then continue to redefine base_roll as the shortest version
                 base_roll = rollcall.split(">")[0]
-                target_number_string = ">" + rollcall.split(">")[1]
             elif "<" in rollcall:
+                if comment:
+                    target_number_string = "<" + base_roll.split(">")[1]
+                else:
+                    target_number_string = "<" + rollcall.split(">")[1]
                 base_roll = rollcall.split("<")[0]
-                target_number_string = "<" + rollcall.split("<")[1]
-            else:
-                base_roll = rollcall
         if negative_value:
             modifier_value *= -1
         # Now interpret the args inputted by the character executing "roll."
@@ -336,12 +345,16 @@ class CmdSCSDice(CmdDice):
         new_rollstring = base_roll
         if modifier_value > 0:
             new_rollstring += "+" + str(modifier_value)
+            self.caller.msg("1: " + new_rollstring)
         if modifier_value < 0:
             # If it's negative, there should already be a minus sign in there
             new_rollstring += str(modifier_value)
+            self.caller.msg("2: " + new_rollstring)
         if target_number_string:
             new_rollstring += target_number_string
+            self.caller.msg("3: " + new_rollstring)
         if comment:
             new_rollstring += "#" + comment
-        self.caller.msg(new_rollstring)
+            self.caller.msg("4: " + new_rollstring)
+        self.caller.msg("Final: " + new_rollstring)
         return new_rollstring
