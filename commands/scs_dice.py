@@ -313,7 +313,6 @@ class CmdSCSDice(CmdDice):
             base_roll = rollcall
             if "#" in rollcall:
                 base_roll = rollcall.split("#", 1)[0]
-                self.caller.msg("# detected. Base_roll now " + base_roll)
                 comment = rollcall.split("#", 1)[1]
             if ">" in rollcall:
                 # Careful not to include the comment in the target number string
@@ -345,16 +344,11 @@ class CmdSCSDice(CmdDice):
         new_rollstring = base_roll
         if modifier_value > 0:
             new_rollstring += "+" + str(modifier_value)
-            self.caller.msg("1: " + new_rollstring)
         if modifier_value < 0:
             # If it's negative, there should already be a minus sign in there
             new_rollstring += str(modifier_value)
-            self.caller.msg("2: " + new_rollstring)
         if target_number_string:
             new_rollstring += target_number_string
-            self.caller.msg("3: " + new_rollstring)
         if comment:
             new_rollstring += "#" + comment
-            self.caller.msg("4: " + new_rollstring)
-        self.caller.msg("Final: " + new_rollstring)
         return new_rollstring
