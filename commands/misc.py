@@ -306,7 +306,6 @@ class CmdConvertArts(default_cmds.MuxCommand):
                 for art in artsList:
                     Arts.addArt(art)
                     Arts.objects.latest("pk").characters.add(char)
-                    # char.db.arts[idx] = Arts.objects.latest("pk")
                     logger(caller, "Added " + art.name + " to Arts table")
             caller.msg("Finished adding " + char.name + "'s Arts to Arts table")
         for normal in NORMALS:

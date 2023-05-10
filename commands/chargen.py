@@ -32,20 +32,19 @@ class CmdSetArt(default_cmds.MuxCommand):
         # TODO: Check if a art of the same name already exists and, if so, modify it instead of creating a new one.
         caller = self.caller
         args = self.args
+        arts = Arts.objects.filter(characters=caller)
         # Create a list of Arts if the character does not yet have one.
-        if not caller.db.arts:
-            caller.db.arts = []
         # Name = string, damage = int, base stat = string, effects = string(s).
         if "del" in self.switches:
             art_to_remove = None
-            for art in caller.db.arts:
+            for art in arts:
                 if args.lower() == art.name.lower():
                     art_to_remove = art
             if not art_to_remove:
                 return caller.msg("Art not found. No Art has been deleted.")
             else:
-                caller.db.arts.remove(art_to_remove)
-                return caller.msg("{0} removed from your Arts.".format(art_to_remove.name))
+                caller.delete_art(art_to_remove)
+                return
         # Check that there are args.
         if not args:
             return caller.msg("You must provide a name, damage value, base stat, and effects (if any).")
@@ -72,14 +71,14 @@ class CmdSetArt(default_cmds.MuxCommand):
         # Check if an Art with that name already exists and, if so, remove the existing Art before proceeding.
         art_to_edit = None
         art_modified = False
-        for art in caller.db.arts:
+        for art in arts:
             if name.lower() == art.name.lower():
                 art_to_edit = art
         if art_to_edit:
-            caller.db.arts.remove(art_to_edit)
+            caller.delete_art(art_to_edit)
             art_modified = True
         # Now check that the character does not already have the maximum number of Arts: 10.
-        if len(caller.db.arts) == 10:
+        if len(arts) == 10:
             return caller.msg("Your character already has the maximum of 10 Arts. Art not added.")
         # Set the baseline AP cost for an art at 5.
         true_ap_change = -5
@@ -118,7 +117,7 @@ class CmdSetArt(default_cmds.MuxCommand):
                     dmg=damage_int,
                     acc=final_acc,
                     stat=base_stat,
-                    effects=title_split_effects,
+                    effects=' '.join(title_split_effects),
                 )
                 # new_art = Attack(name, true_ap_change, damage_int, (140 - damage_int), base_stat, title_split_effects)
             else:
@@ -129,7 +128,7 @@ class CmdSetArt(default_cmds.MuxCommand):
                     dmg=damage_int,
                     acc=final_acc,
                     stat=base_stat,
-                    effects=title_split_effects,
+                    effects=' '.join(title_split_effects),
                 )
                 # new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat, title_split_effects)
         else:
@@ -143,8 +142,7 @@ class CmdSetArt(default_cmds.MuxCommand):
                 effects=""
             )
             # new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat)
-        caller.db.arts.append(Arts.objects.latest("pk"))
-        # caller.db.arts.append(new_art)
+        caller.arts.add(Arts.objects.latest("pk"))
         # Change the message to the player depending on if the Art was added or edited.
         if not art_modified:
             caller.msg("{0} has been added to your list of Arts.".format(name))

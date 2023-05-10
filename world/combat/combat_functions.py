@@ -56,9 +56,9 @@ def modify_accuracy(action, character):
 def modify_damage(action, character):
     damage = action.dmg
     # Modify attack damage based on base stat.
-    if action.stat == "Power":
+    if action.stat.lower() == "power":
         base_stat = character.db.power
-    if action.stat == "Knowledge":
+    if action.stat.lower() == "knowledge":
         base_stat = character.db.knowledge
     damage_multiplier = (0.00583 * damage) + 0.708
     total_damage = (damage + base_stat) * damage_multiplier

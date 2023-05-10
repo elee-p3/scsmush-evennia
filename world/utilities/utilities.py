@@ -50,27 +50,34 @@ def populate_table(table, actions):
     return table
 
 
-def effects_abbreviator(effects_list):
-    effects_string = ""
+def effects_abbreviator(effects_string):
+    if len(effects_string) <= 2: # i.e. effects is literally "[]"
+        return ""
+    # example effects_string: "['Bait', 'Weave', 'EX']"
+    # generate a list and remove the single quotes
+    effects_list = effects_string[1:-1].split(', ')
+    # Django TextFields tack on single quotes for each string. Remove them
+    effects_list = [effect[1:-1] for effect in effects_list]
+    abbreviated_effects = ""
     for effect in effects_list:
         if effect == "Crush":
-            effects_string += "CRU "
+            abbreviated_effects += "CRU "
         elif effect == "Sweep":
-            effects_string += "SWP "
+            abbreviated_effects += "SWP "
         elif effect == "Priority":
-            effects_string += "PRI "
+            abbreviated_effects += "PRI "
         elif effect == "EX":
-            effects_string += "EX "
+            abbreviated_effects += "EX "
         elif effect == "Rush":
-            effects_string += "RSH "
+            abbreviated_effects += "RSH "
         elif effect == "Weave":
-            effects_string += "WV "
+            abbreviated_effects += "WV "
         elif effect == "Brace":
-            effects_string += "BRC "
+            abbreviated_effects += "BRC "
         elif effect == "Bait":
-            effects_string += "BT "
+            abbreviated_effects += "BT "
 
-    return effects_string
+    return abbreviated_effects
 
 
 def logger(caller, message, level="info"):

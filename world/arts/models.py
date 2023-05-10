@@ -4,7 +4,7 @@ from world.combat.attacks import Attack
 class Arts(models.Model):
     # characters who use this art
     characters = models.ManyToManyField(
-        "objects.Character",
+        "objects.ObjectDB",
         related_name="arts")
 
     name = models.TextField(

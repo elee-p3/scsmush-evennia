@@ -82,7 +82,7 @@ class CmdSheet(default_cmds.MuxCommand):
     def func(self):
         client_width = self.client_width()
         char = self.caller.get_abilities()
-        arts = self.caller.db.arts
+        arts = Arts.objects.filter(characters=self.caller)
         sheetMsg = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"  # top border
 
         header = ""
@@ -178,7 +178,7 @@ class CmdAttack(default_cmds.MuxCommand):
         caller = self.caller
         location = caller.location
         args = self.args
-        arts = caller.db.arts
+        arts = Arts.objects.filter(characters=caller)
 
         if len(args) == 0:
             return caller.msg("You need to specify a target and action. See `help attack` for syntax.")
@@ -229,7 +229,7 @@ class CmdAttack(default_cmds.MuxCommand):
         if action in NORMALS:
             action_clean = NORMALS.get(name__iexact=action)    # found action with correct capitalization
         else:
-            action_clean = arts[arts.index(action)]
+            action_clean = arts.get(name__iexact=action)
 
         # If the target is here and the action exists, then we add the attack to the target's queue.
         # The attack should be assigned an ID based on its place in the queue.
@@ -601,7 +601,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         args = self.args
-        arts = caller.db.arts
+        arts = Arts.objects.filter(characters=caller)
         id_list = [attack.id for attack in caller.db.queue]
         # Like +attack, +interrupt requires two arguments: a incoming attack and an outgoing interrupt.
         if "=" not in args:
@@ -738,8 +738,7 @@ class CmdArts(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
-        # arts = caller.db.arts
-        arts = caller.arts.all()
+        arts = Arts.objects.filter(characters=caller)
         if arts is None:
             return caller.msg("Your character has no Arts. Use +setart to create some.")
 
@@ -771,7 +770,7 @@ class CmdListAttacks(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         args = self.args
-        arts = caller.db.arts
+        arts = Arts.objects.filter(characters=caller)
         if args:
             return caller.msg("The command +attacks should be input without arguments.")
 
@@ -818,7 +817,7 @@ class CmdCheck(default_cmds.MuxCommand):
         client_width = self.client_width()
         caller = self.caller
         args = self.args
-        arts = caller.db.arts
+        arts = Arts.objects.filter(characters=caller)
 
         # Check if the command is check by itself or check with args.
         if not args:
