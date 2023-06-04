@@ -18,7 +18,7 @@ class CmdSCSDice(CmdDice):
       dice[/switch] <nr>d<sides> [modifier] [success condition] #[comment]
 
     Switch:
-      call - request a roll from the target
+      call - request a roll from the target. Multiple targets separated by comma
       cancel - cancel a received call for a roll
       hidden - tell the room the roll is being done, but don't show the result
       secret - don't inform the room about neither roll nor result
@@ -28,6 +28,8 @@ class CmdSCSDice(CmdDice):
       dice 1d100 - 2 < 50
       dice 1d20#Reize rolls saving throw against seasickness
       dice/call reize=1d20-2>=10#Seasickness check
+      dice/call reize, ivo=1d20>=10#Bromance check
+      (when responding to roll/call) roll+2#Replacing comment with my own
 
     This will roll the given number of dice with given sides and modifiers.
     So e.g. 2d6 + 3 means to 'roll a 6-sided die 2 times and add the result,
@@ -43,20 +45,27 @@ class CmdSCSDice(CmdDice):
     To add a comment string to be displayed to the room to contextualize
     the roll, place a hashtag (#) at the end of the command and write a sentence.
 
+    roll/call sends a roll request to another player, useful for DMing.
+    The recipient may change the modifier or comment. E.g., if the sender sends
+    "roll/call 1d20+1>=10#Goblin attack" and the recipient types "roll +2#Dodge"
+    the result will be "roll 1d20+3>=10#Dodge".
+
     """
 
     def func(self):
         """Mostly parsing for calling the dice roller function"""
 
         test_failed = False
-        reset_rollcall = False
+        is_rollcall = False
         # example to use for now is "roll 2d6+4<3#testing"
         caller = self.caller
         args = self.args
-        if not args:
+        if self.check_if_rollcall(args):
             if caller.db.rollcall:
+                if args:
+                    caller.db.rollcall = self.modify_rollcall(caller.db.rollcall, args)
                 args = caller.db.rollcall
-                reset_rollcall = True
+                is_rollcall = True
             else:
                 if "test" in self.switches:
                     test_failed = True
@@ -186,36 +195,45 @@ class CmdSCSDice(CmdDice):
                 return caller.msg("Please input a target and a roll for +roll/call.")
             split_args = args.split("=", 1)
             target = split_args[0]
+            target_list = None
+            # Check for multiple targets
+            if "," in target:
+                target_list = target.split(",")
+            if not target_list:
+                target_list = [target]
             try:
                 roll = split_args[1]
             except IndexError:
                 return caller.msg("Please input a target and a roll for +roll/call.")
-            characters = location_character_search(caller.location)
-            # TODO: turn alias_list_in_room function into utility (along with the target_object code below)
-            alias_list_in_room = [(character, character.aliases.all()) for character in characters]
-            target_alias_list = [idx for idx, alias_tuple in enumerate(alias_list_in_room) if target.lower() in alias_tuple[1]]
-            target_object = None
-            if target_alias_list:
-                target_alias_idx = target_alias_list[0]
-                target_object = alias_list_in_room[target_alias_idx][0]
-            # Find the actual character object using the input string
-            # TODO: this is copied code, so refactor and make a function
-            for obj in caller.location.contents:
+            for target in target_list:
+                target = target.lstrip()
+                characters = location_character_search(caller.location)
+                # TODO: turn alias_list_in_room function into utility (along with the target_object code below)
+                alias_list_in_room = [(character, character.aliases.all()) for character in characters]
+                target_alias_list = [idx for idx, alias_tuple in enumerate(alias_list_in_room) if target.lower() in alias_tuple[1]]
+                target_object = None
+                if target_alias_list:
+                    target_alias_idx = target_alias_list[0]
+                    target_object = alias_list_in_room[target_alias_idx][0]
+                # Find the actual character object using the input string
+                # TODO: this is copied code, so refactor and make a function
+                for obj in caller.location.contents:
+                    if not target_object:
+                        if target.lower() in obj.db_key.lower():
+                            target_object = obj
                 if not target_object:
-                    if target in obj.db_key:
-                        target_object = obj
-            if not target_object:
-                return caller.msg("Your specified target for +roll/call cannot be found in this room.")
-            # Use the silent "test" switch to test the roll before sending it off.
-            command.Command.execute_cmd(self, raw_string=str("roll/test " + roll))
-            if test_failed:
-                return caller.msg("Due to an error with the roll, your +roll/call was not sent to the target.")
-            if not target_object.db.rollcall:
-                target_object.db.rollcall = roll
-                target_object.msg(caller.key + " has called for you to roll " + roll + ". Type 'roll' to do so.")
-                caller.msg("You called for " + target_object.key + " to make the roll " + roll + ".")
-            else:
-                return caller.msg("The target has an outstanding +roll/call and cannot receive another.")
+                    return caller.msg("Your specified target for +roll/call cannot be found in this room.")
+                # Use the silent "test" switch to test the roll before sending it off.
+                command.Command.execute_cmd(self, raw_string=str("roll/test " + roll))
+                if test_failed:
+                    return caller.msg("Due to an error with the roll, your +roll/call was not sent to the target.")
+                if not target_object.db.rollcall:
+                    target_object.db.rollcall = roll
+                    target_object.msg(caller.key + " has called for you to roll " + roll + ". Type 'roll' to do so or type"
+                                                                                           " 'roll/cancel' to decline.")
+                    caller.msg("You called for " + target_object.key + " to make the roll " + roll + ".")
+                else:
+                    return caller.msg("The target has an outstanding +roll/call and cannot receive another.")
         else:
             # normal roll
             logstring = ""
@@ -238,5 +256,99 @@ class CmdSCSDice(CmdDice):
             if self.caller.location.db.active_event:
                 scene = Scene.objects.get(pk=self.caller.location.db.event_id)
                 scene.addLogEntry(LogEntry.EntryType.DICE, logstring, self.caller)
-            if reset_rollcall:
+            if is_rollcall:
+                # Reset rollcall status so character can accept another
                 caller.db.rollcall = ""
+
+    def check_if_rollcall(self, roll_string):
+        # This is a sub-function meant to confirm if the +roll arg is an actual dice roll (e.g., 3d6+2)
+        # or a +roll/call activation (e.g., roll +2). First I'll strip out any comment, then I'll check
+        # if there is a "d" in the string, because that would only be true if it's not a +roll/call.
+        # Is that hacky? Whatever man!!! Leave me alone!!!
+        if "#" in roll_string:
+            split_roll_string = roll_string.split("#")
+            roll_string = split_roll_string[0]
+        # If "d" in roll_string, return False; it's a dice roll. Else, return True; it's a roll/call.
+        return not ("d" in roll_string)
+
+    def modify_rollcall(self, rollcall, args):
+        # This modifies a rollstring according to the args. E.g., if caller.db.rollcall is 3d6+2, typing
+        # roll/call +2 will roll 3d6+4. Also allow for comment to be overwritten. For simplicity, the
+        # target number (TN) cannot be modified: for 1d20>=12, the 12 cannot be changed.
+        # First, interpret the rollcall.
+        split_rollcall = []
+        modifier_value = 0
+        negative_value = False
+        base_roll = ""
+        comment = ""
+        target_number_string = ""
+        if "+" in rollcall:
+            split_rollcall = rollcall.split("+")
+        if "-" in rollcall:
+            split_rollcall = rollcall.split("-")
+            negative_value = True
+        # If either modifier exists, split_rollcall will now no longer be an empty list.
+        if split_rollcall:
+            # We want split_rollcall[1], the right side. The modifier might be multiple digits, possibly.
+            # So I can't just grab a single index. I'll want to carve out exactly what's between TN/comment, if extant.
+            base_roll = split_rollcall[0]
+            modifier_side = split_rollcall[1]
+            if "#" in modifier_side:
+                split_modifier = modifier_side.split("#", 1)
+                # Overwrite the modifier without the comment
+                modifier_side = split_modifier[0]
+                comment = split_modifier[1]
+            if ">" in modifier_side:
+                split_modifier_side = modifier_side.split(">", 1)
+                target_number_string = ">" + split_modifier_side[1]
+                modifier_value = int(split_modifier_side[0])
+            elif "<" in modifier_side:
+                split_modifier_side = modifier_side.split("<", 1)
+                target_number_string = "<" + split_modifier_side[1]
+                modifier_value = int(split_modifier_side[0])
+            else:
+                modifier_value = int(modifier_side)
+        else:
+            # Let's unpack from the right
+            base_roll = rollcall
+            if "#" in rollcall:
+                base_roll = rollcall.split("#", 1)[0]
+                comment = rollcall.split("#", 1)[1]
+            if ">" in rollcall:
+                # Careful not to include the comment in the target number string
+                if comment:
+                    target_number_string = ">" + base_roll.split(">")[1]
+                else:
+                    target_number_string = ">" + rollcall.split(">")[1]
+                # Then continue to redefine base_roll as the shortest version
+                base_roll = rollcall.split(">")[0]
+            elif "<" in rollcall:
+                if comment:
+                    target_number_string = "<" + base_roll.split(">")[1]
+                else:
+                    target_number_string = "<" + rollcall.split(">")[1]
+                base_roll = rollcall.split("<")[0]
+        if negative_value:
+            modifier_value *= -1
+        # Now interpret the args inputted by the character executing "roll."
+        if "#" in args:
+            # Split once on the hash.
+            split_args = args.split("#", 1)
+            args = split_args[0]
+            comment = split_args[1]
+        if "+" in args:
+            modifier_value += int(args.split("+")[1])
+        if "-" in args:
+            modifier_value -= int(args.split("-")[1])
+        # Now let's rebuild the roll string
+        new_rollstring = base_roll
+        if modifier_value > 0:
+            new_rollstring += "+" + str(modifier_value)
+        if modifier_value < 0:
+            # If it's negative, there should already be a minus sign in there
+            new_rollstring += str(modifier_value)
+        if target_number_string:
+            new_rollstring += target_number_string
+        if comment:
+            new_rollstring += "#" + comment
+        return new_rollstring
