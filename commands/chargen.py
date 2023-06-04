@@ -63,9 +63,13 @@ class CmdSetArt(default_cmds.MuxCommand):
         if damage_int not in range(0, 101):
             return caller.msg("Error: your damage value must be an integer between 0 and 100. Make sure that your format"
                               " is: name, damage value, base stat, and effects (if any).")
-        base_stat = art_list[2]
+        base_stat = art_list[2].lower()
         # Checking that the base stat is either Power or Knowledge.
-        if base_stat.lower() not in ["power", "knowledge"]:
+        if base_stat == "power":
+            base_stat = "Power"
+        elif base_stat == "knowledge":
+            base_stat = "Knowledge"
+        else:
             return caller.msg("Error: your Art's base stat must be either Power or Knowledge. Make sure that your format "
                               "is: name, damage value, base stat, and effects (if any).")
         # Check if an Art with that name already exists and, if so, remove the existing Art before proceeding.
@@ -119,7 +123,6 @@ class CmdSetArt(default_cmds.MuxCommand):
                     stat=base_stat,
                     effects=' '.join(title_split_effects),
                 )
-                # new_art = Attack(name, true_ap_change, damage_int, (140 - damage_int), base_stat, title_split_effects)
             else:
                 final_acc = 120 - damage_int
                 Arts.objects.create(
@@ -130,7 +133,6 @@ class CmdSetArt(default_cmds.MuxCommand):
                     stat=base_stat,
                     effects=' '.join(title_split_effects),
                 )
-                # new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat, title_split_effects)
         else:
             final_acc = 120 - damage_int
             Arts.objects.create(
@@ -141,7 +143,6 @@ class CmdSetArt(default_cmds.MuxCommand):
                 stat=base_stat,
                 effects=""
             )
-            # new_art = Attack(name, true_ap_change, damage_int, (120 - damage_int), base_stat)
         caller.arts.add(Arts.objects.latest("pk"))
         # Change the message to the player depending on if the Art was added or edited.
         if not art_modified:

@@ -51,13 +51,7 @@ def populate_table(table, actions):
 
 
 def effects_abbreviator(effects_string):
-    if len(effects_string) <= 2: # i.e. effects is literally "[]"
-        return ""
-    # example effects_string: "['Bait', 'Weave', 'EX']"
-    # generate a list and remove the single quotes
-    effects_list = effects_string[1:-1].split(', ')
-    # Django TextFields tack on single quotes for each string. Remove them
-    effects_list = [effect[1:-1] for effect in effects_list]
+    effects_list = effects_string.split()
     abbreviated_effects = ""
     for effect in effects_list:
         if effect == "Crush":

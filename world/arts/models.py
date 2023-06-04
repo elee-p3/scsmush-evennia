@@ -31,8 +31,8 @@ class Arts(models.Model):
     )
 
     stat = models.TextField(
-        'Main stat, either power (PWR) or knowledge (KNW)',
-        default='PWR'
+        'Main stat, either Power or Knowledge',
+        default='Power'
     )
 
     # it may or may not be worth converting effects to its own model so that we're
@@ -57,7 +57,7 @@ class Arts(models.Model):
             dmg=art.dmg,
             acc=art.acc,
             stat=art.base_stat,
-            effects=art.effects,
+            effects=' '.join(art.effects),
             isNormal=is_normal
         )
 
