@@ -625,7 +625,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         if outgoing_interrupt_arg in NORMALS:
             interrupt_clean = NORMALS.get(name__iexact=outgoing_interrupt_arg)  # found action with correct capitalization
         else:
-            interrupt_clean = arts[arts.index(outgoing_interrupt_arg)]
+            interrupt_clean = arts.get(name__iexact=outgoing_interrupt_arg)
         # If the character has insufficient AP or EX to use that move, cancel the interrupt.
         # Otherwise, if EX move, set their EX from 100 to 0.
         total_ap_change = interrupt_clean.ap
