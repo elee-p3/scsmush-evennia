@@ -17,8 +17,9 @@ class Board(models.Model):
     description = models.TextField(null=False, blank=True)
 
     # The set of characters who are subscribed to this board.
+    # TODO(daniel): add validation that this is only ever set with characters.
     subscribers = models.ManyToManyField(
-        "objects.Character",
+        "objects.ObjectDB",
         blank=True,
         related_name="subscribed_boards",
     )
@@ -44,8 +45,9 @@ class Post(models.Model):
         on_delete=models.CASCADE)
     
     # The character responsible for authoring this messageboard post.
+    # TODO(daniel): add validation so that only Characters can be set here.
     author = models.ForeignKey(
-        "objects.Character",
+        "objects.ObjectDB",
         blank=True,
         null=True,
         on_delete=models.SET_NULL,
