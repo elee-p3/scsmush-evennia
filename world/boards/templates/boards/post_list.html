@@ -1,0 +1,19 @@
+{% load tz %}
+{% load boards_tags %}
+
+<ul class="post-list">
+    {% for post in sorted_posts %}
+        <li class="post-list-item {% get_focused_style post focused_post %}">
+            <h1 class="post-title">
+                <a href="{% get_board_detail_url post.board post %}">{{ post.title }}</a>
+            </h1>
+            <p class="post-metadata">
+                Posted by
+                <a href="{{ post.author.web_get_detail_url }}">
+                    {{ post.author.name }}
+                </a>
+                on {{ post.created_at|localtime }}
+            </p>
+        </li>
+    {% endfor %}
+</ul>

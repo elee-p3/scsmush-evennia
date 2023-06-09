@@ -1,0 +1,10 @@
+{% load boards_tags %}
+
+<nav class="post-nav">
+    {% if previous %}
+        <a href="{% get_board_detail_url post.board previous %}" class="button back-button">Previous</a>
+    {% endif %}
+    {% if next %}
+        <a href="{% get_board_detail_url post.board next %}" class="button forward-button">Next</a>
+    {% endif %}
+</nav>
