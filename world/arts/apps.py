@@ -2,4 +2,4 @@ from django.apps import AppConfig
 
 
 class ArtsConfig(AppConfig):
-    name = 'arts'
+    name = 'world.arts'

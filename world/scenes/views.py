@@ -1,8 +1,5 @@
-from django.http import HttpResponse, HttpResponseRedirect
 from world.scenes.models import Scene
 from django.shortcuts import get_object_or_404, render
-from django.utils.timezone import localtime
-
 
 def detail(request, scene_id):
     scene = get_object_or_404(Scene, pk=scene_id)
