@@ -1,6 +1,6 @@
 from evennia import default_cmds
 from evennia.commands import command
-from evennia.contrib.dice import CmdDice,roll_dice
+from evennia.contrib.rpg.dice import CmdDice, roll_dice
 import re
 from world.scenes.models import Scene, LogEntry
 from world.utilities.utilities import location_character_search
