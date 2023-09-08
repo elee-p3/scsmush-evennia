@@ -169,7 +169,7 @@ class CmdAttack(default_cmds.MuxCommand):
     """
 
     key = "+attack"
-    aliases = ["attack"]
+    aliases = ["attack", "target"]
     locks = "cmd:all()"
 
     def func(self):
@@ -237,16 +237,15 @@ class CmdAttack(default_cmds.MuxCommand):
         if target_object.db.queue is None:
             target_object.db.queue = []
 
-        # Modify the damage and accuracy of the attack based on our combat functions.
         # Copy.copy is used to ensure we do not modify the attack in the character's list, just this instance of it.
         action_clean = copy.copy(action_clean)
-        action_clean.dmg = modify_damage(action_clean, caller)
-        action_clean.acc = modify_accuracy(action_clean, caller)
 
         # If the character has insufficient AP or EX to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
         total_ap_change = action_clean.ap
         if caller.db.is_aiming or caller.db.is_feinting:
+            if "Heal" in action_clean.effects:
+                return caller.msg("You cannot Aim or Feint a healing Art.")
             total_ap_change -= 10
         if caller.db.ap + total_ap_change < 0:
             return caller.msg("You do not have enough AP to do that.")
@@ -263,6 +262,13 @@ class CmdAttack(default_cmds.MuxCommand):
 
         # Now apply any persistent effects that will affect the attacker regardless of the attack's future success.
         caller = apply_attack_effects_to_attacker(caller, action_clean)
+
+        # Modify the damage and accuracy of the attack based on our combat functions.
+        # Before modifying damage, check if the action is a heal, as there the target's defense stat will not apply.
+        action_clean.acc = modify_accuracy(action_clean, caller)
+        if heal_check(action_clean, caller, target_object):
+            return
+        action_clean.dmg = modify_damage(action_clean, caller)
 
         new_id = assign_attack_instance_id(target_object)
         target_object.db.queue.append(AttackInstance(new_id, action_clean, caller.key, aim_or_feint))
