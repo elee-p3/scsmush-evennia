@@ -266,7 +266,8 @@ class CmdAttack(default_cmds.MuxCommand):
         # Modify the damage and accuracy of the attack based on our combat functions.
         # Before modifying damage, check if the action is a heal, as there the target's defense stat will not apply.
         action_clean.acc = modify_accuracy(action_clean, caller)
-        if heal_check(action_clean, caller, target_object):
+        if "Heal" in action_clean.effects:
+            heal_check(action_clean, caller, target_object)
             return
         action_clean.dmg = modify_damage(action_clean, caller)
 
@@ -284,13 +285,7 @@ class CmdAttack(default_cmds.MuxCommand):
         caller.db.is_feinting = False
         # If this was the attacker's final action, they are now KOed.
         if caller.db.final_action:
-            caller.db.final_action = False
-            caller.db.KOed = True
-            caller.msg("You have taken your final action and can no longer fight.")
-            combat_string = "|y<COMBAT>|n {0} can no longer fight.".format(caller.name)
-            caller.location.msg_contents(combat_string)
-            # TODO: replace
-            combat_log_entry(caller, combat_string)
+            final_action_taken(caller)
 
 
 class CmdQueue(default_cmds.MuxCommand):
