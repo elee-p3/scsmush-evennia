@@ -1,4 +1,5 @@
 from django.db import models
+from world.arts.models import Arts
 
 
 class Minion(models.Model):
@@ -52,10 +53,9 @@ class Minion(models.Model):
         'Speed',
         default=125
     )
-    arts = models.CharField(
-        'Stringified list of Arts',
-        max_length=10000,
-        default="",
+    # arts attributed to minions
+    arts = models.ManyToManyField(
+        Arts,
         blank=True,
-        null=False
-    )
+        null=False,
+        related_name="arts")

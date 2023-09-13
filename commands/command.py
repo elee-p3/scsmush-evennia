@@ -29,14 +29,6 @@ def add_participant_to_scene(character, scene):
 
     scene.participants.add(character)
 
-
-# text replacement function stolen from https://stackoverflow.com/questions/919056/case-insensitive-replace
-def ireplace(old, repl, text):
-    # TODO(RF): Define internally to posecolors?
-    # This function is used in highlight_names to replace names: it is not case sensitive but maintains case.
-    return re.sub('(?i)'+re.escape(old), lambda m: repl, text)
-
-
 def prune_sessions(session_list):
     # This function modifies the display of "who" and "+pot" so that, if the same player is connected from multiple
     # devices, their character name is only displayed once to avoid confusion. Admin still see all connected sessions.
@@ -65,8 +57,17 @@ def prune_sessions(session_list):
 
 
 def highlight_names(source_character, in_string, self_color, others_color):
-    # TODO(RF): Define internally to posecolors?
-    # This function is used in tailored_msg.
+    def add_color_tag(name_list, color, text):
+        def replace(match):
+            return "|" + color + match.group(1) + "|n"
+
+        sorted_name_list = sorted(name_list, key=len, reverse=True)
+
+        match_list = "|".join([re.escape(name) for name in sorted_name_list])
+
+        # find a match in the match_list that's not in the middle of a word
+        return re.sub("(?i)(?<![A-Za-z])(%s)(?![A-Za-z])" % match_list, replace, text)
+
     if self_color is None:
         self_color = "550"
 
@@ -75,33 +76,25 @@ def highlight_names(source_character, in_string, self_color, others_color):
 
     # find all characters in current room
     char_list = source_character.location.contents_get(exclude=source_character.location.exits)
-    name_list = []
+    char_name_list = []
     self_name_list = [] # These are necessary to color the source character's name separately
-    full_list = []
-    self_full_list = []
 
     # generate a list of all names of said characters, including aliases
     for character in char_list:
-        name_list.append(character.key)
+        name_list = [character.key]
         name_list += character.aliases.all()
+        char_name_list.append(name_list)
         if character == source_character:
-            self_name_list.append(character.key)
-            self_name_list += character.aliases.all()
+            self_name_list = name_list
 
     # generate a list of all occurrences of the name in the input string. This will allow us to print the names
     # exactly as they were written, without overriding case
-    for name in name_list:
-        full_list += re.findall(re.compile(re.escape(name), re.IGNORECASE), in_string)
-        if name in self_name_list:
-            self_full_list += re.findall(re.compile(re.escape(name), re.IGNORECASE), in_string)
-
     out_string = in_string
-    # for each of the names in the list, replace the string with a colored version
-    for name in full_list:
-        if name in self_full_list:
-            out_string = ireplace(name, "|" + self_color + name + "|n", out_string)
+    for char_names in char_name_list:
+        if char_names == self_name_list:
+            out_string = add_color_tag(char_names, self_color, out_string)
         else:
-            out_string = ireplace(name, "|" + others_color + name + "|n", out_string)
+            out_string = add_color_tag(char_names, others_color, out_string)
 
     return out_string
 
