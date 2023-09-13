@@ -1,6 +1,9 @@
 from world.scenes.models import Scene, LogEntry
 from django.utils.html import escape
 from evennia.objects.models import ObjectDB
+import random
+import math
+from world.utilities.utilities import logger
 
 
 def assign_attack_instance_id(target):
@@ -221,6 +224,7 @@ def normalize_status(character):
     character.db.final_action = False
     character.db.KOed = False
     character.db.endure_bonus = 0
+    character.db.has_been_healed = 0
 
 
 def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
@@ -302,6 +306,16 @@ def final_action_check(character):
     return character
 
 
+def final_action_taken(character):
+    # Call with conditional: if character.db.final_action ...
+    character.db.final_action = False
+    character.db.KOed = True
+    character.msg("You have taken your final action and can no longer fight.")
+    combat_string = "|y<COMBAT>|n {0} can no longer fight.".format(character.name)
+    character.location.msg_contents(combat_string)
+    combat_log_entry(character, combat_string)
+
+
 def combat_log_entry(caller, logstring):
     # This function is called when adding "<COMBAT>" messages to the autologger, so that people reading logs of combat
     # scenes can contextualize the RP with the blow-by-blow record of fights.
@@ -336,3 +350,59 @@ def display_status_effects(caller):
         caller.msg("You are currently baiting, increasing your chance to interrupt until your next action.")
     if caller.db.is_rushing:
         caller.msg("You are currently rushing, decreasing your reaction chances until your next action.")
+
+
+def heal_check(action, healer, target):
+    # Check for heal effect. Check has_been_healed: how much the target has already been healed this fight.
+    # Come up with a formula for accuracy of heal to affect variance of heal amount (more accurate, more consistent).
+    # Come up with a formula to depreciate healing amount based on has_been_healed, and apply that after variance.
+    # Then make custom in-room announcement and end turn, to avoid putting any of this code into CmdAttack.
+
+    # First, set baseline healing amount based on Art Damage and healer's stat. This replaces damage_calc.
+    healing = 1.55 * action.dmg
+    # logger(healer, "Base healing: " + str(healing))
+    if action.stat.lower() == "power":
+        base_stat = healer.db.power
+    if action.stat.lower() == "knowledge":
+        base_stat = healer.db.knowledge
+    healing_multiplier = (0.00583 * healing) + 0.708
+    total_healing = (healing + base_stat) * healing_multiplier
+    # logger(healer, "Healing after multiplier: " + str(total_healing))
+    # Then, apply variance to healing amount based on Art Accuracy.
+    # Currently, there's minimal variance above 80 Accuracy, and then more as you go down.
+    # TODO: More complex calculation for slope of increase in variance as accuracy decreases.
+    accuracy = action.acc
+    if action.acc > 80:
+        accuracy = 80
+    base_variance = math.ceil((80 - accuracy) * 3)
+    variance = random.randrange(base_variance*-1, base_variance)
+    total_healing += variance
+    # logger(healer, "Healing after variance: " + str(total_healing))
+    # Finally, check the target's has_been_healed and reduce how much they will be healed accordingly.
+    if target.db.has_been_healed > 0:
+        # I want healing to depreciate quickly, so the second is "meh" and the third is bad.
+        healing_reduction_multiplier = 1 - ((target.db.has_been_healed / target.db.maxlf) * 1.5)
+        if healing_reduction_multiplier < 0:
+            healing_reduction_multiplier = 0
+        total_healing = total_healing * healing_reduction_multiplier
+    # Round to integer.
+    total_healing = math.floor(total_healing)
+    # logger(healer, "Healing after depreciation: " + str(total_healing))
+    # Heal the target. Not over their maximum LF.
+    if (target.db.lf + total_healing) > target.db.maxlf:
+        # This should get the target to their max LF.
+        total_healing = target.db.maxlf - target.db.lf
+    target.db.lf += total_healing
+    target.db.has_been_healed += total_healing
+    # Announce healing to room and end the healer's turn as per CmdAttack.
+    healer.msg("You healed {target} with {action} for {value}.".format(target=target, action=action,
+                                                                       value=total_healing))
+    target.msg("You have been healed by {healer} with {action} for {value}.". format(healer=healer, action=action,
+                                                                                     value=total_healing))
+    combat_string = "|y<COMBAT>|n {attacker} has healed {target} with {action}.".format(
+        attacker=healer.key, target=target, action=action)
+    healer.location.msg_contents(combat_string)
+    # If this was the attacker's final action, they are now KOed.
+    if healer.db.final_action:
+        final_action_taken(healer)
+
