@@ -80,8 +80,9 @@ class CmdSheet(default_cmds.MuxCommand):
     help_category = "General"
 
     def func(self):
+        caller = self.caller
         client_width = self.client_width()
-        char = self.caller.get_abilities()
+        char = caller.get_abilities()
         arts = Arts.objects.filter(characters=self.caller)
         sheetMsg = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"  # top border
 
@@ -113,7 +114,7 @@ class CmdSheet(default_cmds.MuxCommand):
                               "{0}/{1}  ".format(int(char["lf"]), int(char["maxlf"])),
                               "  Power",
                               "  {0}".format(char["power"]))
-        charInfoTable.add_row("[future hp vis]",
+        charInfoTable.add_row(self.get_colored_meter(caller.db.lf, caller.db.maxlf, client_width),
                               "",
                               "  Knowledge",
                               "  {0}".format(char["knowledge"]))
@@ -121,7 +122,7 @@ class CmdSheet(default_cmds.MuxCommand):
                               "{0}/{1}  ".format(int(char["ap"]), int(char["maxap"])),
                               "  Parry",
                               "  {0}".format(char["parry"]))
-        charInfoTable.add_row("[future hp vis]",
+        charInfoTable.add_row(self.get_colored_meter(caller.db.ap, caller.db.maxap, client_width),
                               "",
                               "  Barrier",
                               "  {0}".format(char["barrier"]))
@@ -129,7 +130,7 @@ class CmdSheet(default_cmds.MuxCommand):
                               "{0}%/{1}%  ".format(int(char["ex"]), int(char["maxex"])),
                               "  Speed",
                               "  {0}".format(char["speed"]))
-        charInfoTable.add_row("[future ex vis]",
+        charInfoTable.add_row(self.get_colored_meter(caller.db.ex, caller.db.maxex, client_width),
                               "",
                               "",
                               "")
@@ -152,6 +153,28 @@ class CmdSheet(default_cmds.MuxCommand):
 
         self.caller.msg(sheetMsg)
 
+    # return a colored bar for various meters (e.g. LF, AP, EX)
+    def get_colored_meter(self, current_val, max_val, client_width):
+        remaining_resource_ratio = current_val/max_val
+        # we're drawing 10 characters (at max resources): 3 red, 4 yellow, 3 green
+        # thus we round to the nearest 10th and multiply by 10 to get an integer
+        max_character_count = int(round(client_width/4 - 1))
+        red_count = floor(max_character_count/3)
+        yellow_count = floor(max_character_count * 2/3) - red_count
+        red_yellow_count = red_count + yellow_count
+        resource_character_count = int(round(remaining_resource_ratio * max_character_count))
+
+        meter = "["
+        if resource_character_count > red_yellow_count:
+            diff = resource_character_count - red_yellow_count
+            meter += "|r{}|n|y{}|n|g{}|n{}".format('=' * red_count, '=' * yellow_count,  '=' * diff, '-' * (max_character_count - resource_character_count))
+        elif resource_character_count > red_count:
+            diff = resource_character_count - red_count
+            meter += "|r{}|n|y{}|n{}".format('=' * red_count, '=' * diff, '-' * (max_character_count - resource_character_count))
+        else:
+            meter += "|r{}|n{}".format('=' * resource_character_count, '-' * (max_character_count - resource_character_count))
+
+        return meter + "]"
 
 class CmdAttack(default_cmds.MuxCommand):
     """
