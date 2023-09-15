@@ -111,6 +111,9 @@ class CmdSetArt(default_cmds.MuxCommand):
                             ex_move = True
                 if not effect_ok:
                     return caller.msg("Error: at least one of your Effects is not a valid Effect.")
+            # Corner casing: make sure that any art with the Revive effect also has the Heal effect.
+            if "Revive" in title_split_effects and "Heal" not in title_split_effects:
+                return caller.msg("Error: any Art with the Revive Effect must also have the Heal Effect.")
             # Having confirmed the Art is well-formed, add it to the character's list of Arts.
             # Check if it is regular Art (120 points between Damage/Acc) or EX (140 points).
             if ex_move:

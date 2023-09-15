@@ -32,8 +32,10 @@ ex_move = Effect("EX", 5, "EX")
 rush = Effect("Rush", -5, "RSH")
 # 1) Increase accuracy if not used as interrupt. 2) Decrease all reaction chances until next action.
 # This is a hybrid current/next turn effect.
-heal = Effect("Heal", 0, "HEAL")
+heal = Effect("Heal", -10, "HEAL")
 # This Art heals instead of doing damage and is subject to heal depreciation.
+revive = Effect("Revive", -15, "REV")
+# This healing Art, when used on a KOed ally, eliminates their 1-turn inaction penalty on being healed.
 
 # Next Turn Effects
 weave = Effect("Weave", -5, "WV")
@@ -45,4 +47,4 @@ bait = Effect("Bait", -5, "BT")
 
 # List of all Effects
 
-EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal]
+EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive]
