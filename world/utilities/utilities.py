@@ -1,5 +1,5 @@
 from evennia import EvTable
-
+from world.combat.effects import EFFECTS
 
 def location_character_search(location):
     location_objects = location.contents
@@ -41,37 +41,18 @@ def populate_table(table, actions):
         else:
             stat_string = "KNW"
 
+        action_effects_list = action.effects.split()
+        effects_abbrev = ""
+        for effect in action_effects_list:
+            effects_abbrev += EFFECTS[EFFECTS.index(effect)].abbreviation + " "
+
         table.add_row(action.name,
                       "|g" + str(action.ap) + "|n",
                       action.dmg,
                       action.acc,
                       stat_string,
-                      effects_abbreviator(action.effects))
+                      effects_abbrev)
     return table
-
-
-def effects_abbreviator(effects_string):
-    effects_list = effects_string.split()
-    abbreviated_effects = ""
-    for effect in effects_list:
-        if effect == "Crush":
-            abbreviated_effects += "CRU "
-        elif effect == "Sweep":
-            abbreviated_effects += "SWP "
-        elif effect == "Priority":
-            abbreviated_effects += "PRI "
-        elif effect == "EX":
-            abbreviated_effects += "EX "
-        elif effect == "Rush":
-            abbreviated_effects += "RSH "
-        elif effect == "Weave":
-            abbreviated_effects += "WV "
-        elif effect == "Brace":
-            abbreviated_effects += "BRC "
-        elif effect == "Bait":
-            abbreviated_effects += "BT "
-
-    return abbreviated_effects
 
 
 def logger(caller, message, level="info"):
