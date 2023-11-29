@@ -223,6 +223,8 @@ def normalize_status(character):
     character.db.block_penalty = 0
     character.db.final_action = False
     character.db.KOed = False
+    character.db.stunned = False
+    character.db.revived_during_final_action = False
     character.db.endure_bonus = 0
     character.db.has_been_healed = 0
 
@@ -300,14 +302,25 @@ def accrue_block_penalty(defender, pre_block_damage, block_bool, attack_instance
 def final_action_check(character):
     # After any reaction in which the character takes damage, check if their LF has dropped to 0 or below.
     if character.db.lf <= 0:
+        # Whenever LF drops below 0, set it at 0. This is to facilitate raising in party combat.
+        character.db.lf = 0
         character.db.final_action = True
-        character.msg("You have been reduced to 0 LF or below. Your next action will be your last. Any attacks will"
+        character.msg("You have been reduced to 0 LF. Your next action will be your last. Any attacks will"
                       " suffer a penalty to your accuracy.")
     return character
 
 
 def final_action_taken(character):
     # Call with conditional: if character.db.final_action ...
+    # Confirm that the target has not been healed out of their final_action
+    if character.db.lf > 0:
+        if character.db.revived_during_final_action:
+            character.db.final_action = False
+            return character.msg("As you have been revived, you may continue to fight.")
+        else:
+            character.db.final_action = False
+            character.db.stunned = True
+            return character.msg("You are stunned for one turn. On your next turn, you must 'pass' unless revived.")
     character.db.final_action = False
     character.db.KOed = True
     character.msg("You have taken your final action and can no longer fight.")
@@ -358,6 +371,9 @@ def heal_check(action, healer, target):
     # Come up with a formula to depreciate healing amount based on has_been_healed, and apply that after variance.
     # Then make custom in-room announcement and end turn, to avoid putting any of this code into CmdAttack.
 
+    # Before anything, weird corner case: see if someone is trying to heal themselves out of KO state.
+    if healer == target and healer.db.final_action:
+        return healer.msg("You may not heal or revive yourself as a final action.")
     # First, set baseline healing amount based on Art Damage and healer's stat. This replaces damage_calc.
     healing = 1.55 * action.dmg
     # logger(healer, "Base healing: " + str(healing))
@@ -399,6 +415,26 @@ def heal_check(action, healer, target):
                                                                        value=total_healing))
     target.msg("You have been healed by {healer} with {action} for {value}.". format(healer=healer, action=action,
                                                                                      value=total_healing))
+    # Incorporate revival, i.e., being healed up from 0 LF and out of KO state
+    # Corner casing: if someone else has already done a normal heal, leaving the target stunned, a raise will fix that
+    if "Revive" in action.effects and target.db.stunned:
+        target.db.stunned = False
+        target.msg("You are revived and thus no longer stunned.")
+    if target.db.KOed:
+        target.db.KOed = False
+        if "Revive" in action.effects:
+            target.msg("You are revived: you may rejoin the fight and act as normal on your next turn.")
+        else:
+            target.db.stunned = True
+            target.msg("You are healed but stunned: you may rejoin the fight after using 'pass' on your next turn.")
+    # Someone could be healed during their final action but before being KOed. Let's have raise help there too
+    if target.db.final_action:
+        if "Revive" in action.effects:
+            target.db.revived_during_final_action = True
+            target.msg("Your next action will still have a final action penalty, but you will not be KOed.")
+        else:
+            target.msg("Your next action still has a final action penalty. After taking it, you will be stunned "
+                       "for one turn but not KOed.")
     combat_string = "|y<COMBAT>|n {attacker} has healed {target} with {action}.".format(
         attacker=healer.key, target=target, action=action)
     healer.location.msg_contents(combat_string)

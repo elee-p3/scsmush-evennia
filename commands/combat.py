@@ -223,6 +223,8 @@ class CmdAttack(default_cmds.MuxCommand):
         # First, check that the character attacking is not KOed
         if caller.db.KOed:
             return caller.msg("Your character is KOed and cannot act.")
+        if caller.db.stunned:
+            return caller.msg("Your character is stunned and must 'pass' this turn.")
 
         # Then check that the target is a character in the room using utility
         characters_in_room = location_character_search(location)
@@ -1023,11 +1025,9 @@ class CmdPass(default_cmds.MuxCommand):
         combat_string = "|y<COMBAT>|n {0} takes no action.".format(caller.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
+        if caller.db.stunned:
+            caller.db.stunned = False
+            caller.msg("Your character is no longer stunned.")
         # If this was the attacker's final action, they are now KOed.
         if caller.db.final_action:
-            caller.db.final_action = False
-            caller.db.KOed = True
-            caller.msg("You have taken your final action and can no longer fight.")
-            combat_string = "|y<COMBAT>|n {0} can no longer fight.".format(caller.name)
-            caller.location.msg_contents(combat_string)
-            combat_log_entry(caller, combat_string)
+            final_action_taken(caller)
