@@ -11,6 +11,9 @@ class Effect:
         self.ap_change = ap_change
         self.abbreviation = abbr
 
+    def __eq__(self, other):
+        return self.name.lower() == other.lower()
+
 # The following are the list of all selectable "effects" that modify Attacks (specifically, Arts).
 # The effects are categorized as modifying the character's current turn or only the next turn.
 # The AP Cost of an effect is in addition to the base AP cost of an Art (15, I'm thinking).
