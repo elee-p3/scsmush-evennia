@@ -375,14 +375,16 @@ def heal_check(action, healer, target):
     if healer == target and healer.db.final_action:
         return healer.msg("You may not heal or revive yourself as a final action.")
     # First, set baseline healing amount based on Art Damage and healer's stat. This replaces damage_calc.
-    healing = 1.55 * action.dmg
-    # logger(healer, "Base healing: " + str(healing))
     if action.stat.lower() == "power":
         base_stat = healer.db.power
     if action.stat.lower() == "knowledge":
         base_stat = healer.db.knowledge
-    healing_multiplier = (0.00583 * healing) + 0.708
-    total_healing = (healing + base_stat) * healing_multiplier
+    if "Drain" in action.effects:
+        total_healing = action.dmg / 2.5
+    else:
+        healing = 1.55 * action.dmg
+        healing_multiplier = (0.00583 * healing) + 0.708
+        total_healing = (healing + base_stat) * healing_multiplier
     # logger(healer, "Healing after multiplier: " + str(total_healing))
     # Then, apply variance to healing amount based on Art Accuracy.
     # Currently, there's minimal variance above 80 Accuracy, and then more as you go down.
@@ -442,3 +444,9 @@ def heal_check(action, healer, target):
     if healer.db.final_action:
         final_action_taken(healer)
 
+
+def drain_check(action, attacker, damage_dealt):
+    # For the purposes of self-healing, treat the power of the attack as relative to the damage it dealt (so less if blocked)
+    action.dmg = damage_dealt
+    heal_check(action, attacker, attacker)
+    # But don't return here, because the rest of the attack will proceed as normal after self-healing
