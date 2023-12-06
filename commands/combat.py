@@ -44,11 +44,19 @@ def record_combat(defender, attack_instance, reaction_name, is_success, dmg):
                             is_success,
                             dmg])
 
-def display_queue(caller):
+def display_queue(calling_class, caller):
     # This function is called by both the "queue" command and by "check" when input without arguments.
     if not caller.db.queue:
         caller.msg("Nothing in queue.")
     else:
+        client_width = calling_class.client_width()
+        queue_table = calling_class.styled_table("|wID#",
+                                                 "|wAttack Name",
+                                                 "|wStat",
+                                                 "|wDodge%",
+                                                 "|wBlock%",
+                                                 "|wEndure%"
+                                                 )
         for atk_obj in caller.db.queue:
             attack = atk_obj.attack
             id = atk_obj.id
@@ -58,10 +66,15 @@ def display_queue(caller):
             block_pct = 100 - modified_acc_for_block
             modified_acc_for_endure = endure_chance_calc(caller, atk_obj)
             endure_pct = 100 - modified_acc_for_endure
-            # TODO: replace this string with evtable?
-            caller.msg("{0}. {1} -- {2} -- D: {3}% B: {4}% E: {5}%".format(id, attack.name, attack.stat,
-                                                                           round(dodge_pct), round(block_pct),
-                                                                           round(endure_pct)))
+
+            queue_table.add_row(id,
+                                attack.name,
+                                attack.stat,
+                                round(dodge_pct),
+                                round(block_pct),
+                                round(endure_pct))
+
+        caller.msg(queue_table)
 
 
 class CmdSheet(default_cmds.MuxCommand):
@@ -333,7 +346,7 @@ class CmdQueue(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
-        display_queue(caller)
+        display_queue(self, caller)
 
 
 class CmdDodge(default_cmds.MuxCommand):
@@ -859,7 +872,7 @@ class CmdCheck(default_cmds.MuxCommand):
         # Check if the command is check by itself or check with args.
         if not args:
             caller = self.caller
-            display_queue(caller)
+            display_queue(self, caller)
             display_status_effects(caller)
         else:
             # Confirm that the argument is just an integer (the incoming attack ID).
@@ -916,12 +929,14 @@ class CmdCheck(default_cmds.MuxCommand):
                     else:
                         stat_string = "KNW"
 
+                    effects_abbrev = get_abbreviations(art)
+
                     arts_table.add_row(art.name,
                                       "|g" + str(art.ap) + "|n",
                                       art.dmg,
                                       art.acc,
                                       stat_string,
-                                      effects_abbreviator(art.effects),
+                                      effects_abbrev,
                                       modified_acc)
 
                 caller.msg(arts_header + arts_table.__str__())

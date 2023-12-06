@@ -31,6 +31,14 @@ def setup_table(client_width, is_sheet=False, is_check=False):
     return table
 
 
+def get_abbreviations(action):
+    effects_list = action.effects.split()
+    effects_abbrev = ""
+    for effect in effects_list:
+        effects_abbrev += EFFECTS[EFFECTS.index(effect)].abbreviation + " "
+
+    return effects_abbrev
+
 # in-place modification of the evtable that populates it with attacks or arts. Note that CmdCheck duplicates this code
 # because there wasn't an overdesigned way to have this function take care of that edge case too
 def populate_table(table, actions):
@@ -41,10 +49,7 @@ def populate_table(table, actions):
         else:
             stat_string = "KNW"
 
-        action_effects_list = action.effects.split()
-        effects_abbrev = ""
-        for effect in action_effects_list:
-            effects_abbrev += EFFECTS[EFFECTS.index(effect)].abbreviation + " "
+        effects_abbrev = get_abbreviations(action)
 
         table.add_row(action.name,
                       "|g" + str(action.ap) + "|n",
