@@ -22,7 +22,7 @@ class Effect:
 # IMPORTANT NOTE: if you add a new Effect, add it to at_pre_puppet in characters.py and normalize_status and combat_tick
 # in combat_functions.py.
 
-# Current Turn Effects
+# Attack Enhancers
 
 crush = Effect("Crush", -10, "CRU")
 # 1) Lower opponent's block chance. 2) Increase block penalty if blocked.
@@ -34,13 +34,13 @@ ex_move = Effect("EX", 5, "EX")
 # An EX attack costs 0 AP but 100% EX.
 rush = Effect("Rush", -5, "RSH")
 # 1) Increase accuracy if not used as interrupt. 2) Decrease all reaction chances until next action.
-# This is a hybrid current/next turn effect.
-heal = Effect("Heal", -10, "HEAL")
-# This Art heals instead of doing damage and is subject to heal depreciation.
-revive = Effect("Revive", -15, "REV")
-# This healing Art, when used on a KOed ally, eliminates their 1-turn inaction penalty on being healed.
+# This is a hybrid Attack Enhancer / Reaction Modifier.
+drain = Effect("Drain", -20, "DRN")
+# If an attack is not dodged, the attacker heals themselves proportionally to the damage they inflict.
+# Note that this healing counts toward the attacker's per-fight healing limit.
 
-# Next Turn Effects
+# Reaction Modifiers
+
 weave = Effect("Weave", -5, "WV")
 # 1) Decrease accuracy of this attack. 2) Increase dodge chances until next action.
 brace = Effect("Brace", -5, "BRC")
@@ -48,6 +48,21 @@ brace = Effect("Brace", -5, "BRC")
 bait = Effect("Bait", -5, "BT")
 # 1) Decrease accuracy of this attack. 2) Increase interrupt chance until next action.
 
+# Healing and Support
+
+heal = Effect("Heal", -10, "HEAL")
+# This Art heals instead of doing damage and is subject to heal depreciation.
+revive = Effect("Revive", -15, "REV")
+# This healing Art, when used on a KOed ally, eliminates their 1-turn inaction penalty on being healed.
+
+
 # List of all Effects
 
-EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive]
+EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain]
+
+# Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
+
+SUPPORT = []
+DEBUFFS_STANDARD = []
+DEBUFFS_TRANSFORMATION = []
+DEBUFFS_HEXES = []
