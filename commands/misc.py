@@ -16,6 +16,7 @@ from world.supplemental import *
 from world.arts.models import Arts
 from world.combat.normals import NORMALS
 from world.utilities.utilities import logger
+import re
 
 
 class CmdWarp(default_cmds.MuxCommand):
@@ -221,12 +222,26 @@ class CmdGridscan(default_cmds.MuxCommand):
     locks = "cmd:perm(Admin)"
 
     def func(self):
+        args = self.args
         caller = self.caller
         # Create a list of Room objects that are not the OOC Room, Sparring Room, or World Map.
         ic_locations = [obj for obj in ObjectDB.objects.all() if (obj.id not in [2, 8, 11] and "Room" in obj.db_typeclass_path)]
-        for location in ic_locations:
-            caller.msg("ID: " + str(location.id) + " --- Name: " + location.db_key)
-            caller.msg("Desc: " + location.db.desc + "\n")
+        # If there are no arguments, print all the rooms, as before.
+        if not args:
+            for location in ic_locations:
+                caller.msg("ID: " + str(location.id) + " --- Name: " + location.db_key)
+                caller.msg("Desc: " + location.db.desc + "\n")
+        # If there is an argument, look for that word in all the descs and print each desc where it is found.
+        else:
+            caller.msg("The term " + args + " was found in: \n")
+            for location in ic_locations:
+                arg_string = "(?i)(?<![A-Za-z])(%s)(?![A-Za-z])" % args
+                if re.search(arg_string, location.db.desc):
+                    caller.msg("ID: " + str(location.id) + " --- Name: " + location.db_key)
+                    # Let's highlight the text in question to make it easier to see
+                    highlighted_terms = re.sub(arg_string, "|r" + args + "|n",
+                                               location.db.desc)
+                    caller.msg("Desc: " + highlighted_terms + "\n")
 
 
 class CmdResetCombatFile(default_cmds.MuxCommand):
