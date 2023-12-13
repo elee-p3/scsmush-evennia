@@ -14,7 +14,3 @@ def render_post_summary(post):
 @register.simple_tag
 def get_board_detail_url(post):
     return reverse('boards:detail', kwargs={'post_id': post.id})
-
-@register.simple_tag
-def get_board_detail_url(post):
-    return reverse('boards:detail', kwargs={'post_id': post.id})
