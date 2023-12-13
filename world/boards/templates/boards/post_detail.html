@@ -1,7 +1,7 @@
 {% load tz %}
+{% load boards_tags %}
 
-<div class="summary-item">
-    <h1 class="post-title">{{ post.title }}</h1>
+<article class="post-detail">
     <p class="post-metadata">
         Posted by
         <a href="{{ post.author.web_get_detail_url }}">
@@ -9,5 +9,7 @@
         </a>
         on {{ post.created_at|localtime }}
     </p>
-    <p class="post-body">{{ post.body }}</p>
-</div>
+    {% for paragraph in body_paragraphs %}
+        <p>{{paragraph}}</p>
+    {% endfor %}
+</article>

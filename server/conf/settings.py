@@ -36,7 +36,7 @@ SERVERNAME = "Star Chaser Story MUSH"
 GAME_SLOGAN = '"Until the star we follow brings us back to you."'
 WEBSERVER_PORTS = [(80, 4005)]
 
-# Make sure to extend the original list of INSTALLE_APPS from the evennia default
+# Make sure to extend the original list of INSTALLED_APPS from the evennia default
 # config (i.e., use "+=") or we'll drop all the core evennia and django stuff.
 INSTALLED_APPS += [
     "django.contrib.humanize",
