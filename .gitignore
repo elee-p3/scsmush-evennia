@@ -3,6 +3,9 @@
 # C extensions
 *.so
 
+# Generated locally when running a server. Tracks combat actions taken.
+combat_record.csv
+
 # Packages
 *.egg
 *.egg-info
