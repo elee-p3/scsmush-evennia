@@ -1,0 +1,88 @@
+.scene-summary {
+    border-color: #3d5c7a;
+    border-width: 10px 1px 1px 1px;
+    border-radius: 10px;
+    border-style: solid;
+    box-shadow: 2px 2px 3px 1px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    margin: 20px 0;
+    position: relative;
+}
+
+.scene-summary .scene-pose-count {
+    font-style: italic;
+    font-weight: bold;
+    font-size: 1.5rem;
+    text-transform: lowercase;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.scene-summary h1 {
+    font-size: 1.75rem;
+}
+
+.scene-summary .scene-attribute {
+    font-weight: bold;
+}
+
+.scene-summary .scene-time {
+    margin-right: 50px;
+}
+
+.scene-summary p {
+    margin: 0.5rem 0 0 0;
+}
+
+.back-button {
+    display: inline-block;
+    margin: 5px 0 5px 5px;
+    border: 1px solid #3d5c7a;
+    border-radius: 5px;
+    padding: 0.25em;
+}
+
+.back-button::before {
+    content: "←";
+    padding-right: 0.5rem;
+}
+
+.edit-button {
+    display: inline-block;
+    margin: 5px 0 5px 5px;
+    border: 1px solid #3d5c7a;
+    border-radius: 5px;
+    padding: 0.25em;
+}
+
+.edit-button::before {
+    content: "✎";
+    padding-right: 0.5rem;
+}
+
+.scene-log-entry {
+    border-color: #3d5c7a;
+    border-width: 10px 1px 1px 1px;
+    border-radius: 10px;
+    border-style: solid;
+    box-shadow: 2px 2px 3px 1px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    margin: 20px 0;
+    position: relative;
+}
+
+.scene-log-entry .entry-stats {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 0.5rem 0;
+}
+
+.scene-log-entry .entry-stats li {
+    margin-right: 1rem;
+    display: inline-block;
+}
+
+.scene-log-entry p {
+    margin-top: 2rem;
+}
