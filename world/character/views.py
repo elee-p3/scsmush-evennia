@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from typeclasses.characters import Character
 
-def character(request):
+def characters(request):
     character_list = Character.objects.all()
     guest_list = []
     player_list = []

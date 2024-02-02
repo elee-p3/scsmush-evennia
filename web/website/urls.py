@@ -14,7 +14,7 @@ from evennia.web.website.urls import urlpatterns as evennia_website_urlpatterns
 urlpatterns = [
     path('boards/', include(("world.boards.urls", "boards"), namespace="boards")),
     path('scenes/', include(("world.scenes.urls", "scenes"), namespace="scenes")),
-    path('character/', include(("world.character.urls", "character"), namespace="character"))
+    path('characters/', include(("world.character.urls"), namespace="character"))
 ]
 
 # read by Django
