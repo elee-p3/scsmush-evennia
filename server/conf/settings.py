@@ -36,6 +36,11 @@ SERVERNAME = "Star Chaser Story MUSH"
 GAME_SLOGAN = '"Until the star we follow brings us back to you."'
 WEBSERVER_PORTS = [(80, 4005)]
 
+# This turns off the Evennia custom interstitial admin page in favor of directly routing
+# to the Django admin default home page (showing a table of contents with all database 
+# tables).
+EVENNIA_ADMIN=False
+
 # Make sure to extend the original list of INSTALLED_APPS from the evennia default
 # config (i.e., use "+=") or we'll drop all the core evennia and django stuff.
 INSTALLED_APPS += [
