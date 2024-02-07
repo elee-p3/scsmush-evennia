@@ -36,11 +36,15 @@ SERVERNAME = "Star Chaser Story MUSH"
 GAME_SLOGAN = '"Until the star we follow brings us back to you."'
 WEBSERVER_PORTS = [(80, 4005)]
 
-# Make sure to extend the original list of INSTALLE_APPS from the evennia default
+# This turns off the Evennia custom interstitial admin page in favor of directly routing
+# to the Django admin default home page (showing a table of contents with all database 
+# tables).
+EVENNIA_ADMIN=False
+
+# Make sure to extend the original list of INSTALLED_APPS from the evennia default
 # config (i.e., use "+=") or we'll drop all the core evennia and django stuff.
 INSTALLED_APPS += [
     "django.contrib.humanize",
-    "web.template_overrides",
     "world.arts",
     "world.boards",
     "world.character",
@@ -49,47 +53,9 @@ INSTALLED_APPS += [
     "world.scenes"
 ]
 
-# This is mostly copy-pasta from Evennia default-config to facilitate the addition
-# of some global built-ins (which must be specified as TEMPLATES options).
-#
-# For anything that looks shady/weird, look back at Evennia's settings_default.py for
-# comparison / historical context before making changes.
-TEMPLATES = [
-    {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [
-            os.path.join(GAME_DIR, "web", "template_overrides", WEBSITE_TEMPLATE),
-            os.path.join(GAME_DIR, "web", "template_overrides", WEBCLIENT_TEMPLATE),
-            os.path.join(GAME_DIR, "web", "template_overrides"),
-            os.path.join(EVENNIA_DIR, "web", "website", "templates", WEBSITE_TEMPLATE),
-            os.path.join(EVENNIA_DIR, "web", "website", "templates"),
-            os.path.join(EVENNIA_DIR, "web", "webclient", "templates", WEBCLIENT_TEMPLATE),
-            os.path.join(EVENNIA_DIR, "web", "webclient", "templates"),
-        ],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.i18n",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.template.context_processors.media",
-                "django.template.context_processors.debug",
-                "django.contrib.messages.context_processors.messages",
-                "sekizai.context_processors.sekizai",
-                "evennia.web.utils.general_context.general_context",
-            ],
-            "debug": DEBUG,
-            # THIS is the new part added for SCSMUSH. It adds a set of our own filters
-            # and tags (which we created in the new Python package specified below) that
-            # can be used throughout the whole project. This is meant for things that are
-            # not app-specific and should be easily usable everywhere (e.g., decoding
-            # evennia markup).
-            # TODO LOOK AT PYTHON2 vs. PYTHON3 dict syntax
-            "builtins": [ "shared.filters" ],
-        },
-    }
-]
-
+# This is an attempt to in-place modify the default evennia TEMPLATE config without copy-pasta
+# that can then drift from the expected defaults over time. Will it work? /shrug
+TEMPLATES[0]["OPTIONS"]["builtins"] = [ "shared.filters" ]
 
 MULTISESSION_MODE = 1
 ######################################################################
