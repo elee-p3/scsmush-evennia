@@ -65,7 +65,6 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdEvent)
         self.add(CmdWarp)
         self.add(CmdPoseColors)
-        self.add(CmdPage)
         self.add(CmdAttack)
         self.add(CmdQueue)
         self.add(CmdDodge)
