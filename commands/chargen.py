@@ -1,6 +1,6 @@
 from evennia import default_cmds
 from world.arts.models import Arts
-from world.combat.effects import EFFECTS
+from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS_HEXES, DEBUFFS_STANDARD, DEBUFFS_TRANSFORMATION
 from world.combat.attacks import Attack
 
 
@@ -114,6 +114,10 @@ class CmdSetArt(default_cmds.MuxCommand):
             # Corner casing: make sure that any art with the Revive effect also has the Heal effect.
             if "Revive" in title_split_effects and "Heal" not in title_split_effects:
                 return caller.msg("Error: any Art with the Revive Effect must also have the Heal Effect.")
+            # Confirm that any Support effect is coupled with the Heal effect
+            for effect in title_split_effects:
+                if effect in SUPPORT and "Heal" not in title_split_effects:
+                    return caller.msg(f"Error: {effect} is a Support effect. All Support Arts must have the Heal Effect.")
             # Having confirmed the Art is well-formed, add it to the character's list of Arts.
             # Check if it is regular Art (120 points between Damage/Acc) or EX (140 points).
             if ex_move:

@@ -4,6 +4,7 @@ from evennia.objects.models import ObjectDB
 import random
 import math
 from world.utilities.utilities import logger
+from world.combat.attacks import Attack
 
 
 def assign_attack_instance_id(target):
@@ -220,6 +221,7 @@ def normalize_status(character):
     character.db.is_weaving = False
     character.db.is_bracing = False
     character.db.is_baiting = False
+    character.db.regen_duration = 0
     character.db.block_penalty = 0
     character.db.final_action = False
     character.db.KOed = False
@@ -245,15 +247,9 @@ def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
 
 def combat_tick(character):
     # This function represents a "tick" or the end of a turn. Any "action," like +attack or +pass, counts as a tick.
-    # The attack command should cause a tick, then apply any new effects associated with the attack.
-    # E.g., if last turn's attack had Brace and this turn's has Weave, tick to remove is_bracing, then apply is_weaving.
-    # Update 9-7-22: Combat_tick no longer sets Aim or Feint to False. This was preempting their application to +attack.
-    # Instead, Aim and Feint are set false at the end of the +attack command itself.
-    character.db.is_rushing = False
-    character.db.is_weaving = False
-    character.db.is_bracing = False
-    character.db.is_baiting = False
     character.db.endure_bonus = 0
+    character.db.is_aiming = False
+    character.db.is_feinting = False
     # Currently, reduce block penalty per tick by 7 or a third, whichever is higher.
     if character.db.block_penalty > 0:
         if (character.db.block_penalty / 3) > 7:
@@ -264,12 +260,21 @@ def combat_tick(character):
             character.db.block_penalty = 0
         else:
             character.db.block_penalty -= block_penalty_reduction
+    # Check for Regen
+    if character.db.regen_duration > 0:
+        regen_check(character)
     return character
 
 
 def apply_attack_effects_to_attacker(attacker, attack):
     # This function checks for effects on an attack and modifies the attacker's status accordingly.
     # Modify this function as more effects are implemented.
+    # First, reset any effects from the previous round.
+    attacker.db.is_rushing = False
+    attacker.db.is_weaving = False
+    attacker.db.is_bracing = False
+    attacker.db.is_baiting = False
+    # Now, apply the new attack effects.
     if attack.effects:
         for effect in attack.effects:
             if effect == "Rush":
@@ -363,6 +368,11 @@ def display_status_effects(caller):
         caller.msg("You are currently baiting, increasing your chance to interrupt until your next action.")
     if caller.db.is_rushing:
         caller.msg("You are currently rushing, decreasing your reaction chances until your next action.")
+    if caller.db.regen_duration > 0:
+        if caller.db.regen_duration > 1:
+            caller.msg(f"You will gradually regenerate for {caller.db.regen_duration} rounds.")
+        else:
+            caller.msg("You will gradually regenerate for 1 more round.")
 
 
 def heal_check(action, healer, target):
@@ -371,14 +381,21 @@ def heal_check(action, healer, target):
     # Come up with a formula to depreciate healing amount based on has_been_healed, and apply that after variance.
     # Then make custom in-room announcement and end turn, to avoid putting any of this code into CmdAttack.
 
-    # Before anything, weird corner case: see if someone is trying to heal themselves out of KO state.
-    if healer == target and healer.db.final_action:
+    # Regen_check passes heal_check the string "regen" rather than an Attack instance, so make a substitute action.
+    regen = False
+    if action == "regen":
+        regen = True
+        action = Attack("", 0, 50, 50, "", [])
+        base_stat = 20
+    # Set baseline healing amount based on Art Damage and healer's stat. This replaces damage_calc.
+    else:
+        if action.stat.lower() == "power":
+            base_stat = healer.db.power
+        if action.stat.lower() == "knowledge":
+            base_stat = healer.db.knowledge
+    # Weird corner case: see if someone is trying to heal themselves out of KO state.
+    if "Heal" in action.effects and healer == target and healer.db.final_action:
         return healer.msg("You may not heal or revive yourself as a final action.")
-    # First, set baseline healing amount based on Art Damage and healer's stat. This replaces damage_calc.
-    if action.stat.lower() == "power":
-        base_stat = healer.db.power
-    if action.stat.lower() == "knowledge":
-        base_stat = healer.db.knowledge
     if "Drain" in action.effects:
         total_healing = action.dmg / 2.5
     else:
@@ -413,10 +430,31 @@ def heal_check(action, healer, target):
     target.db.lf += total_healing
     target.db.has_been_healed += total_healing
     # Announce healing to room and end the healer's turn as per CmdAttack.
-    healer.msg("You healed {target} with {action} for {value}.".format(target=target, action=action,
-                                                                       value=total_healing))
-    target.msg("You have been healed by {healer} with {action} for {value}.". format(healer=healer, action=action,
-                                                                                     value=total_healing))
+    if "Heal" in action.effects and healer != target:
+        healer.msg("You healed {target} with {action} for {value}.".format(target=target, action=action,
+                                                                           value=total_healing))
+        target.msg("You have been healed by {healer} with {action} for {value}.". format(healer=healer, action=action,
+                                                                                         value=total_healing))
+        combat_string = "|y<COMBAT>|n {attacker} has healed {target} with {action}.".format(
+            attacker=healer.key, target=target, action=action)
+        healer.location.msg_contents(combat_string)
+    elif "Heal" in action.effects and healer == target:
+        healer.msg("You healed yourself with {action} for {value}.".format(action=action,
+                                                                           value=total_healing))
+        combat_string = "|y<COMBAT>|n {attacker} has healed themselves with {action}.".format(
+            attacker=healer.key, action=action)
+        healer.location.msg_contents(combat_string)
+    if regen:
+        healer.msg("You have regenerated for {value}.".format(value=total_healing))
+    # Incorporate Support effects
+    if "Regen" in action.effects:
+        if target.db.regen_duration == 0:
+            target.db.regen_duration = 3
+            target.msg("You will gradually regenerate health for 3 rounds.")
+        else:
+            target.db.regen_duration = 3
+            target.msg("The duration of your gradual regeneration has been extended to 3 rounds.")
+
     # Incorporate revival, i.e., being healed up from 0 LF and out of KO state
     # Corner casing: if someone else has already done a normal heal, leaving the target stunned, a raise will fix that
     if "Revive" in action.effects and target.db.stunned:
@@ -431,22 +469,32 @@ def heal_check(action, healer, target):
             target.msg("You are healed but stunned: you may rejoin the fight after using 'pass' on your next turn.")
     # Someone could be healed during their final action but before being KOed. Let's have raise help there too
     if target.db.final_action:
-        if "Revive" in action.effects:
+        if regen:
+            target.msg("You have regenerated sufficiently to continue fighting!")
+            target.db.final_action = False
+        elif "Revive" in action.effects:
             target.db.revived_during_final_action = True
             target.msg("Your next action will still have a final action penalty, but you will not be KOed.")
         else:
             target.msg("Your next action still has a final action penalty. After taking it, you will be stunned "
                        "for one turn but not KOed.")
-    combat_string = "|y<COMBAT>|n {attacker} has healed {target} with {action}.".format(
-        attacker=healer.key, target=target, action=action)
-    healer.location.msg_contents(combat_string)
     # If this was the attacker's final action, they are now KOed.
     if healer.db.final_action:
         final_action_taken(healer)
 
 
-def drain_check(action, attacker, damage_dealt):
+def drain_check(action, attacker, target, damage_dealt):
+    # Weird corner case: you cannot Drain from yourself.
+    if attacker != target:
     # For the purposes of self-healing, treat the power of the attack as relative to the damage it dealt (so less if blocked)
-    action.dmg = damage_dealt
-    heal_check(action, attacker, attacker)
-    # But don't return here, because the rest of the attack will proceed as normal after self-healing
+        action.dmg = damage_dealt
+        heal_check(action, attacker, attacker)
+    # But don't "return" here, because the rest of the attack will proceed as normal after self-healing
+
+
+def regen_check(character):
+    # Route the Regen effect through heal_check so that all healing works the same. Use a string, "regen."
+    heal_check("regen", character, character)
+    character.db.regen_duration -= 1
+    if character.db.regen_duration == 0:
+        character.msg("You are no longer gradually regenerating.")

@@ -295,10 +295,8 @@ class CmdAttack(default_cmds.MuxCommand):
         # Modify the character's AP based on the attack's AP cost.
         caller.db.ap += total_ap_change
 
-        # The attack is now confirmed. First, "tick" to have a round pass, progressing/clearing prior status effects.
-        combat_tick(caller)
-
-        # Now apply any persistent effects that will affect the attacker regardless of the attack's future success.
+        # The attack is now confirmed. Apply any persistent effects that will affect the attacker regardless of
+        # the attack's future success.
         caller = apply_attack_effects_to_attacker(caller, action_clean)
 
         # Modify the damage and accuracy of the attack based on our combat functions.
@@ -319,8 +317,8 @@ class CmdAttack(default_cmds.MuxCommand):
         # TODO: when we generalize the log_entry function, replace all combat_log_entry with that + combat parameter
         combat_log_entry(caller, combat_string)
 
-        caller.db.is_aiming = False
-        caller.db.is_feinting = False
+        # "Tick" to have a round pass.
+        combat_tick(caller)
         # If this was the attacker's final action, they are now KOed.
         if caller.db.final_action:
             final_action_taken(caller)
@@ -422,7 +420,7 @@ class CmdDodge(default_cmds.MuxCommand):
             attacker.db.ex = new_attacker_ex
             # Drain check
             if "Drain" in attack.effects:
-                drain_check(attack, attacker, final_damage)
+                drain_check(attack, attacker, caller, final_damage)
             record_combat(caller, action, "dodge", False, final_damage)
         else:
             caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
@@ -512,7 +510,7 @@ class CmdBlock(default_cmds.MuxCommand):
             new_block_penalty = accrue_block_penalty(caller, modified_damage, block_bool, action)
             caller.db.block_penalty = new_block_penalty
             if "Drain" in attack.effects:
-                drain_check(attack, attacker, modified_damage)
+                drain_check(attack, attacker, caller, modified_damage)
             record_combat(caller, action, "block", False, modified_damage)
         else:
             final_damage = block_damage_calc(modified_damage, caller.db.block_penalty)
@@ -533,7 +531,7 @@ class CmdBlock(default_cmds.MuxCommand):
             new_block_penalty = accrue_block_penalty(caller, modified_damage, block_bool, action)
             caller.db.block_penalty = new_block_penalty
             if "Drain" in attack.effects:
-                drain_check(attack, attacker, final_damage)
+                drain_check(attack, attacker, caller, final_damage)
             record_combat(caller, action, "block", True, final_damage)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
@@ -616,7 +614,7 @@ class CmdEndure(default_cmds.MuxCommand):
         new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
         attacker.db.ex = new_attacker_ex
         if "Drain" in attack.effects:
-            drain_check(attack, attacker, final_damage)
+            drain_check(attack, attacker, caller, final_damage)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
@@ -753,7 +751,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             new_attacker_ex_second = ex_gain_on_defense(final_outgoing_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex_second
             if "Drain" in outgoing_interrupt.effects:
-                drain_check(outgoing_interrupt, attacker, final_outgoing_damage)
+                drain_check(outgoing_interrupt, attacker, caller, final_outgoing_damage)
             record_combat(caller, incoming_action, "interrupt", True, mitigated_damage)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier,
