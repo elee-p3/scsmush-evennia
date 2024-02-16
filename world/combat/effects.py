@@ -56,14 +56,16 @@ revive = Effect("Revive", -15, "REV")
 # This healing Art, when used on a KOed ally, eliminates their 1-turn inaction penalty on being healed.
 regen = Effect("Regen", -15, "REGEN")
 # Applies the Regen Effect: Heal the target over time. This healing counts toward the target's per-fight healing limit.
+vigor = Effect("Vigor", -15, "VGR")
+# Applies the Vigor Effect: Increase Power and Knowledge.
 
 # List of all Effects
 
-EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen]
+EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen, vigor]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 
-SUPPORT = [regen]
+SUPPORT = [regen, vigor]
 DEBUFFS_STANDARD = []
 DEBUFFS_TRANSFORMATION = []
 DEBUFFS_HEXES = []

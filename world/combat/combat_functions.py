@@ -64,6 +64,8 @@ def modify_damage(action, character):
         base_stat = character.db.power
     if action.stat.lower() == "knowledge":
         base_stat = character.db.knowledge
+    # Check for Vigor buff.
+    base_stat = vigor_check(character, base_stat)
     damage_multiplier = (0.00583 * damage) + 0.708
     total_damage = (damage + base_stat) * damage_multiplier
     return total_damage
@@ -222,6 +224,7 @@ def normalize_status(character):
     character.db.is_bracing = False
     character.db.is_baiting = False
     character.db.regen_duration = 0
+    character.db.vigor_duration = 0
     character.db.block_penalty = 0
     character.db.final_action = False
     character.db.KOed = False
@@ -263,6 +266,10 @@ def combat_tick(character):
     # Check for Regen
     if character.db.regen_duration > 0:
         regen_check(character)
+    if character.db.vigor_duration > 0:
+        character.db.vigor_duration -= 1
+        if character.db.vigor_duration == 0:
+            character.msg("You are no longer invigorated.")
     return character
 
 
@@ -373,6 +380,11 @@ def display_status_effects(caller):
             caller.msg(f"You will gradually regenerate for {caller.db.regen_duration} rounds.")
         else:
             caller.msg("You will gradually regenerate for 1 more round.")
+    if caller.db.vigor_duration > 0:
+        if caller.db.vigor_duration > 1:
+            caller.msg(f"You are invigorated for {caller.db.vigor_duration} rounds.")
+        else:
+            caller.msg("You are invigorated for 1 more round.")
 
 
 def heal_check(action, healer, target):
@@ -393,6 +405,8 @@ def heal_check(action, healer, target):
             base_stat = healer.db.power
         if action.stat.lower() == "knowledge":
             base_stat = healer.db.knowledge
+        # Check for Vigor buff on healer.
+        base_stat = vigor_check(healer, base_stat)
     # Weird corner case: see if someone is trying to heal themselves out of KO state.
     if "Heal" in action.effects and healer == target and healer.db.final_action:
         return healer.msg("You may not heal or revive yourself as a final action.")
@@ -449,11 +463,16 @@ def heal_check(action, healer, target):
     # Incorporate Support effects
     if "Regen" in action.effects:
         if target.db.regen_duration == 0:
-            target.db.regen_duration = 3
-            target.msg("You will gradually regenerate health for 3 rounds.")
+            target.msg("You will gradually regenerate health.")
         else:
-            target.db.regen_duration = 3
-            target.msg("The duration of your gradual regeneration has been extended to 3 rounds.")
+            target.msg("The duration of your gradual regeneration has been extended.")
+        target.db.regen_duration = 3
+    if "Vigor" in action.effects:
+        if target.db.vigor_duration == 0:
+            target.msg("You are invigorated, increasing your effective Power and Knowledge.")
+        else:
+            target.msg("The duration of your invigoration has been extended.")
+        target.db.vigor_duration = 3
 
     # Incorporate revival, i.e., being healed up from 0 LF and out of KO state
     # Corner casing: if someone else has already done a normal heal, leaving the target stunned, a raise will fix that
@@ -498,3 +517,10 @@ def regen_check(character):
     character.db.regen_duration -= 1
     if character.db.regen_duration == 0:
         character.msg("You are no longer gradually regenerating.")
+
+
+def vigor_check(character, base_stat):
+    # Checks if the character has the Vigor buff, and if so, Power/Knowledge is effectively +25.
+    if character.db.vigor_duration > 0:
+        base_stat += 25
+    return base_stat
