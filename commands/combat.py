@@ -304,18 +304,18 @@ class CmdAttack(default_cmds.MuxCommand):
         action_clean.acc = modify_accuracy(action_clean, caller)
         if "Heal" in action_clean.effects:
             heal_check(action_clean, caller, target_object)
-            return
-        action_clean.dmg = modify_damage(action_clean, caller)
+        else:
+            action_clean.dmg = modify_damage(action_clean, caller)
 
-        new_id = assign_attack_instance_id(target_object)
-        target_object.db.queue.append(AttackInstance(new_id, action_clean, caller.key, aim_or_feint))
+            new_id = assign_attack_instance_id(target_object)
+            target_object.db.queue.append(AttackInstance(new_id, action_clean, caller.key, aim_or_feint))
 
-        caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
-        combat_string = "|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
-            attacker=caller.key, target=target_object, action=action_clean)
-        caller.location.msg_contents(combat_string)
-        # TODO: when we generalize the log_entry function, replace all combat_log_entry with that + combat parameter
-        combat_log_entry(caller, combat_string)
+            caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
+            combat_string = "|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
+                attacker=caller.key, target=target_object, action=action_clean)
+            caller.location.msg_contents(combat_string)
+            # TODO: when we generalize the log_entry function, replace all combat_log_entry with that + combat parameter
+            combat_log_entry(caller, combat_string)
 
         # "Tick" to have a round pass.
         combat_tick(caller)
@@ -421,6 +421,8 @@ class CmdDodge(default_cmds.MuxCommand):
             # Drain check
             if "Drain" in attack.effects:
                 drain_check(attack, attacker, caller, final_damage)
+            if "Dispel" in attack.effects:
+                dispel_check(caller)
             record_combat(caller, action, "dodge", False, final_damage)
         else:
             caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
@@ -511,6 +513,8 @@ class CmdBlock(default_cmds.MuxCommand):
             caller.db.block_penalty = new_block_penalty
             if "Drain" in attack.effects:
                 drain_check(attack, attacker, caller, modified_damage)
+            if "Dispel" in attack.effects:
+                dispel_check(caller)
             record_combat(caller, action, "block", False, modified_damage)
         else:
             final_damage = block_damage_calc(modified_damage, caller.db.block_penalty)
@@ -615,6 +619,8 @@ class CmdEndure(default_cmds.MuxCommand):
         attacker.db.ex = new_attacker_ex
         if "Drain" in attack.effects:
             drain_check(attack, attacker, caller, final_damage)
+        if "Dispel" in attack.effects:
+            dispel_check(caller)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
@@ -722,6 +728,10 @@ class CmdInterrupt(default_cmds.MuxCommand):
             # Modify the attacker's EX based on the damage inflicted.
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
+            if "Drain" in incoming_action.effects:
+                drain_check(incoming_action, attacker, caller, final_damage)
+            if "Dispel" in incoming_action.effects:
+                dispel_check(caller)
             record_combat(caller, incoming_action, "interrupt", False, final_damage)
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
@@ -751,7 +761,9 @@ class CmdInterrupt(default_cmds.MuxCommand):
             new_attacker_ex_second = ex_gain_on_defense(final_outgoing_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex_second
             if "Drain" in outgoing_interrupt.effects:
-                drain_check(outgoing_interrupt, attacker, caller, final_outgoing_damage)
+                drain_check(outgoing_interrupt, caller, attacker, final_outgoing_damage)
+            if "Dispel" in outgoing_interrupt.effects:
+                dispel_check(attacker)
             record_combat(caller, incoming_action, "interrupt", True, mitigated_damage)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier,

@@ -111,9 +111,6 @@ class CmdSetArt(default_cmds.MuxCommand):
                             ex_move = True
                 if not effect_ok:
                     return caller.msg("Error: at least one of your Effects is not a valid Effect.")
-            # Corner casing: make sure that any art with the Revive effect also has the Heal effect.
-            if "Revive" in title_split_effects and "Heal" not in title_split_effects:
-                return caller.msg("Error: any Art with the Revive Effect must also have the Heal Effect.")
             # Confirm that any Support effect is coupled with the Heal effect
             for effect in title_split_effects:
                 if effect in SUPPORT and "Heal" not in title_split_effects:

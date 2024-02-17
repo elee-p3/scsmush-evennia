@@ -5,6 +5,7 @@ import random
 import math
 from world.utilities.utilities import logger
 from world.combat.attacks import Attack
+from world.combat.effects import BUFFS
 
 
 def assign_attack_instance_id(target):
@@ -223,8 +224,7 @@ def normalize_status(character):
     character.db.is_weaving = False
     character.db.is_bracing = False
     character.db.is_baiting = False
-    character.db.regen_duration = 0
-    character.db.vigor_duration = 0
+    character.db.status_effects = {"Regen": 0, "Vigor": 0}
     character.db.block_penalty = 0
     character.db.final_action = False
     character.db.KOed = False
@@ -264,11 +264,11 @@ def combat_tick(character):
         else:
             character.db.block_penalty -= block_penalty_reduction
     # Check for Regen
-    if character.db.regen_duration > 0:
+    if character.db.status_effects["Regen"] > 0:
         regen_check(character)
-    if character.db.vigor_duration > 0:
-        character.db.vigor_duration -= 1
-        if character.db.vigor_duration == 0:
+    if character.db.status_effects["Vigor"] > 0:
+        character.db.status_effects["Vigor"] -= 1
+        if character.db.status_effects["Vigor"] == 0:
             character.msg("You are no longer invigorated.")
     return character
 
@@ -375,16 +375,50 @@ def display_status_effects(caller):
         caller.msg("You are currently baiting, increasing your chance to interrupt until your next action.")
     if caller.db.is_rushing:
         caller.msg("You are currently rushing, decreasing your reaction chances until your next action.")
-    if caller.db.regen_duration > 0:
-        if caller.db.regen_duration > 1:
-            caller.msg(f"You will gradually regenerate for {caller.db.regen_duration} rounds.")
+    if caller.db.status_effects["Regen"] > 0:
+        if caller.db.status_effects["Regen"]> 1:
+            caller.msg("You will gradually regenerate for {regen_duration} rounds.".format(
+                regen_duration=caller.db.status_effects["Regen"]))
         else:
             caller.msg("You will gradually regenerate for 1 more round.")
-    if caller.db.vigor_duration > 0:
-        if caller.db.vigor_duration > 1:
-            caller.msg(f"You are invigorated for {caller.db.vigor_duration} rounds.")
+    if caller.db.status_effects["Vigor"] > 0:
+        if caller.db.status_effects["Vigor"]> 1:
+            caller.msg("You are invigorated for {vigor_duration} rounds.".format(
+                vigor_duration=caller.db.status_effects["Vigor"]))
         else:
             caller.msg("You are invigorated for 1 more round.")
+
+
+def apply_buff(action, healer, target):
+    # A sub-function for heal_check so that the logic of buff application need not repeat.
+    application_string = ""
+    extension_string = ""
+    buff_effects = []
+    # Find all the effects on the action that are buffs.
+    split_effect_list = action.effects.split()
+    for effect in split_effect_list:
+        target.msg(effect)
+        for buff in BUFFS:
+            if effect == buff.name:
+                buff_effects.append(effect)
+                target.msg(effect + " appended.")
+    for buff in buff_effects:
+        if buff == "Regen":
+            application_string = "You will gradually regenerate health."
+            extension_string = "The duration of your gradual regeneration has been extended."
+        elif buff == "Vigor":
+            application_string = "You are invigorated, increasing your effective Power and Knowledge."
+            extension_string = "The duration of your invigoration has been extended."
+        # Now apply the buff using consistent logic
+        if target.db.status_effects[buff] == 0:
+            target.msg(application_string)
+        else:
+            target.msg(extension_string)
+        if healer == target:
+            # A combat tick is going to happen after this, so the duration will be 3 regardless.
+            target.db.status_effects[buff] = 4
+        else:
+            target.db.status_effects[buff] = 3
 
 
 def heal_check(action, healer, target):
@@ -461,18 +495,8 @@ def heal_check(action, healer, target):
     if regen:
         healer.msg("You have regenerated for {value}.".format(value=total_healing))
     # Incorporate Support effects
-    if "Regen" in action.effects:
-        if target.db.regen_duration == 0:
-            target.msg("You will gradually regenerate health.")
-        else:
-            target.msg("The duration of your gradual regeneration has been extended.")
-        target.db.regen_duration = 3
-    if "Vigor" in action.effects:
-        if target.db.vigor_duration == 0:
-            target.msg("You are invigorated, increasing your effective Power and Knowledge.")
-        else:
-            target.msg("The duration of your invigoration has been extended.")
-        target.db.vigor_duration = 3
+    else:
+        apply_buff(action, healer, target)
 
     # Incorporate revival, i.e., being healed up from 0 LF and out of KO state
     # Corner casing: if someone else has already done a normal heal, leaving the target stunned, a raise will fix that
@@ -497,9 +521,6 @@ def heal_check(action, healer, target):
         else:
             target.msg("Your next action still has a final action penalty. After taking it, you will be stunned "
                        "for one turn but not KOed.")
-    # If this was the attacker's final action, they are now KOed.
-    if healer.db.final_action:
-        final_action_taken(healer)
 
 
 def drain_check(action, attacker, target, damage_dealt):
@@ -514,8 +535,8 @@ def drain_check(action, attacker, target, damage_dealt):
 def regen_check(character):
     # Route the Regen effect through heal_check so that all healing works the same. Use a string, "regen."
     heal_check("regen", character, character)
-    character.db.regen_duration -= 1
-    if character.db.regen_duration == 0:
+    character.db.status_effects["Regen"] -= 1
+    if character.db.status_effects["Regen"] == 0:
         character.msg("You are no longer gradually regenerating.")
 
 
@@ -524,3 +545,21 @@ def vigor_check(character, base_stat):
     if character.db.vigor_duration > 0:
         base_stat += 25
     return base_stat
+
+
+def dispel_check(target):
+    # If an Art with Dispel successfully hits or is endured, check for buffs on the target and remove one at random.
+    dispel_targets = []
+    for status_effect, duration in target.db.status_effects.items():
+        for buff in BUFFS:
+            if status_effect == buff.name and duration > 0:
+                dispel_targets.append(status_effect)
+    # Dispel_targets should now be a list of the names of all active buffs on the target.
+    if dispel_targets:
+        dispel_target = random.choice(dispel_targets)
+        modified_status_effects = target.db.status_effects
+        modified_status_effects[dispel_target] = 0
+        target.msg(dispel_target.title() + " has been dispelled.")
+        # Return the target's updated status effects if one has been dispelled.
+        return modified_status_effects
+

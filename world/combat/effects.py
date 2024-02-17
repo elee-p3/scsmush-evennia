@@ -38,6 +38,8 @@ rush = Effect("Rush", -5, "RSH")
 drain = Effect("Drain", -20, "DRN")
 # If an attack is not dodged, the attacker heals themselves proportionally to the damage they inflict.
 # Note that this healing counts toward the attacker's per-fight healing limit.
+dispel = Effect("Dispel", -10, "DIS")
+# If the attack is successful or endured, remove one random buff from the target.
 
 # Reaction Modifiers
 
@@ -61,11 +63,13 @@ vigor = Effect("Vigor", -15, "VGR")
 
 # List of all Effects
 
-EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen, vigor]
+EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen, vigor, dispel]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
+# SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
 
-SUPPORT = [regen, vigor]
+SUPPORT = [revive, regen, vigor]
+BUFFS = [regen, vigor]
 DEBUFFS_STANDARD = []
 DEBUFFS_TRANSFORMATION = []
 DEBUFFS_HEXES = []
