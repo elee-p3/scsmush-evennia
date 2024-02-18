@@ -395,20 +395,27 @@ class CmdDodge(default_cmds.MuxCommand):
         is_glancing_blow = False
         attacker_stat = find_attacker_stat(attacker, attack.stat)
         if modified_acc > random100:
-            # Since the attack has hit, check for glancing blow.
-            sweep_boolean = action.has_sweep
-            is_glancing_blow = glancing_blow_calc(random100, modified_acc, sweep_boolean)
-            if is_glancing_blow:
+            # Since the attack has hit, check for critical hit.
+            final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller.db.parry, caller.db.barrier)
+            is_critical_hit, final_damage = critical_hits(final_damage)
+            # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
+            is_glancing_blow = glancing_blow_calc(random100, modified_acc, action.has_sweep)
+            if is_critical_hit:
+                caller.msg("You have been critically hit by {attack}!".format(attack=attack.name))
+                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
+                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}.\n" \
+                      "|-|r** CRITICAL HIT! **|n"
+            elif is_glancing_blow:
                 # For now, halving the damage of glancing blows.
-                final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller.db.parry, caller.db.barrier) / 2
+                final_damage = final_damage / 2
                 caller.msg("You have been glanced by {attack}.".format(attack=attack.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
+                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}.\n" \
+                      "|-|c** Glancing Blow **|n"
             else:
-                final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller.db.parry, caller.db.barrier)
                 caller.msg("You have been hit by {attack}.".format(attack=attack.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
-
-            msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
+                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
 
             caller.db.lf -= final_damage
             # Modify EX based on damage taken.
@@ -432,13 +439,6 @@ class CmdDodge(default_cmds.MuxCommand):
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
-        # To avoid overcomplicating the above messaging code, I'm adding the "glancing blow"
-        # location message as an additional separate string.
-        if is_glancing_blow:
-            # TODO: as is, this creates an additional combat log entry for the glancing blow announcement. combine?
-            combat_string = "|y<COMBAT>|n ** Glancing Blow **"
-            caller.location.msg_contents(combat_string)
-            combat_log_entry(caller, combat_string)
         # Checking after the combat location messages if the attack has put the defender at 0 LF or below.
         # TODO: this probably doesn't have to return the caller in the function
         caller = final_action_check(caller)

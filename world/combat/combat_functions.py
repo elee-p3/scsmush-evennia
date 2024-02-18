@@ -563,3 +563,15 @@ def dispel_check(target):
         # Return the target's updated status effects if one has been dispelled.
         return modified_status_effects
 
+
+def critical_hits(damage):
+    # Default 5% chance to inflict 1.25x damage. There will be ways to modify that, so put them all here.
+    # Take the current damage as an input and return a bool and possibly modified damage.
+    is_critical = False
+    critical_check = random.randint(1, 100)
+    critical_threshold = 5
+    if critical_check <= critical_threshold:
+        is_critical = True
+        damage *= 1.25
+    return is_critical, damage
+
