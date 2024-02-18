@@ -65,17 +65,23 @@ regen = Effect("Regen", -15, "REGEN")
 # Applies the Regen Effect: Heal the target over time. This healing counts toward the target's per-fight healing limit.
 vigor = Effect("Vigor", -15, "VGR")
 # Applies the Vigor Effect: Increase Power and Knowledge.
+protect = Effect("Protect", -15, "PRT")
+# Applies the Protect Effect: Slightly increase Parry and improve damage mitigation when interrupting Power-type
+# attacks, significantly when the interrupt is successful and moderately when it fails.
+reflect = Effect("Reflect", -15, "REFL")
+# Applies the Reflect Effect: Slightly increase Barrier and improve damage mitigation when interrupting Knowledge-type
+# attacks, significantly when the interrupt is successful and moderately when it fails.
 
 # List of all Effects
 
 EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen, vigor, dispel,
-           long_range]
+           long_range, protect, reflect]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
 
-SUPPORT = [revive, regen, vigor]
-BUFFS = [regen, vigor]
+SUPPORT = [revive, regen, vigor, protect, reflect]
+BUFFS = [regen, vigor, protect, reflect]
 DEBUFFS_STANDARD = []
 DEBUFFS_TRANSFORMATION = []
 DEBUFFS_HEXES = []

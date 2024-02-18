@@ -27,12 +27,16 @@ def find_attacker_from_key(attacker_key):
     return attacker
 
 
-def damage_calc(attack_dmg, attacker_stat, base_stat, parry, barrier):
+def damage_calc(attack_dmg, attacker_stat, base_stat, defender):
     def_stat = 0
     if base_stat == "Power":
-        def_stat = parry
+        def_stat = defender.db.parry
     if base_stat == "Knowledge":
-        def_stat = barrier
+        def_stat = defender.db.barrier
+    if def_stat == defender.db.parry and defender.db.status_effects["Protect"] > 0:
+        def_stat += 10
+    if def_stat == defender.db.barrier and defender.db.status_effects["Reflect"] > 0:
+        def_stat += 10
     # Now magnify or mitigate the stat multiplier depending on how different they are.
     # This works OK, but is a placeholder for a more complex curve that I want to implement eventually.
     defender_advantage = def_stat - attacker_stat
@@ -242,7 +246,7 @@ def normalize_status(character):
     character.db.is_baiting = False
     character.db.used_ranged = False
     character.db.ranged_knockback = [False, []]
-    character.db.status_effects = {"Regen": 0, "Vigor": 0}
+    character.db.status_effects = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0}
     character.db.block_penalty = 0
     character.db.final_action = False
     character.db.KOed = False
@@ -283,12 +287,19 @@ def combat_tick(character):
         else:
             character.db.block_penalty -= block_penalty_reduction
     # Check for Regen
-    if character.db.status_effects["Regen"] > 0:
-        regen_check(character)
-    if character.db.status_effects["Vigor"] > 0:
-        character.db.status_effects["Vigor"] -= 1
-        if character.db.status_effects["Vigor"] == 0:
-            character.msg("You are no longer invigorated.")
+    for status_effect, duration in character.db.status_effects.items():
+        if status_effect == "Regen" and duration > 0:
+            regen_check(character)
+        else:
+            if character.db.status_effects[status_effect] > 0:
+                character.db.status_effects[status_effect] -= 1
+                if character.db.status_effects[status_effect] == 0:
+                    if status_effect == "Vigor":
+                        character.msg("You are no longer invigorated.")
+                    elif status_effect == "Protect":
+                        character.msg("You are no longer protected from attacks.")
+                    elif status_effect == "Reflect":
+                        character.msg("You are no longer reflecting attacks.")
     return character
 
 
@@ -411,18 +422,28 @@ def display_status_effects(caller):
                 formatted_attackers_string += (attacker + ", ")
         caller.msg("You are suffering knockback penalties of reduced accuracy against: {attackers}".format(
             attackers=formatted_attackers_string))
-    if caller.db.status_effects["Regen"] > 0:
-        if caller.db.status_effects["Regen"] > 1:
-            caller.msg("You will gradually regenerate for {regen_duration} rounds.".format(
-                regen_duration=caller.db.status_effects["Regen"]))
-        else:
-            caller.msg("You will gradually regenerate for 1 more round.")
-    if caller.db.status_effects["Vigor"] > 0:
-        if caller.db.status_effects["Vigor"]> 1:
-            caller.msg("You are invigorated for {vigor_duration} rounds.".format(
-                vigor_duration=caller.db.status_effects["Vigor"]))
-        else:
-            caller.msg("You are invigorated for 1 more round.")
+    for status_effect, duration in caller.db.status_effects.items():
+        if caller.db.status_effects[status_effect] > 0:
+            if status_effect == "Regen":
+                if duration > 1:
+                    caller.msg("You will gradually regenerate for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You will gradually regenerate for 1 more round.")
+            elif status_effect == "Vigor":
+                if duration > 1:
+                    caller.msg("You are invigorated for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You are invigorated for 1 more round.")
+            elif status_effect == "Protect":
+                if duration > 1:
+                    caller.msg("You are protected for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You are protected for 1 more round.")
+            elif status_effect == "Reflect":
+                if duration > 1:
+                    caller.msg("You are reflective for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You are reflective for 1 more round.")
 
 
 def apply_buff(action, healer, target):
@@ -433,11 +454,9 @@ def apply_buff(action, healer, target):
     # Find all the effects on the action that are buffs.
     split_effect_list = action.effects.split()
     for effect in split_effect_list:
-        target.msg(effect)
         for buff in BUFFS:
             if effect == buff.name:
                 buff_effects.append(effect)
-                target.msg(effect + " appended.")
     for buff in buff_effects:
         if buff == "Regen":
             application_string = "You will gradually regenerate health."
@@ -445,6 +464,14 @@ def apply_buff(action, healer, target):
         elif buff == "Vigor":
             application_string = "You are invigorated, increasing your effective Power and Knowledge."
             extension_string = "The duration of your invigoration has been extended."
+        elif buff == "Protect":
+            application_string = "You are protected, increasing your Parry and damage mitigation when interrupting " \
+                                 "Power-type attacks."
+            extension_string = "The duration of your protection has been extended."
+        elif buff == "Reflect":
+            application_string = "You are reflective, increasing your Barrier and damage mitigation when interrupting " \
+                                 "Knowledge-type attacks."
+            extension_string = "The duration of your reflectiveness has been extended."
         # Now apply the buff using consistent logic
         if target.db.status_effects[buff] == 0:
             target.msg(application_string)
@@ -610,4 +637,14 @@ def critical_hits(damage):
         is_critical = True
         damage *= 1.25
     return is_critical, damage
+
+
+def protect_and_reflect_check(incoming_damage, defender, attack, interrupt_success):
+    # Protect and Reflect mitigate damage specifically for an interrupter when interrupting.
+    if (defender.db.status_effects["Protect"] > 0 and attack.stat.lower() == "power") or (defender.db.status_effects["Reflect"] > 0 and attack.stat.lower() == "knowledge"):
+        if interrupt_success:
+            incoming_damage = incoming_damage * 0.75
+        else:
+            incoming_damage = incoming_damage * 0.85
+    return incoming_damage
 
