@@ -35,6 +35,11 @@ ex_move = Effect("EX", 5, "EX")
 rush = Effect("Rush", -5, "RSH")
 # 1) Increase accuracy if not used as interrupt. 2) Decrease all reaction chances until next action.
 # This is a hybrid Attack Enhancer / Reaction Modifier.
+long_range = Effect("Long-Range", -10, "RNGD")
+# This attack is harder to interrupt with non-Ranged attacks and, if not dodged or interrupted, inflicts a "knockback"
+# accuracy penalty to the target until their next action. In exchange, slightly decrease both the attack's accuracy and
+# all the attacker's reaction chances until next action.
+# This is also a hybrid Attack Enhancer / Reaction Modifier.
 drain = Effect("Drain", -20, "DRN")
 # If an attack is not dodged, the attacker heals themselves proportionally to the damage they inflict.
 # Note that this healing counts toward the attacker's per-fight healing limit.
@@ -63,7 +68,8 @@ vigor = Effect("Vigor", -15, "VGR")
 
 # List of all Effects
 
-EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen, vigor, dispel]
+EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen, vigor, dispel,
+           long_range]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.

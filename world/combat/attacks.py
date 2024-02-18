@@ -45,8 +45,10 @@ class AttackInstance:
         self.has_weave = False
         self.has_brace = False
         self.has_bait = False
+        self.has_ranged = False
         if attack.effects:
-            for effect in attack.effects:
+            split_effects = attack.effects.split()
+            for effect in split_effects:
                 if effect == "Crush":
                     self.has_crush = True
                 if effect == "Sweep":
@@ -61,3 +63,5 @@ class AttackInstance:
                     self.has_brace = True
                 if effect == "Bait":
                     self.has_bait = True
+                if effect == "Long-Range":
+                    self.has_ranged = True

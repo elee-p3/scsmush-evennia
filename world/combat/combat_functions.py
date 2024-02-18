@@ -55,6 +55,8 @@ def modify_accuracy(action, character):
     # Check if the character is rushing and, if so, add 7 to accuracy.
     if "Rush" in action.effects:
         accuracy += 7
+    if "Long-Range" in action.effects:
+        accuracy -= 5
     return accuracy
 
 
@@ -93,6 +95,9 @@ def dodge_calc(defender, attack_instance):
     # Checking to see if the defender is_weaving and reducing accuracy/improving dodge chance if so.
     if defender.db.is_weaving:
         accuracy -= 10
+    # Checking to see if the defender used_ranged and improving accuracy if so.
+    if defender.db.used_ranged:
+        accuracy += 5
     # cap accuracy at 99%
     if accuracy > 99:
         accuracy = 99
@@ -119,6 +124,9 @@ def block_chance_calc(defender, attack_instance):
         accuracy -= 10
     # Checking to see if the defender is_rushing and improving accuracy if so.
     if defender.db.is_rushing:
+        accuracy += 5
+    # Checking to see if the defender used_ranged and improving accuracy if so.
+    if defender.db.used_ranged:
         accuracy += 5
     # Incorporating block penalty.
     accuracy += defender.db.block_penalty
@@ -147,6 +155,9 @@ def endure_chance_calc(defender, attack_instance):
     # Checking to see if the defender is_rushing and improving accuracy if so.
     if defender.db.is_rushing:
         accuracy += 5
+    # Checking to see if the defender used_ranged and improving accuracy if so.
+    if defender.db.used_ranged:
+        accuracy += 5
     if accuracy > 99:
         accuracy = 99
     elif accuracy < 1:
@@ -160,10 +171,15 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
         interrupt_chance += 10
     if interrupter.db.is_rushing:
         interrupt_chance -= 5
+    if interrupter.db.used_ranged:
+        interrupt_chance -= 5
     if incoming_attack_instance.has_priority:
         interrupt_chance -= 15
     if "Priority" in outgoing_interrupt.effects:
         interrupt_chance += 15
+    if incoming_attack_instance.has_ranged:
+        if "Long-Range" not in outgoing_interrupt.effects:
+            interrupt_chance -= 15
     return interrupt_chance
 
 
@@ -224,6 +240,8 @@ def normalize_status(character):
     character.db.is_weaving = False
     character.db.is_bracing = False
     character.db.is_baiting = False
+    character.db.used_ranged = False
+    character.db.ranged_knockback = [False, []]
     character.db.status_effects = {"Regen": 0, "Vigor": 0}
     character.db.block_penalty = 0
     character.db.final_action = False
@@ -253,6 +271,7 @@ def combat_tick(character):
     character.db.endure_bonus = 0
     character.db.is_aiming = False
     character.db.is_feinting = False
+    character.db.ranged_knockback = [False, []]
     # Currently, reduce block penalty per tick by 7 or a third, whichever is higher.
     if character.db.block_penalty > 0:
         if (character.db.block_penalty / 3) > 7:
@@ -281,6 +300,7 @@ def apply_attack_effects_to_attacker(attacker, attack):
     attacker.db.is_weaving = False
     attacker.db.is_bracing = False
     attacker.db.is_baiting = False
+    attacker.db.used_ranged = False
     # Now, apply the new attack effects.
     if attack.effects:
         for effect in attack.effects:
@@ -292,6 +312,8 @@ def apply_attack_effects_to_attacker(attacker, attack):
                 attacker.db.is_bracing = True
             if effect == "Bait":
                 attacker.db.is_baiting = True
+            if effect == "Long-Range":
+                attacker.db.used_ranged = True
     return attacker
 
 
@@ -375,8 +397,22 @@ def display_status_effects(caller):
         caller.msg("You are currently baiting, increasing your chance to interrupt until your next action.")
     if caller.db.is_rushing:
         caller.msg("You are currently rushing, decreasing your reaction chances until your next action.")
+    if caller.db.used_ranged:
+        caller.msg("You previously attacked at long range, decreasing your reaction chances until your next action.")
+    if caller.db.ranged_knockback[0] and len(caller.db.ranged_knockback[1]) == 1:
+        caller.msg("You are suffering a knockback penalty of reduced accuracy against {attacker}.".format(
+            attacker=caller.db.ranged_knockback[1][0]))
+    elif caller.db.ranged_knockback[0] and len(caller.db.ranged_knockback[1]) > 1:
+        formatted_attackers_string = ""
+        for attacker in caller.db.ranged_knockback[1]:
+            if caller.db.ranged_knockback[1].index(attacker) == len(caller.db.ranged_knockback[1]) - 1:
+                formatted_attackers_string += (attacker + ".")
+            else:
+                formatted_attackers_string += (attacker + ", ")
+        caller.msg("You are suffering knockback penalties of reduced accuracy against: {attackers}".format(
+            attackers=formatted_attackers_string))
     if caller.db.status_effects["Regen"] > 0:
-        if caller.db.status_effects["Regen"]> 1:
+        if caller.db.status_effects["Regen"] > 1:
             caller.msg("You will gradually regenerate for {regen_duration} rounds.".format(
                 regen_duration=caller.db.status_effects["Regen"]))
         else:
@@ -542,7 +578,7 @@ def regen_check(character):
 
 def vigor_check(character, base_stat):
     # Checks if the character has the Vigor buff, and if so, Power/Knowledge is effectively +25.
-    if character.db.vigor_duration > 0:
+    if character.db.status_effects["Vigor"] > 0:
         base_stat += 25
     return base_stat
 

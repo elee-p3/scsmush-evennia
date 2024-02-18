@@ -430,6 +430,10 @@ class CmdDodge(default_cmds.MuxCommand):
                 drain_check(attack, attacker, caller, final_damage)
             if "Dispel" in attack.effects:
                 dispel_check(caller)
+            if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
+                caller.db.ranged_knockback[0] = True
+                caller.db.ranged_knockback[1].append(attacker.key)
+                caller.msg("You have been knocked back from {attacker} by a ranged attack.".format(attacker=attacker.key))
             record_combat(caller, action, "dodge", False, final_damage)
         else:
             caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
@@ -545,6 +549,10 @@ class CmdBlock(default_cmds.MuxCommand):
                 drain_check(attack, attacker, caller, final_damage)
             record_combat(caller, action, "block", True, final_damage)
 
+        if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
+            caller.db.ranged_knockback[0] = True
+            caller.db.ranged_knockback[1].append(attacker.key)
+            caller.msg("You have been knocked back from {attacker} by a ranged attack.".format(attacker=attacker.key))
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
@@ -636,6 +644,10 @@ class CmdEndure(default_cmds.MuxCommand):
             drain_check(attack, attacker, caller, final_damage)
         if "Dispel" in attack.effects:
             dispel_check(caller)
+        if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
+            caller.db.ranged_knockback[0] = True
+            caller.db.ranged_knockback[1].append(attacker.key)
+            caller.msg("You have been knocked back from {attacker} by a ranged attack.".format(attacker=attacker.key))
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
@@ -754,6 +766,11 @@ class CmdInterrupt(default_cmds.MuxCommand):
                 drain_check(incoming_action, attacker, caller, final_damage)
             if "Dispel" in incoming_attack.effects:
                 dispel_check(caller)
+            if "Long-Range" in incoming_attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
+                caller.db.ranged_knockback[0] = True
+                caller.db.ranged_knockback[1].append(attacker.key)
+                caller.msg(
+                    "You have been knocked back from {attacker} by a ranged attack.".format(attacker=attacker.key))
             record_combat(caller, incoming_action, "interrupt", False, final_damage)
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
@@ -794,6 +811,11 @@ class CmdInterrupt(default_cmds.MuxCommand):
                 drain_check(outgoing_interrupt, caller, attacker, final_outgoing_damage)
             if "Dispel" in outgoing_interrupt.effects:
                 dispel_check(attacker)
+            if "Long-Range" in outgoing_interrupt.effects and caller.key not in attacker.db.ranged_knockback[1]:
+                attacker.db.ranged_knockback[0] = True
+                attacker.db.ranged_knockback[1].append(caller.key)
+                attacker.msg(
+                    "You have been knocked back from {caller} by a ranged attack.".format(caller=caller.key))
             record_combat(caller, incoming_action, "interrupt", True, mitigated_damage)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier,
