@@ -78,9 +78,12 @@ def modify_damage(action, character):
     return total_damage
 
 
-def modify_speed(speed):
+def modify_speed(speed, defender):
     # A function to nest within the reaction functions to soften the effects of low and high Speed.
     speed_multiplier = speed * -0.00221 + 1.25
+    # Check here for the Acuity buff.
+    if defender.db.status_effects["Acuity"] > 0:
+        speed += 10
     effective_speed = speed * speed_multiplier
     return effective_speed
 
@@ -89,7 +92,7 @@ def dodge_calc(defender, attack_instance):
     # accuracy = int(int(attack_acc) / (speed/100))
     speed = defender.db.speed
     attack_acc = attack_instance.attack.acc
-    accuracy = 100.0 - (0.475 * (modify_speed(speed) - attack_acc) + 5)
+    accuracy = 100.0 - (0.475 * (modify_speed(speed, defender) - attack_acc) + 5)
     # Checking to see if the attack has sweep and improving accuracy/reducing dodge chance if so.
     if attack_instance.has_sweep:
         accuracy += 10
@@ -118,7 +121,7 @@ def block_chance_calc(defender, attack_instance):
         def_stat = defender.db.barrier
     speed = defender.db.speed
     attack_acc = attack_instance.attack.acc
-    averaged_def = modify_speed(speed) + def_stat*.5
+    averaged_def = modify_speed(speed, defender) + def_stat*.5
     # accuracy = int(int(attack_acc) / (averaged_def/100))
     accuracy = 100.0 - (0.475 * (averaged_def - attack_acc))
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
@@ -150,7 +153,7 @@ def endure_chance_calc(defender, attack_instance):
         def_stat = defender.db.barrier
     speed = defender.db.speed
     attack_acc = attack_instance.attack.acc
-    averaged_def = modify_speed(speed) + def_stat*.5
+    averaged_def = modify_speed(speed, defender) + def_stat*.5
     # accuracy = int(int(attack_acc) / (averaged_def / 100))
     accuracy = 100.0 - (0.475 * (averaged_def - attack_acc))
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
@@ -246,7 +249,7 @@ def normalize_status(character):
     character.db.is_baiting = False
     character.db.used_ranged = False
     character.db.ranged_knockback = [False, []]
-    character.db.status_effects = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0}
+    character.db.status_effects = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0}
     character.db.block_penalty = 0
     character.db.final_action = False
     character.db.KOed = False
@@ -300,6 +303,8 @@ def combat_tick(character):
                         character.msg("You are no longer protected from attacks.")
                     elif status_effect == "Reflect":
                         character.msg("You are no longer reflecting attacks.")
+                    elif status_effect == "Acuity":
+                        character.msg("You are no longer acutely attentive to critical vulnerabilities.")
     return character
 
 
@@ -444,6 +449,12 @@ def display_status_effects(caller):
                     caller.msg("You are reflective for {duration} rounds.".format(duration=duration))
                 else:
                     caller.msg("You are reflective for 1 more round.")
+            elif status_effect == "Acuity":
+                if duration > 1:
+                    caller.msg("You are acutely attentive to critical vulnerabilities for {duration} rounds.".format(
+                        duration=duration))
+                else:
+                    caller.msg("You are acutely attentive to critical vulnerabilities for 1 more round.")
 
 
 def apply_buff(action, healer, target):
@@ -472,6 +483,10 @@ def apply_buff(action, healer, target):
             application_string = "You are reflective, increasing your Barrier and damage mitigation when interrupting " \
                                  "Knowledge-type attacks."
             extension_string = "The duration of your reflectiveness has been extended."
+        elif buff == "Acuity":
+            application_string = "You are acutely attentive to critical vulnerabilities, increasing your Speed and " \
+                                 "your chance of inflicting a critical hit."
+            extension_string = "The duration of your acute attention to critical vulnerabilities has been extended."
         # Now apply the buff using consistent logic
         if target.db.status_effects[buff] == 0:
             target.msg(application_string)
@@ -627,12 +642,15 @@ def dispel_check(target):
         return modified_status_effects
 
 
-def critical_hits(damage):
+def critical_hits(damage, attacker):
     # Default 5% chance to inflict 1.25x damage. There will be ways to modify that, so put them all here.
     # Take the current damage as an input and return a bool and possibly modified damage.
     is_critical = False
     critical_check = random.randint(1, 100)
     critical_threshold = 5
+    # Checking for Acuity buff on the attacker.
+    if attacker.db.status_effects["Acuity"] > 0:
+        critical_threshold *= 3
     if critical_check <= critical_threshold:
         is_critical = True
         damage *= 1.25

@@ -71,17 +71,19 @@ protect = Effect("Protect", -15, "PRT")
 reflect = Effect("Reflect", -15, "REFL")
 # Applies the Reflect Effect: Slightly increase Barrier and improve damage mitigation when interrupting Knowledge-type
 # attacks, significantly when the interrupt is successful and moderately when it fails.
+acuity = Effect("Acuity", -15, "ACU")
+# Applies the Acuity Effect: Slightly increase Speed and significantly improve chance of critical hits.
 
 # List of all Effects
 
 EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen, vigor, dispel,
-           long_range, protect, reflect]
+           long_range, protect, reflect, acuity]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
 
-SUPPORT = [revive, regen, vigor, protect, reflect]
-BUFFS = [regen, vigor, protect, reflect]
+SUPPORT = [revive, regen, vigor, protect, reflect, acuity]
+BUFFS = SUPPORT[1:]
 DEBUFFS_STANDARD = []
 DEBUFFS_TRANSFORMATION = []
 DEBUFFS_HEXES = []

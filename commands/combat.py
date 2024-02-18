@@ -397,7 +397,7 @@ class CmdDodge(default_cmds.MuxCommand):
         if modified_acc > random100:
             # Since the attack has hit, check for critical hit.
             final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller)
-            is_critical_hit, final_damage = critical_hits(final_damage)
+            is_critical_hit, final_damage = critical_hits(final_damage, attacker)
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
             is_glancing_blow = glancing_blow_calc(random100, modified_acc, action.has_sweep)
             if is_critical_hit:
@@ -500,7 +500,7 @@ class CmdBlock(default_cmds.MuxCommand):
 
         if modified_acc > random100:
             # Since the attack has hit, check for critical hit.
-            is_critical_hit, final_damage = critical_hits(modified_damage)
+            is_critical_hit, final_damage = critical_hits(modified_damage, attacker)
             if is_critical_hit:
                 caller.msg("You have been critically hit by {attack}!".format(attack=attack.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(modified_damage)))
@@ -611,7 +611,7 @@ class CmdEndure(default_cmds.MuxCommand):
         final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller)
         if modified_acc > random100:
             # Since the attack has hit, check for critical hit.
-            is_critical_hit, final_damage = critical_hits(final_damage)
+            is_critical_hit, final_damage = critical_hits(final_damage, attacker)
             if is_critical_hit:
                 caller.msg("You have been critically hit by {attack}!".format(attack=attack.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
@@ -744,7 +744,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             # Check for Protect/Reflect moderate damage mitigation.
             final_damage = protect_and_reflect_check(final_damage, caller, incoming_attack, False)
             # Since the incoming attack has hit, check for critical hit.
-            is_critical_hit, final_damage = critical_hits(final_damage)
+            is_critical_hit, final_damage = critical_hits(final_damage, attacker)
             if is_critical_hit:
                 caller.msg("You have critically failed to interrupt {attack}!".format(attack=incoming_attack.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
@@ -779,7 +779,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             modified_int_damage = modify_damage(outgoing_interrupt, caller)
             final_outgoing_damage = damage_calc(modified_int_damage, outgoing_interrupt_stat, outgoing_interrupt.stat, attacker)
             # Check if the interrupt is a critical hit!
-            is_critical_hit, final_outgoing_damage = critical_hits(final_outgoing_damage)
+            is_critical_hit, final_outgoing_damage = critical_hits(final_outgoing_damage, caller)
             # Determine how much damage the incoming attack would do if unmitigated.
             unmitigated_incoming_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_attack.stat, caller)
             # Determine how the Damage of the outgoing interrupt mitigates incoming Damage.
