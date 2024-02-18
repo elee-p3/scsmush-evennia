@@ -495,11 +495,18 @@ class CmdBlock(default_cmds.MuxCommand):
         msg = ""
 
         if modified_acc > random100:
-            caller.msg("You have been hit by {attack}.".format(attack=attack.name))
-            caller.msg("You took {dmg} damage.".format(dmg=round(modified_damage)))
+            # Since the attack has hit, check for critical hit.
+            is_critical_hit, final_damage = critical_hits(modified_damage)
+            if is_critical_hit:
+                caller.msg("You have been critically hit by {attack}!".format(attack=attack.name))
+                caller.msg("You took {dmg} damage.".format(dmg=round(modified_damage)))
+                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}.\n" \
+                      "|-|r** CRITICAL HIT! **|n"
+            else:
+                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
+                caller.msg("You have been hit by {attack}.".format(attack=attack.name))
+                caller.msg("You took {dmg} damage.".format(dmg=round(modified_damage)))
             caller.db.lf -= modified_damage
-
-            msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
 
             # Modify the character's EX based on the damage inflicted.
             new_ex = ex_gain_on_defense(modified_damage, caller.db.ex, caller.db.maxex)
@@ -595,9 +602,17 @@ class CmdEndure(default_cmds.MuxCommand):
         attacker_stat = find_attacker_stat(attacker, attack.stat)
         final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller.db.parry, caller.db.barrier)
         if modified_acc > random100:
-            caller.msg("You have been hit by {attack}.".format(attack=attack.name))
-            caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
-            msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
+            # Since the attack has hit, check for critical hit.
+            is_critical_hit, final_damage = critical_hits(final_damage)
+            if is_critical_hit:
+                caller.msg("You have been critically hit by {attack}!".format(attack=attack.name))
+                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
+                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}.\n" \
+                      "|-|r** CRITICAL HIT! **|n"
+            else:
+                caller.msg("You have been hit by {attack}.".format(attack=attack.name))
+                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
+                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
             record_combat(caller, action, "endure", False, final_damage)
         else:
             caller.msg("You endure {attack}.".format(attack=attack.name))
@@ -714,10 +729,17 @@ class CmdInterrupt(default_cmds.MuxCommand):
         if modified_acc > random100:
             # attack_with_effects = check_for_effects(attack)
             final_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_attack.stat, caller.db.parry, caller.db.barrier)
-            caller.msg("You have failed to interrupt {attack}.".format(attack=incoming_attack.name))
-            caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
-
-            msg = "|y<COMBAT>|n {target} has failed to interrupt {attacker}'s {modifier}{attack} with {interrupt}."
+            # Since the incoming attack has hit, check for critical hit.
+            is_critical_hit, final_damage = critical_hits(final_damage)
+            if is_critical_hit:
+                caller.msg("You have critically failed to interrupt {attack}!".format(attack=incoming_attack.name))
+                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
+                msg = "|y<COMBAT>|n {target} has failed to interrupt {attacker}'s {modifier}{attack} with {interrupt}.\n" \
+                      "|-|r** CRITICAL HIT! **|n"
+            else:
+                caller.msg("You have failed to interrupt {attack}.".format(attack=incoming_attack.name))
+                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
+                msg = "|y<COMBAT>|n {target} has failed to interrupt {attacker}'s {modifier}{attack} with {interrupt}."
 
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= final_damage
@@ -728,22 +750,30 @@ class CmdInterrupt(default_cmds.MuxCommand):
             # Modify the attacker's EX based on the damage inflicted.
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
-            if "Drain" in incoming_action.effects:
+            if "Drain" in incoming_attack.effects:
                 drain_check(incoming_action, attacker, caller, final_damage)
-            if "Dispel" in incoming_action.effects:
+            if "Dispel" in incoming_attack.effects:
                 dispel_check(caller)
             record_combat(caller, incoming_action, "interrupt", False, final_damage)
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
             modified_int_damage = modify_damage(outgoing_interrupt, caller)
             final_outgoing_damage = damage_calc(modified_int_damage, outgoing_interrupt_stat, outgoing_interrupt.stat, attacker.db.parry, attacker.db.barrier)
+            # Check if the interrupt is a critical hit!
+            is_critical_hit, final_outgoing_damage = critical_hits(final_outgoing_damage)
             # Determine how much damage the incoming attack would do if unmitigated.
             unmitigated_incoming_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_attack.stat, caller.db.parry, caller.db.barrier)
             # Determine how the Damage of the outgoing interrupt mitigates incoming Damage.
             mitigated_damage = interrupt_mitigation_calc(unmitigated_incoming_damage, final_outgoing_damage)
-            caller.msg("You interrupt {attack} with {interrupt}.".format(attack=incoming_attack.name, interrupt=outgoing_interrupt.name))
-            caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
-            msg = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}."
+            if is_critical_hit:
+                caller.msg("You critically interrupt {attack} with {interrupt}!".format(attack=incoming_attack.name, interrupt=outgoing_interrupt.name))
+                caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
+                msg = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}.\n" \
+                      "|-|r** CRITICAL HIT! **|n"
+            else:
+                caller.msg("You interrupt {attack} with {interrupt}.".format(attack=incoming_attack.name, interrupt=outgoing_interrupt.name))
+                caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
+                msg = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}."
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= mitigated_damage
             attacker.db.lf -= final_outgoing_damage
