@@ -5,7 +5,7 @@ import random
 import math
 from world.utilities.utilities import logger
 from world.combat.attacks import Attack
-from world.combat.effects import BUFFS
+from world.combat.effects import BUFFS, AimOrFeint
 
 
 def assign_attack_instance_id(target):
@@ -83,7 +83,11 @@ def modify_speed(speed, defender):
     speed_multiplier = speed * -0.00221 + 1.25
     # Check here for the Acuity buff.
     if defender.db.status_effects["Acuity"] > 0:
-        speed += 10
+        speed += 5
+    if defender.db.status_effects["Haste"] > 0:
+        speed += 5
+    if defender.db.status_effects["Blink"] > 0:
+        speed += 5
     effective_speed = speed * speed_multiplier
     return effective_speed
 
@@ -249,7 +253,8 @@ def normalize_status(character):
     character.db.is_baiting = False
     character.db.used_ranged = False
     character.db.ranged_knockback = [False, []]
-    character.db.status_effects = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0}
+    character.db.status_effects = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0,
+                                   "Blink": 0}
     character.db.block_penalty = 0
     character.db.final_action = False
     character.db.KOed = False
@@ -305,6 +310,10 @@ def combat_tick(character):
                         character.msg("You are no longer reflecting attacks.")
                     elif status_effect == "Acuity":
                         character.msg("You are no longer acutely attentive to critical vulnerabilities.")
+                    elif status_effect == "Haste":
+                        character.msg("You are no longer hastened.")
+                    elif status_effect == "Blink":
+                        character.msg("You are no longer trailed by afterimages.")
     return character
 
 
@@ -455,6 +464,16 @@ def display_status_effects(caller):
                         duration=duration))
                 else:
                     caller.msg("You are acutely attentive to critical vulnerabilities for 1 more round.")
+            elif status_effect == "Haste":
+                if duration > 1:
+                    caller.msg("You are hastened for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You are hastened for one more round.")
+            elif status_effect == "Blink":
+                if duration > 1:
+                    caller.msg("You are trailed by afterimages for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You are trailed by afterimages for one more round.")
 
 
 def apply_buff(action, healer, target):
@@ -487,6 +506,12 @@ def apply_buff(action, healer, target):
             application_string = "You are acutely attentive to critical vulnerabilities, increasing your Speed and " \
                                  "your chance of inflicting a critical hit."
             extension_string = "The duration of your acute attention to critical vulnerabilities has been extended."
+        elif buff == "Haste":
+            application_string = "You are hastened, increasing your Speed and the effectiveness of Aim."
+            extension_string = "The duration of your hastened state has been extended."
+        elif buff == "Blink":
+            application_string = "You are trailed by afterimages, increasing your Speed and the effectiveness of Feint."
+            extension_string = "The duration of your afterimages has been extended."
         # Now apply the buff using consistent logic
         if target.db.status_effects[buff] == 0:
             target.msg(application_string)
@@ -665,4 +690,29 @@ def protect_and_reflect_check(incoming_damage, defender, attack, interrupt_succe
         else:
             incoming_damage = incoming_damage * 0.85
     return incoming_damage
+
+
+def modify_aim_and_feint(accuracy, reaction, aim_or_feint):
+    # Centralizing any modifications to Aim and Feint from buffs, etc. Call this in each reaction. Return mod acc.
+    if reaction == "dodge" or "block":
+        # Aiming is more accurate and feinting is less accurate against dodging and blocking.
+        if aim_or_feint == AimOrFeint.AIM:
+            accuracy += 15
+        elif aim_or_feint == AimOrFeint.HASTED_AIM:
+            accuracy += 25
+        elif aim_or_feint == AimOrFeint.FEINT:
+            accuracy -= 15
+    elif reaction == "endure" or "interrupt":
+        # Aiming is less accurate and feinting is more accurate against enduring and interrupting.
+        if aim_or_feint == AimOrFeint.AIM:
+            accuracy -= 15
+        elif aim_or_feint == AimOrFeint.FEINT:
+            accuracy += 15
+        elif aim_or_feint == AimOrFeint.BLINKED_FEINT:
+            accuracy += 25
+    if accuracy > 99:
+        accuracy = 99
+    elif accuracy < 1:
+        accuracy = 1
+    return accuracy
 

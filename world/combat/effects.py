@@ -4,6 +4,8 @@ class AimOrFeint(Enum):
     AIM = 1
     FEINT = 2
     NEUTRAL = 3
+    HASTED_AIM = 4
+    BLINKED_FEINT = 5
 
 class Effect:
     def __init__(self, name: str, ap_change: int, abbr: str):
@@ -73,16 +75,20 @@ reflect = Effect("Reflect", -15, "REFL")
 # attacks, significantly when the interrupt is successful and moderately when it fails.
 acuity = Effect("Acuity", -15, "ACU")
 # Applies the Acuity Effect: Slightly increase Speed and significantly improve chance of critical hits.
+haste = Effect("Haste", -15, "HST")
+# Applies the Haste Effect: Slightly increase Speed and improve the effectiveness of the Aim command.
+blink = Effect("Blink", -15, "BNK")
+# Applies the Blink Effect: Slightly increase Speed and improve the effectiveness of the Feint command.
 
 # List of all Effects
 
 EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen, vigor, dispel,
-           long_range, protect, reflect, acuity]
+           long_range, protect, reflect, acuity, haste, blink]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
 
-SUPPORT = [revive, regen, vigor, protect, reflect, acuity]
+SUPPORT = [revive, regen, vigor, protect, reflect, acuity, haste, blink]
 BUFFS = SUPPORT[1:]
 DEBUFFS_STANDARD = []
 DEBUFFS_TRANSFORMATION = []

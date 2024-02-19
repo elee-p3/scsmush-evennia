@@ -229,9 +229,15 @@ class CmdAttack(default_cmds.MuxCommand):
 
         aim_or_feint = AimOrFeint.NEUTRAL
         if caller.db.is_aiming:
-            aim_or_feint = AimOrFeint.AIM
+            if caller.db.status_effects["Haste"] > 0:
+                aim_or_feint = AimOrFeint.HASTED_AIM
+            else:
+                aim_or_feint = AimOrFeint.AIM
         if caller.db.is_feinting:
-            aim_or_feint = AimOrFeint.FEINT
+            if caller.db.status_effects["Blink"] > 0:
+                aim_or_feint = AimOrFeint.BLINKED_FEINT
+            else:
+                aim_or_feint = AimOrFeint.FEINT
 
         # First, check that the character attacking is not KOed
         if caller.db.KOed:
@@ -386,10 +392,7 @@ class CmdDodge(default_cmds.MuxCommand):
         modified_acc = dodge_calc(caller, action)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
-        if aim_or_feint == AimOrFeint.AIM:
-            modified_acc += 15
-        elif aim_or_feint == AimOrFeint.FEINT:
-            modified_acc -= 15
+        modified_acc = modify_aim_and_feint(modified_acc, "dodge", aim_or_feint)
 
         msg = ""
         is_glancing_blow = False
@@ -491,10 +494,7 @@ class CmdBlock(default_cmds.MuxCommand):
         modified_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
-        if aim_or_feint == AimOrFeint.AIM:
-            modified_acc += 15
-        elif aim_or_feint == AimOrFeint.FEINT:
-            modified_acc -= 15
+        modified_acc = modify_aim_and_feint(modified_acc, "block", aim_or_feint)
 
         msg = ""
 
@@ -601,10 +601,7 @@ class CmdEndure(default_cmds.MuxCommand):
         modified_acc = endure_chance_calc(caller, action)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
-        if aim_or_feint == AimOrFeint.AIM:
-            modified_acc -= 15
-        elif aim_or_feint == AimOrFeint.FEINT:
-            modified_acc += 15
+        modified_acc = modify_aim_and_feint(modified_acc, "endure", aim_or_feint)
 
         msg = ""
         attacker_stat = find_attacker_stat(attacker, attack.stat)
@@ -732,10 +729,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         modified_acc = interrupt_chance_calc(caller, incoming_action, outgoing_interrupt)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
-        if aim_or_feint == AimOrFeint.AIM:
-            modified_acc -= 15
-        elif aim_or_feint == AimOrFeint.FEINT:
-            modified_acc += 15
+        modified_acc = modify_aim_and_feint(modified_acc, "interrupt", aim_or_feint)
 
         msg = ""
         if modified_acc < random100:
