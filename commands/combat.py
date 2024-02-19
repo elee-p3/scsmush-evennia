@@ -324,10 +324,10 @@ class CmdAttack(default_cmds.MuxCommand):
             combat_log_entry(caller, combat_string)
 
         # "Tick" to have a round pass.
-        combat_tick(caller)
+        negative_lf_from_poison = combat_tick(caller)
         # If this was the attacker's final action, they are now KOed.
         if caller.db.final_action:
-            final_action_taken(caller)
+            final_action_taken(caller, negative_lf_from_poison)
 
 
 class CmdQueue(default_cmds.MuxCommand):
@@ -428,7 +428,8 @@ class CmdDodge(default_cmds.MuxCommand):
             # Modify the attacker's EX based on the damage inflicted.
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
-            # Drain check
+            # Effect check
+            apply_debuff(attack, attacker, caller)
             if "Drain" in attack.effects:
                 drain_check(attack, attacker, caller, final_damage)
             if "Dispel" in attack.effects:
@@ -522,6 +523,8 @@ class CmdBlock(default_cmds.MuxCommand):
             block_bool = False
             new_block_penalty = accrue_block_penalty(caller, modified_damage, block_bool, action)
             caller.db.block_penalty = new_block_penalty
+            # Apply debuffs only on failed blocks
+            apply_debuff(attack, attacker, caller)
             if "Drain" in attack.effects:
                 drain_check(attack, attacker, caller, modified_damage)
             if "Dispel" in attack.effects:
@@ -637,6 +640,8 @@ class CmdEndure(default_cmds.MuxCommand):
         # Modify the attacker's EX based on the damage inflicted.
         new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
         attacker.db.ex = new_attacker_ex
+        # Apply debuffs regardless of if endure succeeds or fails
+        apply_debuff(attack, attacker, caller)
         if "Drain" in attack.effects:
             drain_check(attack, attacker, caller, final_damage)
         if "Dispel" in attack.effects:
@@ -758,6 +763,8 @@ class CmdInterrupt(default_cmds.MuxCommand):
             # Modify the attacker's EX based on the damage inflicted.
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
+            # Apply debuffs only if interrupt fails
+            apply_debuff(incoming_action, attacker, caller)
             if "Drain" in incoming_attack.effects:
                 drain_check(incoming_action, attacker, caller, final_damage)
             if "Dispel" in incoming_attack.effects:
@@ -805,6 +812,11 @@ class CmdInterrupt(default_cmds.MuxCommand):
             attacker.db.ex = new_attacker_ex_first
             new_attacker_ex_second = ex_gain_on_defense(final_outgoing_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex_second
+            # Interrupting a Drain attack partially drains you, but if you interrupt Long-Range, you're not knocked back
+            if "Drain" in incoming_attack.effects:
+                drain_check(incoming_action, attacker, caller, mitigated_damage)
+            # Apply debuffs to interrupted attacker
+            apply_debuff(outgoing_interrupt, caller, attacker)
             if "Drain" in outgoing_interrupt.effects:
                 drain_check(outgoing_interrupt, caller, attacker, final_outgoing_damage)
             if "Dispel" in outgoing_interrupt.effects:
@@ -830,6 +842,8 @@ class CmdInterrupt(default_cmds.MuxCommand):
         # If the defender survives the interrupt, do a combat tick to clear status, as with +attack and +pass.
         else:
             combat_tick(caller)
+            # Might have just taken poison damage and been reduced below 0 LF then! Check, but can't be KOed from that.
+            final_action_check(caller)
         del caller.db.queue[id_list.index(int(incoming_attack_arg))]
 
 
@@ -1107,7 +1121,7 @@ class CmdPass(default_cmds.MuxCommand):
         # First, check that the character acting is not KOed
         if caller.db.KOed:
             return caller.msg("Your character is KOed and cannot act!")
-        combat_tick(caller)
+        negative_lf_from_poison = combat_tick(caller)
         combat_string = "|y<COMBAT>|n {0} takes no action.".format(caller.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
@@ -1116,4 +1130,5 @@ class CmdPass(default_cmds.MuxCommand):
             caller.msg("Your character is no longer stunned.")
         # If this was the attacker's final action, they are now KOed.
         if caller.db.final_action:
-            final_action_taken(caller)
+            final_action_taken(caller, negative_lf_from_poison)
+

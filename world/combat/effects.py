@@ -82,16 +82,23 @@ blink = Effect("Blink", -15, "BNK")
 serendipity = Effect("Serendipity", -10, "SER")
 # Applies a random effect from BUFFS.
 
+# Debuffs (Standard)
+
+poison = Effect("Poison", -15, "POI")
+# Applies the Poison Effect: Inflicts damage over time.
+
 # List of all Effects
 
 EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen, vigor, dispel,
-           long_range, protect, reflect, acuity, haste, blink, serendipity]
+           long_range, protect, reflect, acuity, haste, blink, serendipity, poison]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
 
 SUPPORT = [revive, serendipity, regen, vigor, protect, reflect, acuity, haste, blink]
 BUFFS = SUPPORT[2:]
-DEBUFFS_STANDARD = []
+DEBUFFS_STANDARD = [poison]
 DEBUFFS_TRANSFORMATION = []
 DEBUFFS_HEXES = []
+DEBUFFS = DEBUFFS_STANDARD + DEBUFFS_TRANSFORMATION + DEBUFFS_HEXES
+

@@ -1,6 +1,6 @@
 from evennia import default_cmds
 from world.arts.models import Arts
-from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS_HEXES, DEBUFFS_STANDARD, DEBUFFS_TRANSFORMATION
+from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS
 from world.combat.attacks import Attack
 
 
@@ -115,6 +115,8 @@ class CmdSetArt(default_cmds.MuxCommand):
             for effect in title_split_effects:
                 if effect in SUPPORT and "Heal" not in title_split_effects:
                     return caller.msg(f"Error: {effect} is a Support effect. All Support Arts must have the Heal Effect.")
+                if effect in DEBUFFS and "Heal" in title_split_effects:
+                    return caller.msg(f"Error: {effect} is a Debuff effect and is not compatible with the Heal Effect.")
             # Having confirmed the Art is well-formed, add it to the character's list of Arts.
             # Check if it is regular Art (120 points between Damage/Acc) or EX (140 points).
             if ex_move:

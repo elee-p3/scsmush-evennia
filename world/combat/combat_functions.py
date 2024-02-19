@@ -5,7 +5,7 @@ import random
 import math
 from world.utilities.utilities import logger
 from world.combat.attacks import Attack
-from world.combat.effects import BUFFS, AimOrFeint
+from world.combat.effects import BUFFS, DEBUFFS, AimOrFeint
 
 
 def assign_attack_instance_id(target):
@@ -254,7 +254,8 @@ def normalize_status(character):
     character.db.used_ranged = False
     character.db.ranged_knockback = [False, []]
     character.db.status_effects = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0,
-                                   "Blink": 0}
+                                   "Blink": 0, "Poison": 0}
+    character.db.debuff_resist_mod = {"Poison": 0}
     character.db.block_penalty = 0
     character.db.final_action = False
     character.db.KOed = False
@@ -284,6 +285,7 @@ def combat_tick(character):
     character.db.is_aiming = False
     character.db.is_feinting = False
     character.db.ranged_knockback = [False, []]
+    negative_lf_from_poison = False
     # Currently, reduce block penalty per tick by 7 or a third, whichever is higher.
     if character.db.block_penalty > 0:
         if (character.db.block_penalty / 3) > 7:
@@ -298,6 +300,8 @@ def combat_tick(character):
     for status_effect, duration in character.db.status_effects.items():
         if status_effect == "Regen" and duration > 0:
             regen_check(character)
+        elif status_effect == "Poison" and duration > 0:
+            negative_lf_from_poison = poison_check(character)
         else:
             if character.db.status_effects[status_effect] > 0:
                 character.db.status_effects[status_effect] -= 1
@@ -314,7 +318,7 @@ def combat_tick(character):
                         character.msg("You are no longer hastened.")
                     elif status_effect == "Blink":
                         character.msg("You are no longer trailed by afterimages.")
-    return character
+    return negative_lf_from_poison
 
 
 def apply_attack_effects_to_attacker(attacker, attack):
@@ -360,16 +364,15 @@ def accrue_block_penalty(defender, pre_block_damage, block_bool, attack_instance
 
 def final_action_check(character):
     # After any reaction in which the character takes damage, check if their LF has dropped to 0 or below.
-    if character.db.lf <= 0:
-        # Whenever LF drops below 0, set it at 0. This is to facilitate raising in party combat.
-        character.db.lf = 0
+    if character.db.lf <= 0 and not character.db.final_action:
+        # No longer setting LF to 0 at this juncture, so that Regen can't necessarily revive you.
         character.db.final_action = True
-        character.msg("You have been reduced to 0 LF. Your next action will be your last. Any attacks will"
+        character.msg("You have been reduced below 0 LF. Your next action will be your last. Any attacks will"
                       " suffer a penalty to your accuracy.")
     return character
 
 
-def final_action_taken(character):
+def final_action_taken(character, negative_lf_from_poison):
     # Call with conditional: if character.db.final_action ...
     # Confirm that the target has not been healed out of their final_action
     if character.db.lf > 0:
@@ -380,12 +383,15 @@ def final_action_taken(character):
             character.db.final_action = False
             character.db.stunned = True
             return character.msg("You are stunned for one turn. On your next turn, you must 'pass' unless revived.")
-    character.db.final_action = False
-    character.db.KOed = True
-    character.msg("You have taken your final action and can no longer fight.")
-    combat_string = "|y<COMBAT>|n {0} can no longer fight.".format(character.name)
-    character.location.msg_contents(combat_string)
-    combat_log_entry(character, combat_string)
+    if not negative_lf_from_poison:
+        character.db.final_action = False
+        character.db.KOed = True
+        character.db.lf = 0
+        # Now LF is set to 0, so it's easier to revive someone and there's no benefit to beating on anyone excessively.
+        character.msg("You have taken your final action and can no longer fight.")
+        combat_string = "|y<COMBAT>|n {0} can no longer fight.".format(character.name)
+        character.location.msg_contents(combat_string)
+        combat_log_entry(character, combat_string)
 
 
 def combat_log_entry(caller, logstring):
@@ -468,12 +474,18 @@ def display_status_effects(caller):
                 if duration > 1:
                     caller.msg("You are hastened for {duration} rounds.".format(duration=duration))
                 else:
-                    caller.msg("You are hastened for one more round.")
+                    caller.msg("You are hastened for 1 more round.")
             elif status_effect == "Blink":
                 if duration > 1:
                     caller.msg("You are trailed by afterimages for {duration} rounds.".format(duration=duration))
                 else:
-                    caller.msg("You are trailed by afterimages for one more round.")
+                    caller.msg("You are trailed by afterimages for 1 more round.")
+            elif status_effect == "Poison":
+                if duration > 1:
+                    caller.msg("You are poisoned and suffering damage over time for {duration} rounds.".format(
+                        duration=duration))
+                else:
+                    caller.msg("You are poisoned and suffering damage over time for 1 more round.")
 
 
 def apply_buff(action, healer, target):
@@ -624,7 +636,7 @@ def heal_check(action, healer, target):
             target.db.stunned = True
             target.msg("You are healed but stunned: you may rejoin the fight after using 'pass' on your next turn.")
     # Someone could be healed during their final action but before being KOed. Let's have raise help there too
-    if target.db.final_action:
+    if target.db.final_action and target.db.lf > 0:
         if regen:
             target.msg("You have regenerated sufficiently to continue fighting!")
             target.db.final_action = False
@@ -725,4 +737,83 @@ def modify_aim_and_feint(accuracy, reaction, aim_or_feint):
     elif accuracy < 1:
         accuracy = 1
     return accuracy
+
+
+def apply_debuff(action, debuffer, target):
+    # Debuffs have a chance to be resisted. This can be increased by buffs, and some debuffs increase the afflicted's
+    # resistance to being afflicted again in the same fight (to disincentivize spamming them).
+    # I'll make a new dict, "debuff_resist_mod," to track debuff resistances specifically. I'll keep the debuff
+    # durations in status_effects, to remain consistent with how I've set up combat_tick.
+    base_debuff_resist = 30
+    debuff_resist = base_debuff_resist
+    application_string = ""
+    extension_string = ""
+    debuff_effects = []
+    # Find all the effects on the action that are debuffs.
+    split_effect_list = action.effects.split()
+    for effect in split_effect_list:
+        for debuff in DEBUFFS:
+            if effect == debuff.name:
+                debuff_effects.append(effect)
+    # if serendipity:
+        # Add an additional random buff that is not already one of the Art's effects.
+        # buff_options = []
+        # for buff in BUFFS:
+            # if buff.name not in buff_effects:
+                # buff_options.append(buff.name)
+        # buff_effects.append(random.choice(buff_options))
+    for debuff in debuff_effects:
+        # Identify the debuff and calculate the specific resistance
+        if debuff == "Poison":
+            debuff_resist += target.db.debuff_resist_mod["Poison"]
+            application_string = "You are poisoned, gradually losing health."
+            extension_string = "The duration of your poisoning has been extended."
+        # Roll the debuff check
+        debuff_check_roll = random.randint(1, 100)
+        if debuff_check_roll > debuff_resist:
+            # If debuff succeeds, apply using consistent logic
+            if target.db.status_effects[debuff] == 0:
+                target.msg(application_string)
+            else:
+                target.msg(extension_string)
+            if debuffer == target:
+                # A combat tick is going to happen after this, so the duration will be 3 regardless. If it matters...?
+                target.db.status_effects[debuff] = 4
+            else:
+                target.db.status_effects[debuff] = 3
+
+
+def poison_check(target):
+    # LF is an integer and final_action is a bool. When LF is reduced to 0, final_action is set to True. When someone
+    # takes their turn and final_action is True, only then are they KOed. It is possible to be healed out of
+    # final_action, including by the Regen buff (see heal_check). In this context, how should Poison work?
+    #
+    # I think I want the logic to be that Regen can *save* you from being KOed if it's your final action, but Poison
+    # cannot kill you *unless* it is already your final action and you are not healed out of it. So I want to prevent:
+    # 1) Not final action -> takes action -> Poison damage reduces LF below 0 -> insta-KOed (bullshit)
+    # 2) Not final action -> takes action -> Poison damage reduces LF below 0 -> final_action isn't set to True (oops!)
+    #
+    # Since combat_tick is called before final_action_taken, that works fine for regen, but if poison can potentially
+    # apply final_action, I need to create a special case for, after regen, checking if poison knocks you under 0 LF
+    # to apply final_action without triggering final_action_taken. (As in, if poison specifically reduces you below 0
+    # LF after taking your turn, you are not insta-KOed, but still get another turn as a final action.)
+    #
+    # I'll try creating this special case here and passing it to final_action_taken, rather than having poison_check()
+    # itself apply final_action.
+    negative_lf_from_poison = False
+    poison_damage = random.randint(20, 60)
+    # MotM's "Deadly" effect is a tradeoff that reduces damage upfront but deals more over time. Currently, Poison is
+    # just more damage, which may be OP, but it can also be Cured, so... I'll use the typical RPG paradigm for now.
+    target.db.lf -= poison_damage
+    target.msg("You have taken {damage} damage from poison.".format(damage=poison_damage))
+    initial_state = target.db.final_action
+    final_action_check(target)
+    # Check if it's now your final_action BECAUSE of the poison damage specifically.
+    if target.db.final_action and not initial_state:
+        negative_lf_from_poison = True
+    # This check will only be called if Poison's duration is already greater than 1.
+    target.db.status_effects["Poison"] -= 1
+    if target.db.status_effects["Poison"] == 0:
+        target.msg("You are no longer poisoned.")
+    return negative_lf_from_poison
 
