@@ -79,17 +79,19 @@ haste = Effect("Haste", -15, "HST")
 # Applies the Haste Effect: Slightly increase Speed and improve the effectiveness of the Aim command.
 blink = Effect("Blink", -15, "BNK")
 # Applies the Blink Effect: Slightly increase Speed and improve the effectiveness of the Feint command.
+serendipity = Effect("Serendipity", -10, "SER")
+# Applies a random effect from BUFFS.
 
 # List of all Effects
 
 EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen, vigor, dispel,
-           long_range, protect, reflect, acuity, haste, blink]
+           long_range, protect, reflect, acuity, haste, blink, serendipity]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
 
-SUPPORT = [revive, regen, vigor, protect, reflect, acuity, haste, blink]
-BUFFS = SUPPORT[1:]
+SUPPORT = [revive, serendipity, regen, vigor, protect, reflect, acuity, haste, blink]
+BUFFS = SUPPORT[2:]
 DEBUFFS_STANDARD = []
 DEBUFFS_TRANSFORMATION = []
 DEBUFFS_HEXES = []

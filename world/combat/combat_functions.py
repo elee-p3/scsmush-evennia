@@ -481,12 +481,22 @@ def apply_buff(action, healer, target):
     application_string = ""
     extension_string = ""
     buff_effects = []
+    serendipity = False
     # Find all the effects on the action that are buffs.
     split_effect_list = action.effects.split()
     for effect in split_effect_list:
+        if effect == "Serendipity":
+            serendipity = True
         for buff in BUFFS:
             if effect == buff.name:
                 buff_effects.append(effect)
+    if serendipity:
+        # Add an additional random buff that is not already one of the Art's effects.
+        buff_options = []
+        for buff in BUFFS:
+            if buff.name not in buff_effects:
+                buff_options.append(buff.name)
+        buff_effects.append(random.choice(buff_options))
     for buff in buff_effects:
         if buff == "Regen":
             application_string = "You will gradually regenerate health."
