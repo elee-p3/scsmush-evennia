@@ -324,7 +324,7 @@ class CmdAttack(default_cmds.MuxCommand):
             combat_log_entry(caller, combat_string)
 
         # "Tick" to have a round pass.
-        combat_tick(caller)
+        combat_tick(caller, action_clean)
         # If this was the attacker's final action, they are now KOed.
         if caller.db.final_action:
             final_action_taken(caller)
@@ -828,7 +828,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             combat_log_entry(caller, combat_string)
         # If the defender survives the interrupt, do a combat tick to clear status, as with +attack and +pass.
         else:
-            combat_tick(caller)
+            combat_tick(caller, outgoing_interrupt)
             # Might have just taken poison damage and been reduced below 0 LF then! Check, but can't be KOed from that.
             final_action_check(caller)
         del caller.db.queue[id_list.index(int(incoming_attack_arg))]
@@ -1108,7 +1108,7 @@ class CmdPass(default_cmds.MuxCommand):
         # First, check that the character acting is not KOed
         if caller.db.KOed:
             return caller.msg("Your character is KOed and cannot act!")
-        combat_tick(caller)
+        combat_tick(caller, None)
         combat_string = "|y<COMBAT>|n {0} takes no action.".format(caller.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)

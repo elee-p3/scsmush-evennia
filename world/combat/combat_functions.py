@@ -255,8 +255,8 @@ def normalize_status(character):
     character.db.ranged_knockback = [False, []]
     character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
                           "Bless": 0}
-    character.db.debuffs = {"Poison": [0, 0]}
-    character.db.negative_lf_from_poison = False
+    character.db.debuffs = {"Poison": [0, 0], "Wound": [0, 0]}
+    character.db.negative_lf_from_dot = False
     character.db.block_penalty = 0
     character.db.final_action = False
     character.db.KOed = False
@@ -280,13 +280,13 @@ def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
     return False
 
 
-def combat_tick(character):
+def combat_tick(character, action):
     # This function represents a "tick" or the end of a turn. Any "action," like +attack or +pass, counts as a tick.
     character.db.endure_bonus = 0
     character.db.is_aiming = False
     character.db.is_feinting = False
     character.db.ranged_knockback = [False, []]
-    character.db.negative_lf_from_poison = False
+    character.db.negative_lf_from_dot = False
     # Currently, reduce block penalty per tick by 7 or a third, whichever is higher.
     if character.db.block_penalty > 0:
         if (character.db.block_penalty / 3) > 7:
@@ -323,6 +323,8 @@ def combat_tick(character):
         duration = duration_and_resist[0]
         if status_effect == "Poison" and duration > 0:
             poison_check(character)
+        elif status_effect == "Wound" and duration > 0:
+            wound_check(character, action)
 
 
 def apply_attack_effects_to_attacker(attacker, attack):
@@ -386,7 +388,7 @@ def final_action_taken(character):
             character.db.final_action = False
             character.db.stunned = True
             return character.msg("You are stunned for one turn. On your next turn, you must 'pass' unless revived.")
-    if not character.db.negative_lf_from_poison:
+    if not character.db.negative_lf_from_dot:
         character.db.final_action = False
         character.db.KOed = True
         character.db.lf = 0
@@ -483,16 +485,24 @@ def display_status_effects(caller):
                     caller.msg("You are trailed by afterimages for {duration} rounds.".format(duration=duration))
                 else:
                     caller.msg("You are trailed by afterimages for 1 more round.")
-            elif status_effect == "Poison":
-                if duration > 1:
-                    caller.msg("You are poisoned and suffering damage over time for {duration} rounds.".format(
-                        duration=duration))
-                else:
-                    caller.msg("You are poisoned and suffering damage over time for 1 more round.")
             elif status_effect == "Bless":
                 if duration > 1:
                     caller.msg("Your resistance to debilitating effects is enhanced for {duration} rounds.".format(
                         duration=duration))
+    for status_effect, duration_and_resist in caller.db.debuffs.items():
+        duration = duration_and_resist[0]
+        if status_effect == "Poison" and duration > 0:
+            if duration > 1:
+                caller.msg("You are poisoned and suffering damage over time for {duration} rounds.".format(
+                    duration=duration))
+            else:
+                caller.msg("You are poisoned and suffering damage over time for 1 more round.")
+        elif status_effect == "Wound" and duration > 0:
+            if duration > 1:
+                caller.msg("You are wounded and suffering damage when you exert yourself for {duration} rounds.".format(
+                    duration=duration))
+            else:
+                caller.msg("You are wounded and suffering damage when you exert yourself for 1 more round.")
 
 
 def apply_buff(action, healer, target):
@@ -752,9 +762,8 @@ def apply_debuff(action, debuffer, target):
     # Debuffs have a chance to be resisted. This can be increased by buffs, and some debuffs increase the afflicted's
     # resistance to being afflicted again in the same fight (to disincentivize spamming them).
     base_debuff_resist = 30
-    debuff_resist = base_debuff_resist
     if target.db.buffs["Bless"] > 0:
-        debuff_resist += 30
+        base_debuff_resist += 30
     application_string = ""
     extension_string = ""
     debuff_effects = []
@@ -772,11 +781,14 @@ def apply_debuff(action, debuffer, target):
                 # buff_options.append(buff.name)
         # buff_effects.append(random.choice(buff_options))
     for debuff in debuff_effects:
-        # Identify the debuff and calculate the specific resistance
+        # Identify the debuff and calculate the specific resistance (overwrite debuff_resist each time)
+        debuff_resist = base_debuff_resist + target.db.debuffs[debuff][1]
         if debuff == "Poison":
-            debuff_resist += target.db.debuffs["Poison"][1]
             application_string = "You are poisoned, gradually losing health."
             extension_string = "The duration of your poisoning has been extended."
+        elif debuff == "Wound":
+            application_string = "You are wounded and will suffer damage when you exert yourself."
+            extension_string = "The duration of your wounds has been extended."
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
         if debuff_check_roll > debuff_resist:
@@ -818,7 +830,7 @@ def poison_check(target):
     final_action_check(target)
     # Check if it's now your final_action BECAUSE of the poison damage specifically.
     if target.db.final_action and not initial_state:
-        target.db.negative_lf_from_poison = True
+        target.db.negative_lf_from_dot = True
     # This check will only be called if Poison's duration is already greater than 1.
     target.db.debuffs["Poison"][0] -= 1
     if target.db.debuffs["Poison"][0] == 0:
@@ -831,3 +843,21 @@ def ranged_knockback(defender, attacker):
     defender.db.ranged_knockback[1].append(attacker.key)
     defender.msg("You have been knocked back from {attacker} by a ranged attack.".format(attacker=attacker.key))
 
+
+def wound_check(character, action):
+    # Check the AP cost of the action and, if any, inflict damage to a wounded character.
+    if action and action.ap < 0:
+        damage_floor = action.ap * -1
+        damage_ceil = math.ceil(damage_floor * 2.5)
+        wound_damage = random.randint(damage_floor, damage_ceil)
+        character.db.lf -= wound_damage
+        character.msg("You have taken {damage} damage from your wound.".format(damage=wound_damage))
+        initial_state = character.db.final_action
+        final_action_check(character)
+        # Check if it's now your final_action BECAUSE of the poison damage specifically.
+        if character.db.final_action and not initial_state:
+            character.db.negative_lf_from_dot = True
+        # This check will only be called if Wound's duration is already greater than 1.
+    character.db.debuffs["Wound"][0] -= 1
+    if character.db.debuffs["Wound"][0] == 0:
+        character.msg("You are no longer wounded.")

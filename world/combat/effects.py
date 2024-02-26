@@ -88,6 +88,9 @@ bless = Effect("Bless", -15, "BLS")
 
 poison = Effect("Poison", -15, "POI")
 # Applies the Poison Effect: Inflicts damage over time.
+wound = Effect("Wound", -15, "WND")
+# Applies the Wound Effect: Whenever this character acts, inflict damage relative to the AP cost of their action.
+# Actions with an AP cost of 0 or less do not inflict damage.
 
 # List of all Effects
 
@@ -113,7 +116,8 @@ EFFECTS = [crush,
            blink,
            serendipity,
            poison,
-           bless]
+           bless,
+           wound]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
@@ -129,7 +133,8 @@ SUPPORT = [revive,
            blink,
            bless]
 BUFFS = SUPPORT[2:]
-DEBUFFS_STANDARD = [poison]
+DEBUFFS_STANDARD = [poison,
+                    wound]
 DEBUFFS_TRANSFORMATION = []
 DEBUFFS_HEXES = []
 DEBUFFS = DEBUFFS_STANDARD + DEBUFFS_TRANSFORMATION + DEBUFFS_HEXES
