@@ -255,7 +255,7 @@ def normalize_status(character):
     character.db.ranged_knockback = [False, []]
     character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
                           "Bless": 0}
-    character.db.debuffs = {"Poison": [0, 0], "Wound": [0, 0]}
+    character.db.debuffs = {"Poison": [0, 0], "Wound": [0, 0], "Curse": [0, 0]}
     character.db.negative_lf_from_dot = False
     character.db.block_penalty = 0
     character.db.final_action = False
@@ -325,6 +325,11 @@ def combat_tick(character, action):
             poison_check(character)
         elif status_effect == "Wound" and duration > 0:
             wound_check(character, action)
+        elif duration > 0:
+            duration_and_resist[0] -= 1
+            if duration_and_resist[0] == 0:
+                if status_effect == "Curse":
+                    character.msg("You are no longer cursed.")
 
 
 def apply_attack_effects_to_attacker(attacker, attack):
@@ -503,6 +508,12 @@ def display_status_effects(caller):
                     duration=duration))
             else:
                 caller.msg("You are wounded and suffering damage when you exert yourself for 1 more round.")
+        elif status_effect == "Curse" and duration > 0:
+            if duration > 1:
+                caller.msg("You are cursed, increasing your vulnerability to debilitating effects for {duration} "
+                           "rounds.".format(duration=duration))
+            else:
+                caller.msg("You are cursed, increasing your vulnerability to debilitating effects for 1 more round.")
 
 
 def apply_buff(action, healer, target):
@@ -763,7 +774,9 @@ def apply_debuff(action, debuffer, target):
     # resistance to being afflicted again in the same fight (to disincentivize spamming them).
     base_debuff_resist = 30
     if target.db.buffs["Bless"] > 0:
-        base_debuff_resist += 30
+        base_debuff_resist += 20
+    if target.db.debuffs["Curse"][0] > 0:
+        base_debuff_resist -= 20
     application_string = ""
     extension_string = ""
     debuff_effects = []
@@ -789,6 +802,9 @@ def apply_debuff(action, debuffer, target):
         elif debuff == "Wound":
             application_string = "You are wounded and will suffer damage when you exert yourself."
             extension_string = "The duration of your wounds has been extended."
+        elif debuff == "Curse":
+            application_string = "You are cursed, increasing your vulnerability to debilitating effects."
+            extension_string = "The duration of your curse has been extended."
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
         if debuff_check_roll > debuff_resist:
