@@ -229,12 +229,12 @@ class CmdAttack(default_cmds.MuxCommand):
 
         aim_or_feint = AimOrFeint.NEUTRAL
         if caller.db.is_aiming:
-            if caller.db.status_effects["Haste"] > 0:
+            if caller.db.buffs["Haste"] > 0:
                 aim_or_feint = AimOrFeint.HASTED_AIM
             else:
                 aim_or_feint = AimOrFeint.AIM
         if caller.db.is_feinting:
-            if caller.db.status_effects["Blink"] > 0:
+            if caller.db.buffs["Blink"] > 0:
                 aim_or_feint = AimOrFeint.BLINKED_FEINT
             else:
                 aim_or_feint = AimOrFeint.FEINT
@@ -324,10 +324,10 @@ class CmdAttack(default_cmds.MuxCommand):
             combat_log_entry(caller, combat_string)
 
         # "Tick" to have a round pass.
-        negative_lf_from_poison = combat_tick(caller)
+        combat_tick(caller)
         # If this was the attacker's final action, they are now KOed.
         if caller.db.final_action:
-            final_action_taken(caller, negative_lf_from_poison)
+            final_action_taken(caller)
 
 
 class CmdQueue(default_cmds.MuxCommand):
@@ -435,9 +435,7 @@ class CmdDodge(default_cmds.MuxCommand):
             if "Dispel" in attack.effects:
                 dispel_check(caller)
             if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
-                caller.db.ranged_knockback[0] = True
-                caller.db.ranged_knockback[1].append(attacker.key)
-                caller.msg("You have been knocked back from {attacker} by a ranged attack.".format(attacker=attacker.key))
+                ranged_knockback(caller, attacker)
             record_combat(caller, action, "dodge", False, final_damage)
         else:
             caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
@@ -448,8 +446,7 @@ class CmdDodge(default_cmds.MuxCommand):
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
         # Checking after the combat location messages if the attack has put the defender at 0 LF or below.
-        # TODO: this probably doesn't have to return the caller in the function
-        caller = final_action_check(caller)
+        final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
 
 
@@ -553,14 +550,12 @@ class CmdBlock(default_cmds.MuxCommand):
             record_combat(caller, action, "block", True, final_damage)
 
         if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
-            caller.db.ranged_knockback[0] = True
-            caller.db.ranged_knockback[1].append(attacker.key)
-            caller.msg("You have been knocked back from {attacker} by a ranged attack.".format(attacker=attacker.key))
+            ranged_knockback(caller, attacker)
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
         # Checking after the combat location message if the attack has put the defender at 0 LF or below.
-        caller = final_action_check(caller)
+        final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
 
 
@@ -647,15 +642,13 @@ class CmdEndure(default_cmds.MuxCommand):
         if "Dispel" in attack.effects:
             dispel_check(caller)
         if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
-            caller.db.ranged_knockback[0] = True
-            caller.db.ranged_knockback[1].append(attacker.key)
-            caller.msg("You have been knocked back from {attacker} by a ranged attack.".format(attacker=attacker.key))
+            ranged_knockback(caller, attacker)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
         # Checking after the combat location messages if the attack has put the defender at 0 LF or below.
-        caller = final_action_check(caller)
+        final_action_check(caller)
         del caller.db.queue[id_list.index(input_id)]
 
 
@@ -770,10 +763,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             if "Dispel" in incoming_attack.effects:
                 dispel_check(caller)
             if "Long-Range" in incoming_attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
-                caller.db.ranged_knockback[0] = True
-                caller.db.ranged_knockback[1].append(attacker.key)
-                caller.msg(
-                    "You have been knocked back from {attacker} by a ranged attack.".format(attacker=attacker.key))
+                ranged_knockback(caller, attacker)
             record_combat(caller, incoming_action, "interrupt", False, final_damage)
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
@@ -800,7 +790,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             caller.db.lf -= mitigated_damage
             attacker.db.lf -= final_outgoing_damage
             attacker.msg("You took {dmg} damage.".format(dmg=round(final_outgoing_damage)))
-            attacker = final_action_check(attacker)
+            final_action_check(attacker)
             # Modify EX based on damage taken.
             # Modify the character's EX based on the damage dealt AND inflicted.
             new_ex_first = ex_gain_on_defense(mitigated_damage, caller.db.ex, caller.db.maxex)
@@ -822,10 +812,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             if "Dispel" in outgoing_interrupt.effects:
                 dispel_check(attacker)
             if "Long-Range" in outgoing_interrupt.effects and caller.key not in attacker.db.ranged_knockback[1]:
-                attacker.db.ranged_knockback[0] = True
-                attacker.db.ranged_knockback[1].append(caller.key)
-                attacker.msg(
-                    "You have been knocked back from {caller} by a ranged attack.".format(caller=caller.key))
+                ranged_knockback(attacker, caller)
             record_combat(caller, incoming_action, "interrupt", True, mitigated_damage)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier,
@@ -1121,7 +1108,7 @@ class CmdPass(default_cmds.MuxCommand):
         # First, check that the character acting is not KOed
         if caller.db.KOed:
             return caller.msg("Your character is KOed and cannot act!")
-        negative_lf_from_poison = combat_tick(caller)
+        combat_tick(caller)
         combat_string = "|y<COMBAT>|n {0} takes no action.".format(caller.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
@@ -1130,5 +1117,5 @@ class CmdPass(default_cmds.MuxCommand):
             caller.msg("Your character is no longer stunned.")
         # If this was the attacker's final action, they are now KOed.
         if caller.db.final_action:
-            final_action_taken(caller, negative_lf_from_poison)
+            final_action_taken(caller)
 

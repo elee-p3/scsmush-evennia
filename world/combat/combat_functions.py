@@ -33,9 +33,9 @@ def damage_calc(attack_dmg, attacker_stat, base_stat, defender):
         def_stat = defender.db.parry
     if base_stat == "Knowledge":
         def_stat = defender.db.barrier
-    if def_stat == defender.db.parry and defender.db.status_effects["Protect"] > 0:
+    if def_stat == defender.db.parry and defender.db.buffs["Protect"] > 0:
         def_stat += 10
-    if def_stat == defender.db.barrier and defender.db.status_effects["Reflect"] > 0:
+    if def_stat == defender.db.barrier and defender.db.buffs["Reflect"] > 0:
         def_stat += 10
     # Now magnify or mitigate the stat multiplier depending on how different they are.
     # This works OK, but is a placeholder for a more complex curve that I want to implement eventually.
@@ -82,11 +82,11 @@ def modify_speed(speed, defender):
     # A function to nest within the reaction functions to soften the effects of low and high Speed.
     speed_multiplier = speed * -0.00221 + 1.25
     # Check here for the Acuity buff.
-    if defender.db.status_effects["Acuity"] > 0:
+    if defender.db.buffs["Acuity"] > 0:
         speed += 5
-    if defender.db.status_effects["Haste"] > 0:
+    if defender.db.buffs["Haste"] > 0:
         speed += 5
-    if defender.db.status_effects["Blink"] > 0:
+    if defender.db.buffs["Blink"] > 0:
         speed += 5
     effective_speed = speed * speed_multiplier
     return effective_speed
@@ -253,9 +253,9 @@ def normalize_status(character):
     character.db.is_baiting = False
     character.db.used_ranged = False
     character.db.ranged_knockback = [False, []]
-    character.db.status_effects = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0,
-                                   "Blink": 0, "Poison": 0}
-    character.db.debuff_resist_mod = {"Poison": 0}
+    character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0}
+    character.db.debuffs = {"Poison": [0, 0]}
+    character.db.negative_lf_from_poison = False
     character.db.block_penalty = 0
     character.db.final_action = False
     character.db.KOed = False
@@ -285,7 +285,7 @@ def combat_tick(character):
     character.db.is_aiming = False
     character.db.is_feinting = False
     character.db.ranged_knockback = [False, []]
-    negative_lf_from_poison = False
+    character.db.negative_lf_from_poison = False
     # Currently, reduce block penalty per tick by 7 or a third, whichever is higher.
     if character.db.block_penalty > 0:
         if (character.db.block_penalty / 3) > 7:
@@ -297,15 +297,13 @@ def combat_tick(character):
         else:
             character.db.block_penalty -= block_penalty_reduction
     # Check for Regen
-    for status_effect, duration in character.db.status_effects.items():
+    for status_effect, duration in character.db.buffs.items():
         if status_effect == "Regen" and duration > 0:
             regen_check(character)
-        elif status_effect == "Poison" and duration > 0:
-            negative_lf_from_poison = poison_check(character)
         else:
-            if character.db.status_effects[status_effect] > 0:
-                character.db.status_effects[status_effect] -= 1
-                if character.db.status_effects[status_effect] == 0:
+            if character.db.buffs[status_effect] > 0:
+                character.db.buffs[status_effect] -= 1
+                if character.db.buffs[status_effect] == 0:
                     if status_effect == "Vigor":
                         character.msg("You are no longer invigorated.")
                     elif status_effect == "Protect":
@@ -318,7 +316,10 @@ def combat_tick(character):
                         character.msg("You are no longer hastened.")
                     elif status_effect == "Blink":
                         character.msg("You are no longer trailed by afterimages.")
-    return negative_lf_from_poison
+    for status_effect, duration_and_resist in character.db.debuffs.items():
+        duration = duration_and_resist[0]
+        if status_effect == "Poison" and duration > 0:
+            poison_check(character)
 
 
 def apply_attack_effects_to_attacker(attacker, attack):
@@ -369,10 +370,9 @@ def final_action_check(character):
         character.db.final_action = True
         character.msg("You have been reduced below 0 LF. Your next action will be your last. Any attacks will"
                       " suffer a penalty to your accuracy.")
-    return character
 
 
-def final_action_taken(character, negative_lf_from_poison):
+def final_action_taken(character):
     # Call with conditional: if character.db.final_action ...
     # Confirm that the target has not been healed out of their final_action
     if character.db.lf > 0:
@@ -383,7 +383,7 @@ def final_action_taken(character, negative_lf_from_poison):
             character.db.final_action = False
             character.db.stunned = True
             return character.msg("You are stunned for one turn. On your next turn, you must 'pass' unless revived.")
-    if not negative_lf_from_poison:
+    if not character.db.negative_lf_from_poison:
         character.db.final_action = False
         character.db.KOed = True
         character.db.lf = 0
@@ -442,8 +442,8 @@ def display_status_effects(caller):
                 formatted_attackers_string += (attacker + ", ")
         caller.msg("You are suffering knockback penalties of reduced accuracy against: {attackers}".format(
             attackers=formatted_attackers_string))
-    for status_effect, duration in caller.db.status_effects.items():
-        if caller.db.status_effects[status_effect] > 0:
+    for status_effect, duration in caller.db.buffs.items():
+        if caller.db.buffs[status_effect] > 0:
             if status_effect == "Regen":
                 if duration > 1:
                     caller.msg("You will gradually regenerate for {duration} rounds.".format(duration=duration))
@@ -535,15 +535,15 @@ def apply_buff(action, healer, target):
             application_string = "You are trailed by afterimages, increasing your Speed and the effectiveness of Feint."
             extension_string = "The duration of your afterimages has been extended."
         # Now apply the buff using consistent logic
-        if target.db.status_effects[buff] == 0:
+        if target.db.buffs[buff] == 0:
             target.msg(application_string)
         else:
             target.msg(extension_string)
         if healer == target:
             # A combat tick is going to happen after this, so the duration will be 3 regardless.
-            target.db.status_effects[buff] = 4
+            target.db.buffs[buff] = 4
         else:
-            target.db.status_effects[buff] = 3
+            target.db.buffs[buff] = 3
 
 
 def heal_check(action, healer, target):
@@ -660,14 +660,14 @@ def drain_check(action, attacker, target, damage_dealt):
 def regen_check(character):
     # Route the Regen effect through heal_check so that all healing works the same. Use a string, "regen."
     heal_check("regen", character, character)
-    character.db.status_effects["Regen"] -= 1
-    if character.db.status_effects["Regen"] == 0:
+    character.db.buffs["Regen"] -= 1
+    if character.db.buffs["Regen"] == 0:
         character.msg("You are no longer gradually regenerating.")
 
 
 def vigor_check(character, base_stat):
     # Checks if the character has the Vigor buff, and if so, Power/Knowledge is effectively +25.
-    if character.db.status_effects["Vigor"] > 0:
+    if character.db.buffs["Vigor"] > 0:
         base_stat += 25
     return base_stat
 
@@ -675,18 +675,17 @@ def vigor_check(character, base_stat):
 def dispel_check(target):
     # If an Art with Dispel successfully hits or is endured, check for buffs on the target and remove one at random.
     dispel_targets = []
-    for status_effect, duration in target.db.status_effects.items():
-        for buff in BUFFS:
-            if status_effect == buff.name and duration > 0:
-                dispel_targets.append(status_effect)
+    for status_effect, duration in target.db.buffs.items():
+        if target.db.buffs[status_effect] > 0:
+            dispel_targets.append(status_effect)
     # Dispel_targets should now be a list of the names of all active buffs on the target.
     if dispel_targets:
         dispel_target = random.choice(dispel_targets)
-        modified_status_effects = target.db.status_effects
-        modified_status_effects[dispel_target] = 0
+        modified_buffs = target.db.buffs
+        modified_buffs[dispel_target] = 0
         target.msg(dispel_target.title() + " has been dispelled.")
         # Return the target's updated status effects if one has been dispelled.
-        return modified_status_effects
+        return modified_buffs
 
 
 def critical_hits(damage, attacker):
@@ -696,7 +695,7 @@ def critical_hits(damage, attacker):
     critical_check = random.randint(1, 100)
     critical_threshold = 5
     # Checking for Acuity buff on the attacker.
-    if attacker.db.status_effects["Acuity"] > 0:
+    if attacker.db.buffs["Acuity"] > 0:
         critical_threshold *= 3
     if critical_check <= critical_threshold:
         is_critical = True
@@ -706,7 +705,7 @@ def critical_hits(damage, attacker):
 
 def protect_and_reflect_check(incoming_damage, defender, attack, interrupt_success):
     # Protect and Reflect mitigate damage specifically for an interrupter when interrupting.
-    if (defender.db.status_effects["Protect"] > 0 and attack.stat.lower() == "power") or (defender.db.status_effects["Reflect"] > 0 and attack.stat.lower() == "knowledge"):
+    if (defender.db.buffs["Protect"] > 0 and attack.stat.lower() == "power") or (defender.db.buffs["Reflect"] > 0 and attack.stat.lower() == "knowledge"):
         if interrupt_success:
             incoming_damage = incoming_damage * 0.75
         else:
@@ -742,8 +741,6 @@ def modify_aim_and_feint(accuracy, reaction, aim_or_feint):
 def apply_debuff(action, debuffer, target):
     # Debuffs have a chance to be resisted. This can be increased by buffs, and some debuffs increase the afflicted's
     # resistance to being afflicted again in the same fight (to disincentivize spamming them).
-    # I'll make a new dict, "debuff_resist_mod," to track debuff resistances specifically. I'll keep the debuff
-    # durations in status_effects, to remain consistent with how I've set up combat_tick.
     base_debuff_resist = 30
     debuff_resist = base_debuff_resist
     application_string = ""
@@ -765,22 +762,22 @@ def apply_debuff(action, debuffer, target):
     for debuff in debuff_effects:
         # Identify the debuff and calculate the specific resistance
         if debuff == "Poison":
-            debuff_resist += target.db.debuff_resist_mod["Poison"]
+            debuff_resist += target.db.debuffs["Poison"][1]
             application_string = "You are poisoned, gradually losing health."
             extension_string = "The duration of your poisoning has been extended."
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
         if debuff_check_roll > debuff_resist:
             # If debuff succeeds, apply using consistent logic
-            if target.db.status_effects[debuff] == 0:
+            if target.db.debuffs[debuff] == 0:
                 target.msg(application_string)
             else:
                 target.msg(extension_string)
             if debuffer == target:
                 # A combat tick is going to happen after this, so the duration will be 3 regardless. If it matters...?
-                target.db.status_effects[debuff] = 4
+                target.db.debuffs[debuff] = 4
             else:
-                target.db.status_effects[debuff] = 3
+                target.db.debuffs[debuff] = 3
 
 
 def poison_check(target):
@@ -800,7 +797,6 @@ def poison_check(target):
     #
     # I'll try creating this special case here and passing it to final_action_taken, rather than having poison_check()
     # itself apply final_action.
-    negative_lf_from_poison = False
     poison_damage = random.randint(20, 60)
     # MotM's "Deadly" effect is a tradeoff that reduces damage upfront but deals more over time. Currently, Poison is
     # just more damage, which may be OP, but it can also be Cured, so... I'll use the typical RPG paradigm for now.
@@ -810,10 +806,16 @@ def poison_check(target):
     final_action_check(target)
     # Check if it's now your final_action BECAUSE of the poison damage specifically.
     if target.db.final_action and not initial_state:
-        negative_lf_from_poison = True
+        target.db.negative_lf_from_poison = True
     # This check will only be called if Poison's duration is already greater than 1.
-    target.db.status_effects["Poison"] -= 1
-    if target.db.status_effects["Poison"] == 0:
+    target.db.debuffs["Poison"][0] -= 1
+    if target.db.debuffs["Poison"][0] == 0:
         target.msg("You are no longer poisoned.")
-    return negative_lf_from_poison
+
+
+def ranged_knockback(defender, attacker):
+    # Called when a target is struck by a Long-Range attack and suffers knockback against the attacker.
+    defender.db.ranged_knockback[0] = True
+    defender.db.ranged_knockback[1].append(attacker.key)
+    defender.msg("You have been knocked back from {attacker} by a ranged attack.".format(attacker=attacker.key))
 
