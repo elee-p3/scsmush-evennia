@@ -81,6 +81,8 @@ blink = Effect("Blink", -15, "BNK")
 # Applies the Blink Effect: Slightly increase Speed and improve the effectiveness of the Feint command.
 serendipity = Effect("Serendipity", -10, "SER")
 # Applies a random effect from BUFFS.
+bless = Effect("Bless", -15, "BLS")
+# Applies the Bless Effect: Increase resistance to all Debuffs.
 
 # Debuffs (Standard)
 
@@ -89,13 +91,43 @@ poison = Effect("Poison", -15, "POI")
 
 # List of all Effects
 
-EFFECTS = [crush, sweep, priority, ex_move, rush, weave, brace, bait, heal, revive, drain, regen, vigor, dispel,
-           long_range, protect, reflect, acuity, haste, blink, serendipity, poison]
+EFFECTS = [crush,
+           sweep,
+           priority,
+           ex_move,
+           rush,
+           weave,
+           brace,
+           bait,
+           heal,
+           revive,
+           drain,
+           regen,
+           vigor,
+           dispel,
+           long_range,
+           protect,
+           reflect,
+           acuity,
+           haste,
+           blink,
+           serendipity,
+           poison,
+           bless]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
 
-SUPPORT = [revive, serendipity, regen, vigor, protect, reflect, acuity, haste, blink]
+SUPPORT = [revive,
+           serendipity,
+           regen,
+           vigor,
+           protect,
+           reflect,
+           acuity,
+           haste,
+           blink,
+           bless]
 BUFFS = SUPPORT[2:]
 DEBUFFS_STANDARD = [poison]
 DEBUFFS_TRANSFORMATION = []

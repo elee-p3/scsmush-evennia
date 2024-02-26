@@ -253,7 +253,8 @@ def normalize_status(character):
     character.db.is_baiting = False
     character.db.used_ranged = False
     character.db.ranged_knockback = [False, []]
-    character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0}
+    character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
+                          "Bless": 0}
     character.db.debuffs = {"Poison": [0, 0]}
     character.db.negative_lf_from_poison = False
     character.db.block_penalty = 0
@@ -316,6 +317,8 @@ def combat_tick(character):
                         character.msg("You are no longer hastened.")
                     elif status_effect == "Blink":
                         character.msg("You are no longer trailed by afterimages.")
+                    elif status_effect == "Bless":
+                        character.msg("Your resistance to debilitating effects is no longer enhanced.")
     for status_effect, duration_and_resist in character.db.debuffs.items():
         duration = duration_and_resist[0]
         if status_effect == "Poison" and duration > 0:
@@ -486,6 +489,10 @@ def display_status_effects(caller):
                         duration=duration))
                 else:
                     caller.msg("You are poisoned and suffering damage over time for 1 more round.")
+            elif status_effect == "Bless":
+                if duration > 1:
+                    caller.msg("Your resistance to debilitating effects is enhanced for {duration} rounds.".format(
+                        duration=duration))
 
 
 def apply_buff(action, healer, target):
@@ -534,6 +541,9 @@ def apply_buff(action, healer, target):
         elif buff == "Blink":
             application_string = "You are trailed by afterimages, increasing your Speed and the effectiveness of Feint."
             extension_string = "The duration of your afterimages has been extended."
+        elif buff == "Bless":
+            application_string = "Your resistance to debilitating effects has been enhanced."
+            extension_string = "The duration of your enhanced resistance to debilitating effects has been extended."
         # Now apply the buff using consistent logic
         if target.db.buffs[buff] == 0:
             target.msg(application_string)
@@ -743,6 +753,8 @@ def apply_debuff(action, debuffer, target):
     # resistance to being afflicted again in the same fight (to disincentivize spamming them).
     base_debuff_resist = 30
     debuff_resist = base_debuff_resist
+    if target.db.buffs["Bless"] > 0:
+        debuff_resist += 30
     application_string = ""
     extension_string = ""
     debuff_effects = []
@@ -769,15 +781,15 @@ def apply_debuff(action, debuffer, target):
         debuff_check_roll = random.randint(1, 100)
         if debuff_check_roll > debuff_resist:
             # If debuff succeeds, apply using consistent logic
-            if target.db.debuffs[debuff] == 0:
+            if target.db.debuffs[debuff][0] == 0:
                 target.msg(application_string)
             else:
                 target.msg(extension_string)
             if debuffer == target:
                 # A combat tick is going to happen after this, so the duration will be 3 regardless. If it matters...?
-                target.db.debuffs[debuff] = 4
+                target.db.debuffs[debuff][0] = 4
             else:
-                target.db.debuffs[debuff] = 3
+                target.db.debuffs[debuff][0] = 3
 
 
 def poison_check(target):
