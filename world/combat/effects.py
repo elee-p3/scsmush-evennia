@@ -93,6 +93,10 @@ wound = Effect("Wound", -15, "WND")
 # Actions with an AP cost of 0 or less do not inflict damage.
 curse = Effect("Curse", -15, "CRS")
 # Applies the Curse Effect: Decrease a target's resistance to all debuffs.
+injure = Effect("Injure", -15, "INJ")
+# Applies the Injure Effect: Lower the target's Power and Parry and slightly lower Speed.
+muddle = Effect("Muddle", -15, "MDL")
+# Applies the Muddle Effect:  Lower the target's Knowledge and Barrier and slightly lower Speed.
 
 # List of all Effects
 
@@ -120,7 +124,9 @@ EFFECTS = [crush,
            poison,
            bless,
            wound,
-           curse]
+           curse,
+           injure,
+           muddle]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
@@ -138,7 +144,9 @@ SUPPORT = [revive,
 BUFFS = SUPPORT[2:]
 DEBUFFS_STANDARD = [poison,
                     wound,
-                    curse]
+                    curse,
+                    injure,
+                    muddle]
 DEBUFFS_TRANSFORMATION = []
 DEBUFFS_HEXES = []
 DEBUFFS = DEBUFFS_STANDARD + DEBUFFS_TRANSFORMATION + DEBUFFS_HEXES

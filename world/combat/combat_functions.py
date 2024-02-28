@@ -33,10 +33,16 @@ def damage_calc(attack_dmg, attacker_stat, base_stat, defender):
         def_stat = defender.db.parry
     if base_stat == "Knowledge":
         def_stat = defender.db.barrier
-    if def_stat == defender.db.parry and defender.db.buffs["Protect"] > 0:
-        def_stat += 10
-    if def_stat == defender.db.barrier and defender.db.buffs["Reflect"] > 0:
-        def_stat += 10
+    if def_stat == defender.db.parry:
+        if defender.db.buffs["Protect"] > 0:
+            def_stat += 10
+        if defender.db.debuffs["Injure"][0] > 0:
+            def_stat -= 10
+    if def_stat == defender.db.barrier:
+        if defender.db.buffs["Reflect"] > 0:
+            def_stat += 10
+        if defender.db.debuffs["Muddle"][0] > 0:
+            def_stat -= 10
     # Now magnify or mitigate the stat multiplier depending on how different they are.
     # This works OK, but is a placeholder for a more complex curve that I want to implement eventually.
     defender_advantage = def_stat - attacker_stat
@@ -69,10 +75,17 @@ def modify_damage(action, character):
     # Modify attack damage based on base stat.
     if action.stat.lower() == "power":
         base_stat = character.db.power
+        # Check for Injure.
+        if character.db.debuffs["Injure"][0] > 0:
+            base_stat -= 10
     if action.stat.lower() == "knowledge":
         base_stat = character.db.knowledge
+        # Check for Muddle.
+        if character.db.debuffs["Muddle"][0] > 0:
+            base_stat -= 10
     # Check for Vigor buff.
     base_stat = vigor_check(character, base_stat)
+
     damage_multiplier = (0.00583 * damage) + 0.708
     total_damage = (damage + base_stat) * damage_multiplier
     return total_damage
@@ -88,6 +101,10 @@ def modify_speed(speed, defender):
         speed += 5
     if defender.db.buffs["Blink"] > 0:
         speed += 5
+    if defender.db.debuffs["Injure"][0] > 0:
+        speed -= 5
+    if defender.db.debuffs["Muddle"][0] > 0:
+        speed -= 5
     effective_speed = speed * speed_multiplier
     return effective_speed
 
@@ -255,7 +272,7 @@ def normalize_status(character):
     character.db.ranged_knockback = [False, []]
     character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
                           "Bless": 0}
-    character.db.debuffs = {"Poison": [0, 0], "Wound": [0, 0], "Curse": [0, 0]}
+    character.db.debuffs = {"Poison": [0, 0], "Wound": [0, 0], "Curse": [0, 0], "Injure": [0, 0], "Muddle": [0, 0]}
     character.db.negative_lf_from_dot = False
     character.db.block_penalty = 0
     character.db.final_action = False
@@ -330,6 +347,10 @@ def combat_tick(character, action):
             if duration_and_resist[0] == 0:
                 if status_effect == "Curse":
                     character.msg("You are no longer cursed.")
+                elif status_effect == "Injure":
+                    character.msg("You are no longer injured.")
+                elif status_effect == "Muddle":
+                    character.msg("You are no longer muddled.")
 
 
 def apply_attack_effects_to_attacker(attacker, attack):
@@ -514,6 +535,18 @@ def display_status_effects(caller):
                            "rounds.".format(duration=duration))
             else:
                 caller.msg("You are cursed, increasing your vulnerability to debilitating effects for 1 more round.")
+        elif status_effect == "Injure" and duration > 0:
+            if duration > 1:
+                caller.msg("You are injured, reducing your effective Power, Parry, and Speed for {duration} rounds.".
+                           format(duration=duration))
+            else:
+                caller.msg("You are injured, reducing your effective Power, Parry, and Speed for 1 more round.")
+        elif status_effect == "Muddle" and duration > 0:
+            if duration > 1:
+                caller.msg("You are muddled, reducing your effective Knowledge, Barrier, and Speed for {duration} rounds.".
+                           format(duration=duration))
+            else:
+                caller.msg("You are muddled, reducing your effective Knowledge, Barrier, and Speed for 1 more round.")
 
 
 def apply_buff(action, healer, target):
@@ -805,6 +838,12 @@ def apply_debuff(action, debuffer, target):
         elif debuff == "Curse":
             application_string = "You are cursed, increasing your vulnerability to debilitating effects."
             extension_string = "The duration of your curse has been extended."
+        elif debuff == "Injure":
+            application_string = "You are injured, reducing your effective Power, Parry, and Speed."
+            extension_string = "The duration of your injury has been extended."
+        elif debuff == "Muddle":
+            application_string = "You are muddled, reducing your effective Knowledge, Barrier, and Speed."
+            extension_string = "The duration of your muddled state has been extended."
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
         if debuff_check_roll > debuff_resist:
