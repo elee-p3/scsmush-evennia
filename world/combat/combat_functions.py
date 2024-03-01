@@ -115,6 +115,8 @@ def modify_speed(speed, defender):
         speed += 5
     if defender.db.debuffs["Petrify"][0] > 0:
         speed -= 10
+    if defender.db.debuffs["Slime"][0] > 0:
+        speed -= 10
     effective_speed = speed * speed_multiplier
     return effective_speed
 
@@ -139,6 +141,9 @@ def dodge_calc(defender, attack_instance):
     # Checking to see if the defender is Petrified and improving accuracy if so.
     if defender.db.debuffs["Petrify"][0] > 0:
         accuracy += 12
+    # Checking to see if the defender is Slimy and reducing accuracy if so.
+    if defender.db.debuffs["Slime"][0] > 0:
+        accuracy -= 12
     # cap accuracy at 99%
     if accuracy > 99:
         accuracy = 99
@@ -172,6 +177,9 @@ def block_chance_calc(defender, attack_instance):
     # Checking to see if the defender is Petrified and reducing accuracy if so.
     if defender.db.debuffs["Petrify"][0] > 0:
         accuracy -= 12
+    # Checking to see if the defender is Slimy and improving accuracy if so.
+    if defender.db.debuffs["Slime"][0] > 0:
+        accuracy += 12
     # Incorporating block penalty.
     accuracy += defender.db.block_penalty
     if accuracy > 99:
@@ -204,6 +212,9 @@ def endure_chance_calc(defender, attack_instance):
         accuracy += 5
     # Checking to see if the defender is Petrified and reducing accuracy if so.
     if defender.db.debuffs["Petrify"][0] > 0:
+        accuracy -= 12
+    # Checking to see if the defender is Slimy and reducing accuracy if so.
+    if defender.db.debuffs["Slime"][0] > 0:
         accuracy -= 12
     if accuracy > 99:
         accuracy = 99
@@ -708,6 +719,8 @@ def combat_tick(character, action):
                     character.msg("You are no longer berserk.")
                 elif status_effect == "Petrify":
                     character.msg("You are no longer petrified.")
+                elif status_effect == "Slime":
+                    character.msg("You are no longer slimy.")
 
 
 def normalize_status(character):
@@ -723,7 +736,7 @@ def normalize_status(character):
     character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
                           "Bless": 0}
     character.db.debuffs = {"Poison": [0, 0], "Wound": [0, 0], "Curse": [0, 0], "Injure": [0, 0], "Muddle": [0, 0],
-                            "Miasma": [0, 0], "Berserk": [0, 0], "Petrify": [0, 0]}
+                            "Miasma": [0, 0], "Berserk": [0, 0], "Petrify": [0, 0], "Slime": [0, 0]}
     character.db.negative_lf_from_dot = False
     character.db.block_penalty = 0
     character.db.final_action = False
@@ -853,12 +866,18 @@ def display_status_effects(caller):
                            "from using Arts with a Force of less than 50 for 1 more round.")
         elif status_effect == "Petrify" and duration > 0:
             if duration > 1:
-                caller.msg("You are petrified, reducing your Speed and especially your Dodge chances but somewhat"
+                caller.msg("You are petrified, reducing your Speed and especially your Dodge chances but somewhat "
                            "increasing your Block and Endure chances for {duration} rounds.".format(duration=duration))
             else:
-                caller.msg("You are petrified, reducing your Speed and especially your Dodge chances but somewhat"
+                caller.msg("You are petrified, reducing your Speed and especially your Dodge chances but somewhat "
                            "increasing your Block and Endure chances for 1 more round.")
-
+        elif status_effect == "Slime" and duration > 0:
+            if duration > 1:
+                caller.msg("You are slimy, reducing your Speed and especially your Block chances but somewhat "
+                           "increasing your Dodge and Endure chances for {duration} rounds.".format(duration=duration))
+            else:
+                caller.msg("You are slimy, reducing your Speed and especially your Block chances but somewhat "
+                           "increasing your Dodge and Endure chances for 1 more round.")
 
 def apply_buff(action, healer, target):
     # A sub-function for heal_check so that the logic of buff application need not repeat.
@@ -974,6 +993,10 @@ def apply_debuff(action, debuffer, target):
             application_string = "You are petrified, reducing your Speed and especially your Dodge chances but " \
                                  "somewhat increasing your Block and Endure chances."
             extension_string = "The duration of your petrifaction has been extended."
+        elif debuff == "Slime":
+            application_string = "You are slimy, reducing your Speed and especially your Block chances but somewhat " \
+                                 "increasing your Dodge and Endure chances."
+            extension_string = "The duration of your sliminess has been extended."
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
         if debuff_check_roll > debuff_resist:
