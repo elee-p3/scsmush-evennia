@@ -61,7 +61,8 @@ class Post(models.Model):
     # TODO(daniel): add valiation so that only Characters can be set here.
     readers = models.ManyToManyField(
         "objects.ObjectDB",
-        related_name="posts_read",)
+        related_name="posts_read",
+        blank=True)
 
     created_at = models.DateTimeField(null=False, auto_now_add=True)
     updated_at = models.DateTimeField(null=False, auto_now=True)
