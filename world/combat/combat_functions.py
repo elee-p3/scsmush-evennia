@@ -260,29 +260,6 @@ def ex_gain_on_defense(damage_taken, current_ex, max_ex):
     return new_ex
 
 
-def normalize_status(character):
-    # This function sets every status effect to default/neutral state.
-    character.db.is_aiming = False
-    character.db.is_feinting = False
-    character.db.is_rushing = False
-    character.db.is_weaving = False
-    character.db.is_bracing = False
-    character.db.is_baiting = False
-    character.db.used_ranged = False
-    character.db.ranged_knockback = [False, []]
-    character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
-                          "Bless": 0}
-    character.db.debuffs = {"Poison": [0, 0], "Wound": [0, 0], "Curse": [0, 0], "Injure": [0, 0], "Muddle": [0, 0]}
-    character.db.negative_lf_from_dot = False
-    character.db.block_penalty = 0
-    character.db.final_action = False
-    character.db.KOed = False
-    character.db.stunned = False
-    character.db.revived_during_final_action = False
-    character.db.endure_bonus = 0
-    character.db.has_been_healed = 0
-
-
 def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
     # If a dodge attempt fails, check if the result was a "glancing blow" instead.
     # For now, a flat value only modified by having "sweep" on an attack. Returns a Boolean.
@@ -295,62 +272,6 @@ def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
     if chance_of_glance >= diff_between_roll_and_acc:
         return True
     return False
-
-
-def combat_tick(character, action):
-    # This function represents a "tick" or the end of a turn. Any "action," like +attack or +pass, counts as a tick.
-    character.db.endure_bonus = 0
-    character.db.is_aiming = False
-    character.db.is_feinting = False
-    character.db.ranged_knockback = [False, []]
-    character.db.negative_lf_from_dot = False
-    # Currently, reduce block penalty per tick by 7 or a third, whichever is higher.
-    if character.db.block_penalty > 0:
-        if (character.db.block_penalty / 3) > 7:
-            block_penalty_reduction = character.db.block_penalty / 3
-        else:
-            block_penalty_reduction = 7
-        if block_penalty_reduction - 7 < 0:
-            character.db.block_penalty = 0
-        else:
-            character.db.block_penalty -= block_penalty_reduction
-    # Check for Regen
-    for status_effect, duration in character.db.buffs.items():
-        if status_effect == "Regen" and duration > 0:
-            regen_check(character)
-        else:
-            if character.db.buffs[status_effect] > 0:
-                character.db.buffs[status_effect] -= 1
-                if character.db.buffs[status_effect] == 0:
-                    if status_effect == "Vigor":
-                        character.msg("You are no longer invigorated.")
-                    elif status_effect == "Protect":
-                        character.msg("You are no longer protected from attacks.")
-                    elif status_effect == "Reflect":
-                        character.msg("You are no longer reflecting attacks.")
-                    elif status_effect == "Acuity":
-                        character.msg("You are no longer acutely attentive to critical vulnerabilities.")
-                    elif status_effect == "Haste":
-                        character.msg("You are no longer hastened.")
-                    elif status_effect == "Blink":
-                        character.msg("You are no longer trailed by afterimages.")
-                    elif status_effect == "Bless":
-                        character.msg("Your resistance to debilitating effects is no longer enhanced.")
-    for status_effect, duration_and_resist in character.db.debuffs.items():
-        duration = duration_and_resist[0]
-        if status_effect == "Poison" and duration > 0:
-            poison_check(character)
-        elif status_effect == "Wound" and duration > 0:
-            wound_check(character, action)
-        elif duration > 0:
-            duration_and_resist[0] -= 1
-            if duration_and_resist[0] == 0:
-                if status_effect == "Curse":
-                    character.msg("You are no longer cursed.")
-                elif status_effect == "Injure":
-                    character.msg("You are no longer injured.")
-                elif status_effect == "Muddle":
-                    character.msg("You are no longer muddled.")
 
 
 def apply_attack_effects_to_attacker(attacker, attack):
@@ -443,173 +364,6 @@ def find_attacker_stat(attacker, base_stat):
     return attacker_stat
 
 
-def display_status_effects(caller):
-    # Called by the check command to display status effects.
-    if caller.db.block_penalty > 0:
-        caller.msg("Your current block penalty is {0}%.".format(round(caller.db.block_penalty)))
-    if caller.db.endure_bonus > 0:
-        caller.msg("Your current endure bonus to accuracy is {0}%.".format(caller.db.endure_bonus))
-    if caller.db.final_action:
-        caller.msg("You have been reduced below 0 LF. Your next action will be your last and your accuracy is lowered.")
-    if caller.db.is_weaving:
-        caller.msg("You are currently weaving, increasing your chance to dodge until your next action.")
-    if caller.db.is_bracing:
-        caller.msg("You are currently bracing, increasing your chance to block until your next action.")
-    if caller.db.is_baiting:
-        caller.msg("You are currently baiting, increasing your chance to interrupt until your next action.")
-    if caller.db.is_rushing:
-        caller.msg("You are currently rushing, decreasing your reaction chances until your next action.")
-    if caller.db.used_ranged:
-        caller.msg("You previously attacked at long range, decreasing your reaction chances until your next action.")
-    if caller.db.ranged_knockback[0] and len(caller.db.ranged_knockback[1]) == 1:
-        caller.msg("You are suffering a knockback penalty of reduced accuracy against {attacker}.".format(
-            attacker=caller.db.ranged_knockback[1][0]))
-    elif caller.db.ranged_knockback[0] and len(caller.db.ranged_knockback[1]) > 1:
-        formatted_attackers_string = ""
-        for attacker in caller.db.ranged_knockback[1]:
-            if caller.db.ranged_knockback[1].index(attacker) == len(caller.db.ranged_knockback[1]) - 1:
-                formatted_attackers_string += (attacker + ".")
-            else:
-                formatted_attackers_string += (attacker + ", ")
-        caller.msg("You are suffering knockback penalties of reduced accuracy against: {attackers}".format(
-            attackers=formatted_attackers_string))
-    for status_effect, duration in caller.db.buffs.items():
-        if caller.db.buffs[status_effect] > 0:
-            if status_effect == "Regen":
-                if duration > 1:
-                    caller.msg("You will gradually regenerate for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You will gradually regenerate for 1 more round.")
-            elif status_effect == "Vigor":
-                if duration > 1:
-                    caller.msg("You are invigorated for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You are invigorated for 1 more round.")
-            elif status_effect == "Protect":
-                if duration > 1:
-                    caller.msg("You are protected for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You are protected for 1 more round.")
-            elif status_effect == "Reflect":
-                if duration > 1:
-                    caller.msg("You are reflective for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You are reflective for 1 more round.")
-            elif status_effect == "Acuity":
-                if duration > 1:
-                    caller.msg("You are acutely attentive to critical vulnerabilities for {duration} rounds.".format(
-                        duration=duration))
-                else:
-                    caller.msg("You are acutely attentive to critical vulnerabilities for 1 more round.")
-            elif status_effect == "Haste":
-                if duration > 1:
-                    caller.msg("You are hastened for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You are hastened for 1 more round.")
-            elif status_effect == "Blink":
-                if duration > 1:
-                    caller.msg("You are trailed by afterimages for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You are trailed by afterimages for 1 more round.")
-            elif status_effect == "Bless":
-                if duration > 1:
-                    caller.msg("Your resistance to debilitating effects is enhanced for {duration} rounds.".format(
-                        duration=duration))
-    for status_effect, duration_and_resist in caller.db.debuffs.items():
-        duration = duration_and_resist[0]
-        if status_effect == "Poison" and duration > 0:
-            if duration > 1:
-                caller.msg("You are poisoned and suffering damage over time for {duration} rounds.".format(
-                    duration=duration))
-            else:
-                caller.msg("You are poisoned and suffering damage over time for 1 more round.")
-        elif status_effect == "Wound" and duration > 0:
-            if duration > 1:
-                caller.msg("You are wounded and suffering damage when you exert yourself for {duration} rounds.".format(
-                    duration=duration))
-            else:
-                caller.msg("You are wounded and suffering damage when you exert yourself for 1 more round.")
-        elif status_effect == "Curse" and duration > 0:
-            if duration > 1:
-                caller.msg("You are cursed, increasing your vulnerability to debilitating effects for {duration} "
-                           "rounds.".format(duration=duration))
-            else:
-                caller.msg("You are cursed, increasing your vulnerability to debilitating effects for 1 more round.")
-        elif status_effect == "Injure" and duration > 0:
-            if duration > 1:
-                caller.msg("You are injured, reducing your effective Power, Parry, and Speed for {duration} rounds.".
-                           format(duration=duration))
-            else:
-                caller.msg("You are injured, reducing your effective Power, Parry, and Speed for 1 more round.")
-        elif status_effect == "Muddle" and duration > 0:
-            if duration > 1:
-                caller.msg("You are muddled, reducing your effective Knowledge, Barrier, and Speed for {duration} rounds.".
-                           format(duration=duration))
-            else:
-                caller.msg("You are muddled, reducing your effective Knowledge, Barrier, and Speed for 1 more round.")
-
-
-def apply_buff(action, healer, target):
-    # A sub-function for heal_check so that the logic of buff application need not repeat.
-    application_string = ""
-    extension_string = ""
-    buff_effects = []
-    serendipity = False
-    # Find all the effects on the action that are buffs.
-    split_effect_list = action.effects.split()
-    for effect in split_effect_list:
-        if effect == "Serendipity":
-            serendipity = True
-        for buff in BUFFS:
-            if effect == buff.name:
-                buff_effects.append(effect)
-    if serendipity:
-        # Add an additional random buff that is not already one of the Art's effects.
-        buff_options = []
-        for buff in BUFFS:
-            if buff.name not in buff_effects:
-                buff_options.append(buff.name)
-        buff_effects.append(random.choice(buff_options))
-    for buff in buff_effects:
-        if buff == "Regen":
-            application_string = "You will gradually regenerate health."
-            extension_string = "The duration of your gradual regeneration has been extended."
-        elif buff == "Vigor":
-            application_string = "You are invigorated, increasing your effective Power and Knowledge."
-            extension_string = "The duration of your invigoration has been extended."
-        elif buff == "Protect":
-            application_string = "You are protected, increasing your Parry and damage mitigation when interrupting " \
-                                 "Power-type attacks."
-            extension_string = "The duration of your protection has been extended."
-        elif buff == "Reflect":
-            application_string = "You are reflective, increasing your Barrier and damage mitigation when interrupting " \
-                                 "Knowledge-type attacks."
-            extension_string = "The duration of your reflectiveness has been extended."
-        elif buff == "Acuity":
-            application_string = "You are acutely attentive to critical vulnerabilities, increasing your Speed and " \
-                                 "your chance of inflicting a critical hit."
-            extension_string = "The duration of your acute attention to critical vulnerabilities has been extended."
-        elif buff == "Haste":
-            application_string = "You are hastened, increasing your Speed and the effectiveness of Aim."
-            extension_string = "The duration of your hastened state has been extended."
-        elif buff == "Blink":
-            application_string = "You are trailed by afterimages, increasing your Speed and the effectiveness of Feint."
-            extension_string = "The duration of your afterimages has been extended."
-        elif buff == "Bless":
-            application_string = "Your resistance to debilitating effects has been enhanced."
-            extension_string = "The duration of your enhanced resistance to debilitating effects has been extended."
-        # Now apply the buff using consistent logic
-        if target.db.buffs[buff] == 0:
-            target.msg(application_string)
-        else:
-            target.msg(extension_string)
-        if healer == target:
-            # A combat tick is going to happen after this, so the duration will be 3 regardless.
-            target.db.buffs[buff] = 4
-        else:
-            target.db.buffs[buff] = 3
-
-
 def heal_check(action, healer, target):
     # Check for heal effect. Check has_been_healed: how much the target has already been healed this fight.
     # Come up with a formula for accuracy of heal to affect variance of heal amount (more accurate, more consistent).
@@ -659,7 +413,9 @@ def heal_check(action, healer, target):
         total_healing = total_healing * healing_reduction_multiplier
     # Round to integer.
     total_healing = math.floor(total_healing)
-    # logger(healer, "Healing after depreciation: " + str(total_healing))
+    # Check for the Miasma debuff at this point.
+    if target.db.debuffs["Miasma"][0] > 0:
+        total_healing = math.ceil(total_healing * 0.5)
     # Heal the target. Not over their maximum LF.
     if (target.db.lf + total_healing) > target.db.maxlf:
         # This should get the target to their max LF.
@@ -802,63 +558,6 @@ def modify_aim_and_feint(accuracy, reaction, aim_or_feint):
     return accuracy
 
 
-def apply_debuff(action, debuffer, target):
-    # Debuffs have a chance to be resisted. This can be increased by buffs, and some debuffs increase the afflicted's
-    # resistance to being afflicted again in the same fight (to disincentivize spamming them).
-    base_debuff_resist = 30
-    if target.db.buffs["Bless"] > 0:
-        base_debuff_resist += 20
-    if target.db.debuffs["Curse"][0] > 0:
-        base_debuff_resist -= 20
-    application_string = ""
-    extension_string = ""
-    debuff_effects = []
-    # Find all the effects on the action that are debuffs.
-    split_effect_list = action.effects.split()
-    for effect in split_effect_list:
-        for debuff in DEBUFFS:
-            if effect == debuff.name:
-                debuff_effects.append(effect)
-    # if serendipity:
-        # Add an additional random buff that is not already one of the Art's effects.
-        # buff_options = []
-        # for buff in BUFFS:
-            # if buff.name not in buff_effects:
-                # buff_options.append(buff.name)
-        # buff_effects.append(random.choice(buff_options))
-    for debuff in debuff_effects:
-        # Identify the debuff and calculate the specific resistance (overwrite debuff_resist each time)
-        debuff_resist = base_debuff_resist + target.db.debuffs[debuff][1]
-        if debuff == "Poison":
-            application_string = "You are poisoned, gradually losing health."
-            extension_string = "The duration of your poisoning has been extended."
-        elif debuff == "Wound":
-            application_string = "You are wounded and will suffer damage when you exert yourself."
-            extension_string = "The duration of your wounds has been extended."
-        elif debuff == "Curse":
-            application_string = "You are cursed, increasing your vulnerability to debilitating effects."
-            extension_string = "The duration of your curse has been extended."
-        elif debuff == "Injure":
-            application_string = "You are injured, reducing your effective Power, Parry, and Speed."
-            extension_string = "The duration of your injury has been extended."
-        elif debuff == "Muddle":
-            application_string = "You are muddled, reducing your effective Knowledge, Barrier, and Speed."
-            extension_string = "The duration of your muddled state has been extended."
-        # Roll the debuff check
-        debuff_check_roll = random.randint(1, 100)
-        if debuff_check_roll > debuff_resist:
-            # If debuff succeeds, apply using consistent logic
-            if target.db.debuffs[debuff][0] == 0:
-                target.msg(application_string)
-            else:
-                target.msg(extension_string)
-            if debuffer == target:
-                # A combat tick is going to happen after this, so the duration will be 3 regardless. If it matters...?
-                target.db.debuffs[debuff][0] = 4
-            else:
-                target.db.debuffs[debuff][0] = 3
-
-
 def poison_check(target):
     # LF is an integer and final_action is a bool. When LF is reduced to 0, final_action is set to True. When someone
     # takes their turn and final_action is True, only then are they KOed. It is possible to be healed out of
@@ -916,3 +615,323 @@ def wound_check(character, action):
     character.db.debuffs["Wound"][0] -= 1
     if character.db.debuffs["Wound"][0] == 0:
         character.msg("You are no longer wounded.")
+
+
+# FUNCTIONS TO BE MODIFIED WHEN NEW EFFECTS ARE IMPLEMENTED IN EFFECTS.PY
+# Combat_tick for reducing duration; normalize_status for CmdRestore; display_status_effects for CmdCheck strings;
+# and apply_buff or apply_debuff for buffs and debuffs respectively.
+
+
+def combat_tick(character, action):
+    # This function represents a "tick" or the end of a turn. Any "action," like +attack or +pass, counts as a tick.
+    character.db.endure_bonus = 0
+    character.db.is_aiming = False
+    character.db.is_feinting = False
+    character.db.ranged_knockback = [False, []]
+    character.db.negative_lf_from_dot = False
+    # Currently, reduce block penalty per tick by 7 or a third, whichever is higher.
+    if character.db.block_penalty > 0:
+        if (character.db.block_penalty / 3) > 7:
+            block_penalty_reduction = character.db.block_penalty / 3
+        else:
+            block_penalty_reduction = 7
+        if block_penalty_reduction - 7 < 0:
+            character.db.block_penalty = 0
+        else:
+            character.db.block_penalty -= block_penalty_reduction
+    # Check for Regen
+    for status_effect, duration in character.db.buffs.items():
+        if status_effect == "Regen" and duration > 0:
+            regen_check(character)
+        else:
+            if character.db.buffs[status_effect] > 0:
+                character.db.buffs[status_effect] -= 1
+                if character.db.buffs[status_effect] == 0:
+                    if status_effect == "Vigor":
+                        character.msg("You are no longer invigorated.")
+                    elif status_effect == "Protect":
+                        character.msg("You are no longer protected from attacks.")
+                    elif status_effect == "Reflect":
+                        character.msg("You are no longer reflecting attacks.")
+                    elif status_effect == "Acuity":
+                        character.msg("You are no longer acutely attentive to critical vulnerabilities.")
+                    elif status_effect == "Haste":
+                        character.msg("You are no longer hastened.")
+                    elif status_effect == "Blink":
+                        character.msg("You are no longer trailed by afterimages.")
+                    elif status_effect == "Bless":
+                        character.msg("Your resistance to debilitating effects is no longer enhanced.")
+    for status_effect, duration_and_resist in character.db.debuffs.items():
+        duration = duration_and_resist[0]
+        if status_effect == "Poison" and duration > 0:
+            poison_check(character)
+        elif status_effect == "Wound" and duration > 0:
+            wound_check(character, action)
+        elif duration > 0:
+            duration_and_resist[0] -= 1
+            if duration_and_resist[0] == 0:
+                if status_effect == "Curse":
+                    character.msg("You are no longer cursed.")
+                elif status_effect == "Injure":
+                    character.msg("You are no longer injured.")
+                elif status_effect == "Muddle":
+                    character.msg("You are no longer muddled.")
+                elif status_effect == "Miasma":
+                    character.msg("You are no longer afflicted by a miasma.")
+
+
+def normalize_status(character):
+    # This function sets every status effect to default/neutral state.
+    character.db.is_aiming = False
+    character.db.is_feinting = False
+    character.db.is_rushing = False
+    character.db.is_weaving = False
+    character.db.is_bracing = False
+    character.db.is_baiting = False
+    character.db.used_ranged = False
+    character.db.ranged_knockback = [False, []]
+    character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
+                          "Bless": 0}
+    character.db.debuffs = {"Poison": [0, 0], "Wound": [0, 0], "Curse": [0, 0], "Injure": [0, 0], "Muddle": [0, 0],
+                            "Miasma": [0, 0]}
+    character.db.negative_lf_from_dot = False
+    character.db.block_penalty = 0
+    character.db.final_action = False
+    character.db.KOed = False
+    character.db.stunned = False
+    character.db.revived_during_final_action = False
+    character.db.endure_bonus = 0
+    character.db.has_been_healed = 0
+
+
+def display_status_effects(caller):
+    # Called by the check command to display status effects.
+    if caller.db.block_penalty > 0:
+        caller.msg("Your current block penalty is {0}%.".format(round(caller.db.block_penalty)))
+    if caller.db.endure_bonus > 0:
+        caller.msg("Your current endure bonus to accuracy is {0}%.".format(caller.db.endure_bonus))
+    if caller.db.final_action:
+        caller.msg("You have been reduced below 0 LF. Your next action will be your last and your accuracy is lowered.")
+    if caller.db.is_weaving:
+        caller.msg("You are currently weaving, increasing your chance to dodge until your next action.")
+    if caller.db.is_bracing:
+        caller.msg("You are currently bracing, increasing your chance to block until your next action.")
+    if caller.db.is_baiting:
+        caller.msg("You are currently baiting, increasing your chance to interrupt until your next action.")
+    if caller.db.is_rushing:
+        caller.msg("You are currently rushing, decreasing your reaction chances until your next action.")
+    if caller.db.used_ranged:
+        caller.msg("You previously attacked at long range, decreasing your reaction chances until your next action.")
+    if caller.db.ranged_knockback[0] and len(caller.db.ranged_knockback[1]) == 1:
+        caller.msg("You are suffering a knockback penalty of reduced accuracy against {attacker}.".format(
+            attacker=caller.db.ranged_knockback[1][0]))
+    elif caller.db.ranged_knockback[0] and len(caller.db.ranged_knockback[1]) > 1:
+        formatted_attackers_string = ""
+        for attacker in caller.db.ranged_knockback[1]:
+            if caller.db.ranged_knockback[1].index(attacker) == len(caller.db.ranged_knockback[1]) - 1:
+                formatted_attackers_string += (attacker + ".")
+            else:
+                formatted_attackers_string += (attacker + ", ")
+        caller.msg("You are suffering knockback penalties of reduced accuracy against: {attackers}".format(
+            attackers=formatted_attackers_string))
+    for status_effect, duration in caller.db.buffs.items():
+        if caller.db.buffs[status_effect] > 0:
+            if status_effect == "Regen":
+                if duration > 1:
+                    caller.msg("You will gradually regenerate for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You will gradually regenerate for 1 more round.")
+            elif status_effect == "Vigor":
+                if duration > 1:
+                    caller.msg("You are invigorated for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You are invigorated for 1 more round.")
+            elif status_effect == "Protect":
+                if duration > 1:
+                    caller.msg("You are protected for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You are protected for 1 more round.")
+            elif status_effect == "Reflect":
+                if duration > 1:
+                    caller.msg("You are reflective for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You are reflective for 1 more round.")
+            elif status_effect == "Acuity":
+                if duration > 1:
+                    caller.msg("You are acutely attentive to critical vulnerabilities for {duration} rounds.".format(
+                        duration=duration))
+                else:
+                    caller.msg("You are acutely attentive to critical vulnerabilities for 1 more round.")
+            elif status_effect == "Haste":
+                if duration > 1:
+                    caller.msg("You are hastened for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You are hastened for 1 more round.")
+            elif status_effect == "Blink":
+                if duration > 1:
+                    caller.msg("You are trailed by afterimages for {duration} rounds.".format(duration=duration))
+                else:
+                    caller.msg("You are trailed by afterimages for 1 more round.")
+            elif status_effect == "Bless":
+                if duration > 1:
+                    caller.msg("Your resistance to debilitating effects is enhanced for {duration} rounds.".format(
+                        duration=duration))
+    for status_effect, duration_and_resist in caller.db.debuffs.items():
+        duration = duration_and_resist[0]
+        if status_effect == "Poison" and duration > 0:
+            if duration > 1:
+                caller.msg("You are poisoned and suffering damage over time for {duration} rounds.".format(
+                    duration=duration))
+            else:
+                caller.msg("You are poisoned and suffering damage over time for 1 more round.")
+        elif status_effect == "Wound" and duration > 0:
+            if duration > 1:
+                caller.msg("You are wounded and suffering damage when you exert yourself for {duration} rounds.".format(
+                    duration=duration))
+            else:
+                caller.msg("You are wounded and suffering damage when you exert yourself for 1 more round.")
+        elif status_effect == "Curse" and duration > 0:
+            if duration > 1:
+                caller.msg("You are cursed, increasing your vulnerability to debilitating effects for {duration} "
+                           "rounds.".format(duration=duration))
+            else:
+                caller.msg("You are cursed, increasing your vulnerability to debilitating effects for 1 more round.")
+        elif status_effect == "Injure" and duration > 0:
+            if duration > 1:
+                caller.msg("You are injured, reducing your effective Power, Parry, and Speed for {duration} rounds.".
+                           format(duration=duration))
+            else:
+                caller.msg("You are injured, reducing your effective Power, Parry, and Speed for 1 more round.")
+        elif status_effect == "Muddle" and duration > 0:
+            if duration > 1:
+                caller.msg("You are muddled, reducing your effective Knowledge, Barrier, and Speed for {duration} rounds.".
+                           format(duration=duration))
+            else:
+                caller.msg("You are muddled, reducing your effective Knowledge, Barrier, and Speed for 1 more round.")
+        elif status_effect == "Miasma" and duration > 0:
+            if duration > 1:
+                caller.msg("You are afflicted by a miasma that halves the effects of healing upon you for {duration} rounds.".
+                           format(duration=duration))
+            else:
+                caller.msg("You are afflicted by a miasma that halves the effects of healing upon you for 1 more round.")
+
+
+def apply_buff(action, healer, target):
+    # A sub-function for heal_check so that the logic of buff application need not repeat.
+    application_string = ""
+    extension_string = ""
+    buff_effects = []
+    serendipity = False
+    # Find all the effects on the action that are buffs.
+    split_effect_list = action.effects.split()
+    for effect in split_effect_list:
+        if effect == "Serendipity":
+            serendipity = True
+        for buff in BUFFS:
+            if effect == buff.name:
+                buff_effects.append(effect)
+    if serendipity:
+        # Add an additional random buff that is not already one of the Art's effects.
+        buff_options = []
+        for buff in BUFFS:
+            if buff.name not in buff_effects:
+                buff_options.append(buff.name)
+        buff_effects.append(random.choice(buff_options))
+    for buff in buff_effects:
+        if buff == "Regen":
+            application_string = "You will gradually regenerate health."
+            extension_string = "The duration of your gradual regeneration has been extended."
+        elif buff == "Vigor":
+            application_string = "You are invigorated, increasing your effective Power and Knowledge."
+            extension_string = "The duration of your invigoration has been extended."
+        elif buff == "Protect":
+            application_string = "You are protected, increasing your Parry and damage mitigation when interrupting " \
+                                 "Power-type attacks."
+            extension_string = "The duration of your protection has been extended."
+        elif buff == "Reflect":
+            application_string = "You are reflective, increasing your Barrier and damage mitigation when interrupting " \
+                                 "Knowledge-type attacks."
+            extension_string = "The duration of your reflectiveness has been extended."
+        elif buff == "Acuity":
+            application_string = "You are acutely attentive to critical vulnerabilities, increasing your Speed and " \
+                                 "your chance of inflicting a critical hit."
+            extension_string = "The duration of your acute attention to critical vulnerabilities has been extended."
+        elif buff == "Haste":
+            application_string = "You are hastened, increasing your Speed and the effectiveness of Aim."
+            extension_string = "The duration of your hastened state has been extended."
+        elif buff == "Blink":
+            application_string = "You are trailed by afterimages, increasing your Speed and the effectiveness of Feint."
+            extension_string = "The duration of your afterimages has been extended."
+        elif buff == "Bless":
+            application_string = "Your resistance to debilitating effects has been enhanced."
+            extension_string = "The duration of your enhanced resistance to debilitating effects has been extended."
+        # Now apply the buff using consistent logic
+        if target.db.buffs[buff] == 0:
+            target.msg(application_string)
+        else:
+            target.msg(extension_string)
+        if healer == target:
+            # A combat tick is going to happen after this, so the duration will be 3 regardless.
+            target.db.buffs[buff] = 4
+        else:
+            target.db.buffs[buff] = 3
+
+
+def apply_debuff(action, debuffer, target):
+    # Debuffs have a chance to be resisted. This can be increased by buffs, and some debuffs increase the afflicted's
+    # resistance to being afflicted again in the same fight (to disincentivize spamming them).
+    base_debuff_resist = 30
+    if target.db.buffs["Bless"] > 0:
+        base_debuff_resist += 20
+    if target.db.debuffs["Curse"][0] > 0:
+        base_debuff_resist -= 20
+    application_string = ""
+    extension_string = ""
+    debuff_effects = []
+    # Find all the effects on the action that are debuffs.
+    split_effect_list = action.effects.split()
+    for effect in split_effect_list:
+        for debuff in DEBUFFS:
+            if effect == debuff.name:
+                debuff_effects.append(effect)
+    # if serendipity:
+        # Add an additional random buff that is not already one of the Art's effects.
+        # buff_options = []
+        # for buff in BUFFS:
+            # if buff.name not in buff_effects:
+                # buff_options.append(buff.name)
+        # buff_effects.append(random.choice(buff_options))
+    for debuff in debuff_effects:
+        # Identify the debuff and calculate the specific resistance (overwrite debuff_resist each time)
+        debuff_resist = base_debuff_resist + target.db.debuffs[debuff][1]
+        if debuff == "Poison":
+            application_string = "You are poisoned, gradually losing health."
+            extension_string = "The duration of your poisoning has been extended."
+        elif debuff == "Wound":
+            application_string = "You are wounded and will suffer damage when you exert yourself."
+            extension_string = "The duration of your wounds has been extended."
+        elif debuff == "Curse":
+            application_string = "You are cursed, increasing your vulnerability to debilitating effects."
+            extension_string = "The duration of your curse has been extended."
+        elif debuff == "Injure":
+            application_string = "You are injured, reducing your effective Power, Parry, and Speed."
+            extension_string = "The duration of your injury has been extended."
+        elif debuff == "Muddle":
+            application_string = "You are muddled, reducing your effective Knowledge, Barrier, and Speed."
+            extension_string = "The duration of your muddled state has been extended."
+        elif debuff == "Miasma":
+            application_string = "You are afflicted by a miasma, halving the effectiveness of healing upon you."
+            extension_string = "The duration of the miasma afflicting you has been extended."
+        # Roll the debuff check
+        debuff_check_roll = random.randint(1, 100)
+        if debuff_check_roll > debuff_resist:
+            # If debuff succeeds, apply using consistent logic
+            if target.db.debuffs[debuff][0] == 0:
+                target.msg(application_string)
+            else:
+                target.msg(extension_string)
+            if debuffer == target:
+                # A combat tick is going to happen after this, so the duration will be 3 regardless. If it matters...?
+                target.db.debuffs[debuff][0] = 4
+            else:
+                target.db.debuffs[debuff][0] = 3
