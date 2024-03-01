@@ -284,6 +284,10 @@ class CmdAttack(default_cmds.MuxCommand):
         # Copy.copy is used to ensure we do not modify the attack in the character's list, just this instance of it.
         action_clean = copy.copy(action_clean)
 
+        # Check if the attacker is currently Berserk.
+        if caller.db.debuffs["Berserk"][0] > 0:
+            if berserk_check(caller, action_clean):
+                return caller.msg("Due to your Berserk state, you may only use attacks of 50 DMG or higher.")
         # If the character has insufficient AP or EX to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
         total_ap_change = action_clean.ap
@@ -700,6 +704,10 @@ class CmdInterrupt(default_cmds.MuxCommand):
             interrupt_clean = NORMALS.get(name__iexact=outgoing_interrupt_arg)  # found action with correct capitalization
         else:
             interrupt_clean = arts.get(name__iexact=outgoing_interrupt_arg)
+        # Check if the interrupter is currently Berserk.
+        if caller.db.debuffs["Berserk"][0] > 0:
+            if berserk_check(caller, interrupt_clean):
+                return caller.msg("Due to your Berserk state, you may only use attacks of 50 DMG or higher.")
         # If the character has insufficient AP or EX to use that move, cancel the interrupt.
         # Otherwise, if EX move, set their EX from 100 to 0.
         total_ap_change = interrupt_clean.ap

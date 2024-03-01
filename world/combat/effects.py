@@ -99,6 +99,9 @@ muddle = Effect("Muddle", -15, "MDL")
 # Applies the Muddle Effect: Lower the target's Knowledge and Barrier and slightly lower Speed.
 miasma = Effect("Miasma", -15, "MSM")
 # Applies the Miasma Effect: Halves the effectiveness of heals on the target.
+berserk = Effect("Berserk", -15, "BSK")
+# Applies the Berserk Effect: Increase the target's Power, Knowledge, and Speed but prevent them from using any Arts
+# below a Force of 50, thus requiring them to use attacks of lower Accuracy.
 
 # List of all Effects
 
@@ -129,7 +132,8 @@ EFFECTS = [crush,
            curse,
            injure,
            muddle,
-           miasma]
+           miasma,
+           berserk]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
@@ -150,7 +154,8 @@ DEBUFFS_STANDARD = [poison,
                     curse,
                     injure,
                     muddle,
-                    miasma]
+                    miasma,
+                    berserk]
 DEBUFFS_TRANSFORMATION = []
 DEBUFFS_HEXES = []
 DEBUFFS = DEBUFFS_STANDARD + DEBUFFS_TRANSFORMATION + DEBUFFS_HEXES

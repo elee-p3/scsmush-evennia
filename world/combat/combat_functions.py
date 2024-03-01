@@ -78,11 +78,17 @@ def modify_damage(action, character):
         # Check for Injure.
         if character.db.debuffs["Injure"][0] > 0:
             base_stat -= 10
+        # Check for Berserk.
+        if character.db.debuffs["Berserk"][0] > 0:
+            base_stat += 10
     if action.stat.lower() == "knowledge":
         base_stat = character.db.knowledge
         # Check for Muddle.
         if character.db.debuffs["Muddle"][0] > 0:
             base_stat -= 10
+        # Check for Berserk.
+        if character.db.debuffs["Berserk"][0] > 0:
+            base_stat += 10
     # Check for Vigor buff.
     base_stat = vigor_check(character, base_stat)
 
@@ -105,6 +111,8 @@ def modify_speed(speed, defender):
         speed -= 5
     if defender.db.debuffs["Muddle"][0] > 0:
         speed -= 5
+    if defender.db.debuffs["Berserk"][0] > 0:
+        speed += 5
     effective_speed = speed * speed_multiplier
     return effective_speed
 
@@ -617,6 +625,13 @@ def wound_check(character, action):
         character.msg("You are no longer wounded.")
 
 
+def berserk_check(caller, attack):
+    # If an attacker is Berserk, check if the attack is above 50 Force/Damage and, if not, prevent them from attacking.
+    if attack.dmg < 50:
+        return True
+    # Simple for now, but if this seems OP, I may change it so weaker attacks cost more AP or some EX from caller.
+
+
 # FUNCTIONS TO BE MODIFIED WHEN NEW EFFECTS ARE IMPLEMENTED IN EFFECTS.PY
 # Combat_tick for reducing duration; normalize_status for CmdRestore; display_status_effects for CmdCheck strings;
 # and apply_buff or apply_debuff for buffs and debuffs respectively.
@@ -678,6 +693,8 @@ def combat_tick(character, action):
                     character.msg("You are no longer muddled.")
                 elif status_effect == "Miasma":
                     character.msg("You are no longer afflicted by a miasma.")
+                elif status_effect == "Berserk":
+                    character.msg("You are no longer berserk.")
 
 
 def normalize_status(character):
@@ -693,7 +710,7 @@ def normalize_status(character):
     character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
                           "Bless": 0}
     character.db.debuffs = {"Poison": [0, 0], "Wound": [0, 0], "Curse": [0, 0], "Injure": [0, 0], "Muddle": [0, 0],
-                            "Miasma": [0, 0]}
+                            "Miasma": [0, 0], "Berserk": [0, 0]}
     character.db.negative_lf_from_dot = False
     character.db.block_penalty = 0
     character.db.final_action = False
@@ -814,6 +831,13 @@ def display_status_effects(caller):
                            format(duration=duration))
             else:
                 caller.msg("You are afflicted by a miasma that halves the effects of healing upon you for 1 more round.")
+        elif status_effect == "Berserk" and duration > 0:
+            if duration > 1:
+                caller.msg("You are berserk, increasing your effective Power, Knowledge, and Speed but preventing you "
+                           "from using Arts with a Force of less than 50 for {duration} rounds.".format(duration=duration))
+            else:
+                caller.msg("You are berserk, increasing your effective Power, Knowledge, and Speed but preventing you "
+                           "from using Arts with a Force of less than 50 for 1 more round.")
 
 
 def apply_buff(action, healer, target):
@@ -922,6 +946,10 @@ def apply_debuff(action, debuffer, target):
         elif debuff == "Miasma":
             application_string = "You are afflicted by a miasma, halving the effectiveness of healing upon you."
             extension_string = "The duration of the miasma afflicting you has been extended."
+        elif debuff == "Berserk":
+            application_string = "You have gone berserk, increasing your effective Power, Knowledge, and Speed but " \
+                                 "compelling you to use more damaging, less accurate attacks."
+            extension_string = "The duration of your berserk fury has been extended."
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
         if debuff_check_roll > debuff_resist:
