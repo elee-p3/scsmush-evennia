@@ -113,6 +113,8 @@ def modify_speed(speed, defender):
         speed -= 5
     if defender.db.debuffs["Berserk"][0] > 0:
         speed += 5
+    if defender.db.debuffs["Petrify"][0] > 0:
+        speed -= 10
     effective_speed = speed * speed_multiplier
     return effective_speed
 
@@ -134,6 +136,9 @@ def dodge_calc(defender, attack_instance):
     # Checking to see if the defender used_ranged and improving accuracy if so.
     if defender.db.used_ranged:
         accuracy += 5
+    # Checking to see if the defender is Petrified and improving accuracy if so.
+    if defender.db.debuffs["Petrify"][0] > 0:
+        accuracy += 12
     # cap accuracy at 99%
     if accuracy > 99:
         accuracy = 99
@@ -164,6 +169,9 @@ def block_chance_calc(defender, attack_instance):
     # Checking to see if the defender used_ranged and improving accuracy if so.
     if defender.db.used_ranged:
         accuracy += 5
+    # Checking to see if the defender is Petrified and reducing accuracy if so.
+    if defender.db.debuffs["Petrify"][0] > 0:
+        accuracy -= 12
     # Incorporating block penalty.
     accuracy += defender.db.block_penalty
     if accuracy > 99:
@@ -194,6 +202,9 @@ def endure_chance_calc(defender, attack_instance):
     # Checking to see if the defender used_ranged and improving accuracy if so.
     if defender.db.used_ranged:
         accuracy += 5
+    # Checking to see if the defender is Petrified and reducing accuracy if so.
+    if defender.db.debuffs["Petrify"][0] > 0:
+        accuracy -= 12
     if accuracy > 99:
         accuracy = 99
     elif accuracy < 1:
@@ -695,6 +706,8 @@ def combat_tick(character, action):
                     character.msg("You are no longer afflicted by a miasma.")
                 elif status_effect == "Berserk":
                     character.msg("You are no longer berserk.")
+                elif status_effect == "Petrify":
+                    character.msg("You are no longer petrified.")
 
 
 def normalize_status(character):
@@ -710,7 +723,7 @@ def normalize_status(character):
     character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
                           "Bless": 0}
     character.db.debuffs = {"Poison": [0, 0], "Wound": [0, 0], "Curse": [0, 0], "Injure": [0, 0], "Muddle": [0, 0],
-                            "Miasma": [0, 0], "Berserk": [0, 0]}
+                            "Miasma": [0, 0], "Berserk": [0, 0], "Petrify": [0, 0]}
     character.db.negative_lf_from_dot = False
     character.db.block_penalty = 0
     character.db.final_action = False
@@ -838,6 +851,13 @@ def display_status_effects(caller):
             else:
                 caller.msg("You are berserk, increasing your effective Power, Knowledge, and Speed but preventing you "
                            "from using Arts with a Force of less than 50 for 1 more round.")
+        elif status_effect == "Petrify" and duration > 0:
+            if duration > 1:
+                caller.msg("You are petrified, reducing your Speed and especially your Dodge chances but somewhat"
+                           "increasing your Block and Endure chances for {duration} rounds.".format(duration=duration))
+            else:
+                caller.msg("You are petrified, reducing your Speed and especially your Dodge chances but somewhat"
+                           "increasing your Block and Endure chances for 1 more round.")
 
 
 def apply_buff(action, healer, target):
@@ -950,6 +970,10 @@ def apply_debuff(action, debuffer, target):
             application_string = "You have gone berserk, increasing your effective Power, Knowledge, and Speed but " \
                                  "compelling you to use more damaging, less accurate attacks."
             extension_string = "The duration of your berserk fury has been extended."
+        elif debuff == "Petrify":
+            application_string = "You are petrified, reducing your Speed and especially your Dodge chances but " \
+                                 "somewhat increasing your Block and Endure chances."
+            extension_string = "The duration of your petrifaction has been extended."
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
         if debuff_check_roll > debuff_resist:

@@ -102,6 +102,9 @@ miasma = Effect("Miasma", -15, "MSM")
 berserk = Effect("Berserk", -15, "BSK")
 # Applies the Berserk Effect: Increase the target's Power, Knowledge, and Speed but prevent them from using any Arts
 # below a Force of 50, thus requiring them to use attacks of lower Accuracy.
+petrify = Effect("Petrify", -15, "PTR")
+# Applies the Petrify Effect: Lower a target's Speed and greatly reduce their Dodge chance specifically, but somewhat
+# improve their Block and Endure chances.
 
 # List of all Effects
 
@@ -133,7 +136,8 @@ EFFECTS = [crush,
            injure,
            muddle,
            miasma,
-           berserk]
+           berserk,
+           petrify]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
@@ -155,7 +159,8 @@ DEBUFFS_STANDARD = [poison,
                     injure,
                     muddle,
                     miasma,
-                    berserk]
+                    berserk,
+                    petrify]
 DEBUFFS_TRANSFORMATION = []
 DEBUFFS_HEXES = []
 DEBUFFS = DEBUFFS_STANDARD + DEBUFFS_TRANSFORMATION + DEBUFFS_HEXES
