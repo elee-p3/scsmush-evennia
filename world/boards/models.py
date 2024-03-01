@@ -1,3 +1,4 @@
+import logging
 from django.db import models
 
 # Board (aka "message board" aka "bulletin board" aka "bboard") is a model representing
@@ -70,5 +71,9 @@ class Post(models.Model):
     # Given an instance of Character, returns true if the given Character has
     # read this post.
     def was_read_by(self, character):
+        matching_characters = self.readers.filter(pk=character.id)
+        if matching_characters.len() > 1 or matching_characters.len() <0:
+            logger = logging.getLogger("django.request")
+            logger.error("Post#was_read_by() found multiple instances of a read for one character")
         return self.readers.filter(pk=character.id).len() == 1
 
