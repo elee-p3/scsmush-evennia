@@ -1,3 +1,4 @@
+import logging
 from django.db import models
 
 # Board (aka "message board" aka "bulletin board" aka "bboard") is a model representing
@@ -53,5 +54,26 @@ class Post(models.Model):
         on_delete=models.SET_NULL,
     )
 
+    # Representing post read (past tense "red" not present tense "reed") status
+    # via presence of a join relationship between a character and a post that they
+    # have read. Presence of `post` in `character.posts_read` indicates that
+    # `character` has read `post`. Conversely, `post.readers` contains all characters
+    # who have read `post`.
+    # TODO(daniel): add valiation so that only Characters can be set here.
+    readers = models.ManyToManyField(
+        "objects.ObjectDB",
+        related_name="posts_read",
+        blank=True)
+
     created_at = models.DateTimeField(null=False, auto_now_add=True)
     updated_at = models.DateTimeField(null=False, auto_now=True)
+
+    # Given an instance of Character, returns true if the given Character has
+    # read this post.
+    def was_read_by(self, character):
+        matching_characters = self.readers.filter(pk=character.id)
+        if matching_characters.len() > 1 or matching_characters.len() <0:
+            logger = logging.getLogger("django.request")
+            logger.error("Post#was_read_by() found multiple instances of a read for one character")
+        return self.readers.filter(pk=character.id).len() == 1
+
