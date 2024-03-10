@@ -83,6 +83,8 @@ serendipity = Effect("Serendipity", -10, "SER")
 # Applies a random effect from BUFFS.
 bless = Effect("Bless", -15, "BLS")
 # Applies the Bless Effect: Increase resistance to all Debuffs.
+purity = Effect("Purity", -15, "PUR")
+# Applies the Purity Effect: Grant immunity to all non-Standard Debuffs, i.e., Transformation and Hexes.
 
 # Debuffs (Standard)
 
@@ -208,7 +210,8 @@ EFFECTS = [crush,
            dance,
            stinky,
            itchy,
-           old]
+           old,
+           purity]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
@@ -222,7 +225,8 @@ SUPPORT = [revive,
            acuity,
            haste,
            blink,
-           bless]
+           bless,
+           purity]
 BUFFS = SUPPORT[2:]
 DEBUFFS_STANDARD = [poison,
                     wound,

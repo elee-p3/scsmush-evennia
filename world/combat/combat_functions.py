@@ -738,6 +738,8 @@ def combat_tick(character, action):
                         character.msg("You are no longer trailed by afterimages.")
                     elif status_effect == "Bless":
                         character.msg("Your resistance to debilitating effects is no longer enhanced.")
+                    elif status_effect == "Purity":
+                        character.msg("You are no longer immune to transformation or hexes.")
     for status_effect, duration in character.db.debuffs_standard.items():
         if status_effect == "Poison" and duration > 0:
             poison_check(character)
@@ -824,7 +826,7 @@ def normalize_status(character):
     character.db.used_ranged = False
     character.db.ranged_knockback = [False, []]
     character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
-                          "Bless": 0}
+                          "Bless": 0, "Purity": 0}
     character.db.debuffs_standard = {"Poison": 0, "Wound": 0, "Curse": 0, "Injure": 0, "Muddle": 0, "Miasma": 0,
                                      "Berserk": 0, "Petrify": 0, "Slime": 0}
     character.db.debuffs_transform = {"Bird": 0, "Frog": 0, "Pig": 0, "Pumpkin": 0}
@@ -902,6 +904,9 @@ def display_status_effects(caller):
             elif status_effect == "Bless":
                 duration_string = "Your resistance to debilitating effects is enhanced for {duration} rounds."
                 single_string = "Your resistance to debilitating effects is enhanced for 1 more round."
+            elif status_effect == "Purity":
+                duration_string = "You are purified, rendering you immune to transformation and hexes for {duration} rounds."
+                single_string = "You are purified, rendering you immune to transformation and hexes for 1 more round."
         if caller.db.buffs[status_effect] > 1:
             caller.msg(duration_string.format(duration=duration))
         elif caller.db.buffs[status_effect] == 1:
@@ -1076,6 +1081,9 @@ def apply_buff(action, healer, target):
         elif buff == "Bless":
             application_string = "Your resistance to debilitating effects has been enhanced."
             extension_string = "The duration of your enhanced resistance to debilitating effects has been extended."
+        elif buff == "Purity":
+            application_string = "You are purified, rendering you immune to transformation and hexes."
+            extension_string = "The duration of your purification has been extended."
         # Now apply the buff using consistent logic
         if target.db.buffs[buff] == 0:
             target.msg(application_string)
@@ -1222,6 +1230,11 @@ def apply_debuff(action, debuffer, target):
             extension_string = "The duration of your aged state has been extended."
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
+        # I hope I'm not being too cute here: if Purity is active and debuff is transform/hex, set roll to -1 to fail.
+        if target.db.buffs["Purity"] > 0:
+            if debuff not in target.db.debuffs_standard.keys():
+                debuff_check_roll = -1
+                # If the debuff isn't in debuffs_standard, it must be in debuffs_transform or debuffs_hexes.
         if debuff_check_roll > debuff_resist:
             # If debuff succeeds, apply using consistent logic. Check what dict the debuff is stored in
             if debuff in target.db.debuffs_standard.keys():
