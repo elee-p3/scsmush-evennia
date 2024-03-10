@@ -804,6 +804,13 @@ def combat_tick(character, action):
                     character.msg("You are no longer itchy.")
                 if status_effect == "Old":
                     character.msg("You are no longer aged.")
+    # Base resistance is 0, so for any resistance higher than that, decrease by 10 every tick to floor of 0.
+    for resistance in character.db.resistances.keys():
+        if character.db.resistances[resistance] > 0:
+            character.db.resistances[resistance] -= 10
+            # Make sure it can't somehow go below 0
+            if character.db.resistances[resistance] < 0:
+                character.db.resistances[resistance] = 0
 
 
 def normalize_status(character):
@@ -1217,26 +1224,43 @@ def apply_debuff(action, debuffer, target):
         debuff_check_roll = random.randint(1, 100)
         if debuff_check_roll > debuff_resist:
             # If debuff succeeds, apply using consistent logic. Check what dict the debuff is stored in
-            if debuffer == target:
-                # A combat tick is going to happen after this, so the duration will be 3 regardless (if self-debuff).
-                new_duration = 4
-            else:
-                new_duration = 3
             if debuff in target.db.debuffs_standard.keys():
                 if target.db.debuffs_standard[debuff] == 0:
                     target.msg(application_string)
                 else:
                     target.msg(extension_string)
-                target.db.debuffs_standard[debuff] = new_duration
+                target.db.debuffs_standard[debuff] = 3
+                # For standard debuffs, increase the resistance to that debuff by 40.
+                target.db.resistances[debuff] += 30
             elif debuff in target.db.debuffs_transform.keys():
                 if target.db.debuffs_transform[debuff] == 0:
                     target.msg(application_string)
                 else:
                     target.msg(extension_string)
-                target.db.debuffs_transform[debuff] = new_duration
+                target.db.debuffs_transform[debuff] = 2
+                # Because a character can only be transformed in one way, any other transformation is negated.
+                for transformation, duration in target.db.debuffs_transform.items():
+                    if transformation != debuff and duration > 0:
+                        target.db.debuffs_transform[transformation] = 0
+                        if transformation == "Bird":
+                            target.msg("You are no longer a bird.")
+                        if transformation == "Frog":
+                            target.msg("You are no longer a frog.")
+                        if transformation == "Pig":
+                            target.msg("You are no longer a pig.")
+                        if transformation == "Pumpkin":
+                            target.msg("You are no longer a pumpkin.")
+                # For transformation debuffs, increase the resistance to that debuff by 60 and all others by 40.
+                target.db.resistances[debuff] += 20
+                for transformation in target.db.debuffs_transform.keys():
+                    target.db.resistances[transformation] += 40
             elif debuff in target.db.debuffs_hexes.keys():
                 if target.db.debuffs_hexes[debuff] == 0:
                     target.msg(application_string)
                 else:
                     target.msg(extension_string)
-                target.db.debuffs_hexes[debuff] = new_duration
+                target.db.debuffs_hexes[debuff] = 3
+                # For hexes, increase the resistance to that hex by 40 and all others by 20.
+                target.db.resistances[debuff] += 20
+                for hex in target.db.debuffs_hexes.keys():
+                    target.db.resistances[hex] += 20
