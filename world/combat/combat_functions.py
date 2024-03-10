@@ -5,7 +5,7 @@ import random
 import math
 from world.utilities.utilities import logger
 from world.combat.attacks import Attack
-from world.combat.effects import BUFFS, DEBUFFS, AimOrFeint
+from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint
 
 
 def assign_attack_instance_id(target):
@@ -34,14 +34,20 @@ def damage_calc(attack_dmg, attacker_stat, base_stat, defender):
     if base_stat == "Knowledge":
         def_stat = defender.db.barrier
     if def_stat == defender.db.parry:
+        # Check for Bird or Pig transformations.
+        if defender.db.debuffs_transform["Bird"] > 0 or defender.db.debuffs_transform["Pig"] > 0:
+            def_stat = math.ceil(def_stat / 2)
         if defender.db.buffs["Protect"] > 0:
             def_stat += 10
-        if defender.db.debuffs["Injure"][0] > 0:
+        if defender.db.debuffs_standard["Injure"] > 0:
             def_stat -= 10
     if def_stat == defender.db.barrier:
+        # Check for Frog or Pumpkin transformations.
+        if defender.db.debuffs_transform["Frog"] > 0 or defender.db.debuffs_transform["Pumpkin"] > 0:
+            def_stat = math.ceil(def_stat / 2)
         if defender.db.buffs["Reflect"] > 0:
             def_stat += 10
-        if defender.db.debuffs["Muddle"][0] > 0:
+        if defender.db.debuffs_standard["Muddle"] > 0:
             def_stat -= 10
     # Now magnify or mitigate the stat multiplier depending on how different they are.
     # This works OK, but is a placeholder for a more complex curve that I want to implement eventually.
@@ -75,19 +81,25 @@ def modify_damage(action, character):
     # Modify attack damage based on base stat.
     if action.stat.lower() == "power":
         base_stat = character.db.power
+        # Check for Bird or Frog transformations.
+        if character.db.debuffs_transform["Bird"] > 0 or character.db.debuffs_transform["Frog"] > 0:
+            base_stat = math.ceil(base_stat * 0.5)
         # Check for Injure.
-        if character.db.debuffs["Injure"][0] > 0:
+        if character.db.debuffs_standard["Injure"] > 0:
             base_stat -= 10
         # Check for Berserk.
-        if character.db.debuffs["Berserk"][0] > 0:
+        if character.db.debuffs_standard["Berserk"] > 0:
             base_stat += 10
     if action.stat.lower() == "knowledge":
         base_stat = character.db.knowledge
+        # Check for Pig or Pumpkin transformations.
+        if character.db.debuffs_transform["Pig"] > 0 or character.db.debuffs_transform["Pumpkin"] > 0:
+            base_stat = math.ceil(base_stat * 0.5)
         # Check for Muddle.
-        if character.db.debuffs["Muddle"][0] > 0:
+        if character.db.debuffs_standard["Muddle"] > 0:
             base_stat -= 10
         # Check for Berserk.
-        if character.db.debuffs["Berserk"][0] > 0:
+        if character.db.debuffs_standard["Berserk"] > 0:
             base_stat += 10
     # Check for Vigor buff.
     base_stat = vigor_check(character, base_stat)
@@ -100,23 +112,34 @@ def modify_damage(action, character):
 def modify_speed(speed, defender):
     # A function to nest within the reaction functions to soften the effects of low and high Speed.
     speed_multiplier = speed * -0.00221 + 1.25
-    # Check here for the Acuity buff.
+    # Check for relevant buffs and debuffs.
     if defender.db.buffs["Acuity"] > 0:
         speed += 5
     if defender.db.buffs["Haste"] > 0:
         speed += 5
     if defender.db.buffs["Blink"] > 0:
         speed += 5
-    if defender.db.debuffs["Injure"][0] > 0:
+    if defender.db.debuffs_standard["Injure"] > 0:
         speed -= 5
-    if defender.db.debuffs["Muddle"][0] > 0:
+    if defender.db.debuffs_standard["Muddle"] > 0:
         speed -= 5
-    if defender.db.debuffs["Berserk"][0] > 0:
+    if defender.db.debuffs_standard["Berserk"] > 0:
         speed += 5
-    if defender.db.debuffs["Petrify"][0] > 0:
+    if defender.db.debuffs_standard["Petrify"] > 0:
         speed -= 10
-    if defender.db.debuffs["Slime"][0] > 0:
+    if defender.db.debuffs_standard["Slime"] > 0:
         speed -= 10
+    # All hexes reduce reaction chances a little. Iterate through and count them up.
+    hex_count = hex_counter(defender)
+    if hex_count > 1:
+        if hex_count == 1:
+            speed -= 5
+        elif hex_count == 2:
+            speed -= 9
+        elif hex_count == 3:
+            speed -= 11
+        else:
+            speed -= 12
     effective_speed = speed * speed_multiplier
     return effective_speed
 
@@ -139,10 +162,10 @@ def dodge_calc(defender, attack_instance):
     if defender.db.used_ranged:
         accuracy += 5
     # Checking to see if the defender is Petrified and improving accuracy if so.
-    if defender.db.debuffs["Petrify"][0] > 0:
+    if defender.db.debuffs_standard["Petrify"] > 0:
         accuracy += 12
     # Checking to see if the defender is Slimy and reducing accuracy if so.
-    if defender.db.debuffs["Slime"][0] > 0:
+    if defender.db.debuffs_standard["Slime"] > 0:
         accuracy -= 12
     # cap accuracy at 99%
     if accuracy > 99:
@@ -175,10 +198,10 @@ def block_chance_calc(defender, attack_instance):
     if defender.db.used_ranged:
         accuracy += 5
     # Checking to see if the defender is Petrified and reducing accuracy if so.
-    if defender.db.debuffs["Petrify"][0] > 0:
+    if defender.db.debuffs_standard["Petrify"] > 0:
         accuracy -= 12
     # Checking to see if the defender is Slimy and improving accuracy if so.
-    if defender.db.debuffs["Slime"][0] > 0:
+    if defender.db.debuffs_standard["Slime"] > 0:
         accuracy += 12
     # Incorporating block penalty.
     accuracy += defender.db.block_penalty
@@ -211,10 +234,10 @@ def endure_chance_calc(defender, attack_instance):
     if defender.db.used_ranged:
         accuracy += 5
     # Checking to see if the defender is Petrified and reducing accuracy if so.
-    if defender.db.debuffs["Petrify"][0] > 0:
+    if defender.db.debuffs_standard["Petrify"] > 0:
         accuracy -= 12
     # Checking to see if the defender is Slimy and reducing accuracy if so.
-    if defender.db.debuffs["Slime"][0] > 0:
+    if defender.db.debuffs_standard["Slime"] > 0:
         accuracy -= 12
     if accuracy > 99:
         accuracy = 99
@@ -444,7 +467,7 @@ def heal_check(action, healer, target):
     # Round to integer.
     total_healing = math.floor(total_healing)
     # Check for the Miasma debuff at this point.
-    if target.db.debuffs["Miasma"][0] > 0:
+    if target.db.debuffs_standard["Miasma"] > 0:
         total_healing = math.ceil(total_healing * 0.5)
     # Heal the target. Not over their maximum LF.
     if (target.db.lf + total_healing) > target.db.maxlf:
@@ -616,8 +639,8 @@ def poison_check(target):
     if target.db.final_action and not initial_state:
         target.db.negative_lf_from_dot = True
     # This check will only be called if Poison's duration is already greater than 1.
-    target.db.debuffs["Poison"][0] -= 1
-    if target.db.debuffs["Poison"][0] == 0:
+    target.db.debuffs_standard["Poison"] -= 1
+    if target.db.debuffs_standard["Poison"] == 0:
         target.msg("You are no longer poisoned.")
 
 
@@ -638,12 +661,12 @@ def wound_check(character, action):
         character.msg("You have taken {damage} damage from your wound.".format(damage=wound_damage))
         initial_state = character.db.final_action
         final_action_check(character)
-        # Check if it's now your final_action BECAUSE of the poison damage specifically.
+        # Check if it's now your final_action BECAUSE of the wound damage specifically.
         if character.db.final_action and not initial_state:
             character.db.negative_lf_from_dot = True
         # This check will only be called if Wound's duration is already greater than 1.
-    character.db.debuffs["Wound"][0] -= 1
-    if character.db.debuffs["Wound"][0] == 0:
+    character.db.debuffs_standard["Wound"] -= 1
+    if character.db.debuffs_standard["Wound"] == 0:
         character.msg("You are no longer wounded.")
 
 
@@ -652,6 +675,23 @@ def berserk_check(caller, attack):
     if attack.dmg < 50:
         return True
     # Simple for now, but if this seems OP, I may change it so weaker attacks cost more AP or some EX from caller.
+
+
+def hex_counter(caller):
+    # Making this a separate mini-function for use in both modify_speed and display_status_effects.
+    hex_counter = 0
+    for duration in caller.db.debuffs_hexes.values():
+        if duration > 0:
+            hex_counter += 1
+    return hex_counter
+
+
+def clear_hexes(caller):
+    # Another separate mini-function for use by CmdPass and the Cure effect.
+    for status_effect, duration in caller.db.debuffs_hexes.items():
+        if duration > 0:
+            caller.db.debuffs_hexes[status_effect] = 0
+            caller.msg(f"You are no longer afflicted by {status_effect}.")
 
 
 # FUNCTIONS TO BE MODIFIED WHEN NEW EFFECTS ARE IMPLEMENTED IN EFFECTS.PY
@@ -698,15 +738,14 @@ def combat_tick(character, action):
                         character.msg("You are no longer trailed by afterimages.")
                     elif status_effect == "Bless":
                         character.msg("Your resistance to debilitating effects is no longer enhanced.")
-    for status_effect, duration_and_resist in character.db.debuffs.items():
-        duration = duration_and_resist[0]
+    for status_effect, duration in character.db.debuffs_standard.items():
         if status_effect == "Poison" and duration > 0:
             poison_check(character)
         elif status_effect == "Wound" and duration > 0:
             wound_check(character, action)
         elif duration > 0:
-            duration_and_resist[0] -= 1
-            if duration_and_resist[0] == 0:
+            character.db.debuffs_standard[status_effect] -= 1
+            if character.db.debuffs_standard[status_effect] == 0:
                 if status_effect == "Curse":
                     character.msg("You are no longer cursed.")
                 elif status_effect == "Injure":
@@ -721,6 +760,50 @@ def combat_tick(character, action):
                     character.msg("You are no longer petrified.")
                 elif status_effect == "Slime":
                     character.msg("You are no longer slimy.")
+    for status_effect, duration in character.db.debuffs_transform.items():
+        if duration > 0:
+            character.db.debuffs_transform[status_effect] -= 1
+            if character.db.debuffs_transform[status_effect] == 0:
+                if status_effect == "Bird":
+                    character.msg("You are no longer a bird.")
+                if status_effect == "Frog":
+                    character.msg("You are no longer a frog.")
+                if status_effect == "Pig":
+                    character.msg("You are no longer a pig.")
+                if status_effect == "Pumpkin":
+                    character.msg("You are no longer a pumpkin.")
+    for status_effect, duration in character.db.debuffs_hexes.items():
+        if duration > 0:
+            character.db.debuffs_hexes[status_effect] -= 1
+            if character.db.debuffs_hexes[status_effect] == 0:
+                if status_effect == "Blind":
+                    character.msg("You are no longer blind.")
+                if status_effect == "Silence":
+                    character.msg("You are no longer silenced.")
+                if status_effect == "Amnesia":
+                    character.msg("You are no longer suffering from amnesia.")
+                if status_effect == "Sleep":
+                    character.msg("You are no longer drowsy.")
+                if status_effect == "Charm":
+                    character.msg("You are no longer charmed.")
+                if status_effect == "Confuse":
+                    character.msg("You are no longer confused.")
+                if status_effect == "Fear":
+                    character.msg("You are no longer afraid.")
+                if status_effect == "Bind":
+                    character.msg("You are no longer bound.")
+                if status_effect == "Zombie":
+                    character.msg("You are no longer zombified.")
+                if status_effect == "Doom":
+                    character.msg("You are no longer doomed.")
+                if status_effect == "Dance":
+                    character.msg("You are no longer compelled to dance.")
+                if status_effect == "Stinky":
+                    character.msg("You are no longer stinky.")
+                if status_effect == "Itchy":
+                    character.msg("You are no longer itchy.")
+                if status_effect == "Old":
+                    character.msg("You are no longer aged.")
 
 
 def normalize_status(character):
@@ -735,8 +818,15 @@ def normalize_status(character):
     character.db.ranged_knockback = [False, []]
     character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
                           "Bless": 0}
-    character.db.debuffs = {"Poison": [0, 0], "Wound": [0, 0], "Curse": [0, 0], "Injure": [0, 0], "Muddle": [0, 0],
-                            "Miasma": [0, 0], "Berserk": [0, 0], "Petrify": [0, 0], "Slime": [0, 0]}
+    character.db.debuffs_standard = {"Poison": 0, "Wound": 0, "Curse": 0, "Injure": 0, "Muddle": 0, "Miasma": 0,
+                                     "Berserk": 0, "Petrify": 0, "Slime": 0}
+    character.db.debuffs_transform = {"Bird": 0, "Frog": 0, "Pig": 0, "Pumpkin": 0}
+    character.db.debuffs_hexes = {"Blind": 0, "Silence": 0, "Amnesia": 0, "Sleep": 0, "Charm": 0, "Confuse": 0, "Fear": 0,
+                                  "Bind": 0, "Zombie": 0, "Doom": 0, "Dance": 0, "Stinky": 0, "Itchy": 0, "Old": 0}
+    character.db.resistances = {"Poison": 0, "Wound": 0, "Curse": 0, "Injure": 0, "Muddle": 0, "Miasma": 0, "Berserk": 0,
+                                "Petrify": 0, "Slime": 0, "Bird": 0, "Frog": 0, "Pig": 0, "Pumpkin": 0, "Blind": 0,
+                                "Silence": 0, "Amnesia": 0, "Sleep": 0, "Charm": 0, "Confuse": 0, "Fear": 0, "Bind": 0,
+                                "Zombie": 0, "Doom": 0, "Dance": 0, "Stinky": 0, "Itchy": 0, "Old": 0}
     character.db.negative_lf_from_dot = False
     character.db.block_penalty = 0
     character.db.final_action = False
@@ -749,6 +839,8 @@ def normalize_status(character):
 
 def display_status_effects(caller):
     # Called by the check command to display status effects.
+    duration_string = ""
+    single_string = ""
     if caller.db.block_penalty > 0:
         caller.msg("Your current block penalty is {0}%.".format(round(caller.db.block_penalty)))
     if caller.db.endure_bonus > 0:
@@ -780,104 +872,153 @@ def display_status_effects(caller):
     for status_effect, duration in caller.db.buffs.items():
         if caller.db.buffs[status_effect] > 0:
             if status_effect == "Regen":
-                if duration > 1:
-                    caller.msg("You will gradually regenerate for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You will gradually regenerate for 1 more round.")
+                duration_string = "You will gradually regenerate for {duration} rounds."
+                single_string = "You will gradually regenerate for 1 more round."
             elif status_effect == "Vigor":
-                if duration > 1:
-                    caller.msg("You are invigorated for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You are invigorated for 1 more round.")
+                duration_string = "You are invigorated for {duration} rounds."
+                single_string = "You are invigorated for 1 more round."
             elif status_effect == "Protect":
-                if duration > 1:
-                    caller.msg("You are protected for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You are protected for 1 more round.")
+                duration_string = "You are protected for {duration} rounds."
+                single_string = "You are protected for 1 more round."
             elif status_effect == "Reflect":
-                if duration > 1:
-                    caller.msg("You are reflective for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You are reflective for 1 more round.")
+                duration_string = "You are reflective for {duration} rounds."
+                single_string = "You are reflective for 1 more round."
             elif status_effect == "Acuity":
-                if duration > 1:
-                    caller.msg("You are acutely attentive to critical vulnerabilities for {duration} rounds.".format(
-                        duration=duration))
-                else:
-                    caller.msg("You are acutely attentive to critical vulnerabilities for 1 more round.")
+                duration_string = "You are acutely attentive to critical vulnerabilities for {duration} rounds."
+                single_string = "You are acutely attentive to critical vulnerabilities for 1 more round."
             elif status_effect == "Haste":
-                if duration > 1:
-                    caller.msg("You are hastened for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You are hastened for 1 more round.")
+                duration_string = "You are hastened for {duration} rounds."
+                single_string = "You are hastened for 1 more round."
             elif status_effect == "Blink":
-                if duration > 1:
-                    caller.msg("You are trailed by afterimages for {duration} rounds.".format(duration=duration))
-                else:
-                    caller.msg("You are trailed by afterimages for 1 more round.")
+                duration_string = "You are trailed by afterimages for {duration} rounds."
+                single_string = "You are trailed by afterimages for 1 more round."
             elif status_effect == "Bless":
-                if duration > 1:
-                    caller.msg("Your resistance to debilitating effects is enhanced for {duration} rounds.".format(
-                        duration=duration))
-    for status_effect, duration_and_resist in caller.db.debuffs.items():
-        duration = duration_and_resist[0]
+                duration_string = "Your resistance to debilitating effects is enhanced for {duration} rounds."
+                single_string = "Your resistance to debilitating effects is enhanced for 1 more round."
+        if caller.db.buffs[status_effect] > 1:
+            caller.msg(duration_string.format(duration=duration))
+        elif caller.db.buffs[status_effect] == 1:
+            caller.msg(single_string)
+    for status_effect, duration in caller.db.debuffs_standard.items():
         if status_effect == "Poison" and duration > 0:
-            if duration > 1:
-                caller.msg("You are poisoned and suffering damage over time for {duration} rounds.".format(
-                    duration=duration))
-            else:
-                caller.msg("You are poisoned and suffering damage over time for 1 more round.")
+            duration_string = "You are poisoned and suffering damage over time for {duration} rounds."
+            single_string = "You are poisoned and suffering damage over time for 1 more round."
         elif status_effect == "Wound" and duration > 0:
-            if duration > 1:
-                caller.msg("You are wounded and suffering damage when you exert yourself for {duration} rounds.".format(
-                    duration=duration))
-            else:
-                caller.msg("You are wounded and suffering damage when you exert yourself for 1 more round.")
+            duration_string = "You are wounded and suffering damage when you exert yourself for {duration} rounds."
+            single_string = "You are wounded and suffering damage when you exert yourself for 1 more round."
         elif status_effect == "Curse" and duration > 0:
-            if duration > 1:
-                caller.msg("You are cursed, increasing your vulnerability to debilitating effects for {duration} "
-                           "rounds.".format(duration=duration))
-            else:
-                caller.msg("You are cursed, increasing your vulnerability to debilitating effects for 1 more round.")
+            duration_string = "You are cursed, increasing your vulnerability to debilitating effects for {duration} rounds."
+            single_string = "You are cursed, increasing your vulnerability to debilitating effects for 1 more round."
         elif status_effect == "Injure" and duration > 0:
-            if duration > 1:
-                caller.msg("You are injured, reducing your effective Power, Parry, and Speed for {duration} rounds.".
-                           format(duration=duration))
-            else:
-                caller.msg("You are injured, reducing your effective Power, Parry, and Speed for 1 more round.")
+            duration_string = "You are injured, reducing your effective Power, Parry, and Speed for {duration} rounds."
+            single_string = "You are injured, reducing your effective Power, Parry, and Speed for 1 more round."
         elif status_effect == "Muddle" and duration > 0:
-            if duration > 1:
-                caller.msg("You are muddled, reducing your effective Knowledge, Barrier, and Speed for {duration} rounds.".
-                           format(duration=duration))
-            else:
-                caller.msg("You are muddled, reducing your effective Knowledge, Barrier, and Speed for 1 more round.")
+            duration_string = "You are muddled, reducing your effective Knowledge, Barrier, and Speed for {duration} rounds."
+            single_string = "You are muddled, reducing your effective Knowledge, Barrier, and Speed for 1 more round."
         elif status_effect == "Miasma" and duration > 0:
-            if duration > 1:
-                caller.msg("You are afflicted by a miasma that halves the effects of healing upon you for {duration} rounds.".
-                           format(duration=duration))
-            else:
-                caller.msg("You are afflicted by a miasma that halves the effects of healing upon you for 1 more round.")
+            duration_string = "You are afflicted by a miasma that halves the effects of healing upon you for {duration} rounds."
+            single_string = "You are afflicted by a miasma that halves the effects of healing upon you for 1 more round."
         elif status_effect == "Berserk" and duration > 0:
-            if duration > 1:
-                caller.msg("You are berserk, increasing your effective Power, Knowledge, and Speed but preventing you "
-                           "from using Arts with a Force of less than 50 for {duration} rounds.".format(duration=duration))
-            else:
-                caller.msg("You are berserk, increasing your effective Power, Knowledge, and Speed but preventing you "
-                           "from using Arts with a Force of less than 50 for 1 more round.")
+            duration_string = "You are berserk, increasing your effective Power, Knowledge, and Speed but preventing you " \
+                              "from using Arts with a Force of less than 50 for {duration} rounds."
+            single_string = "You are berserk, increasing your effective Power, Knowledge, and Speed but preventing you " \
+                            "from using Arts with a Force of less than 50 for 1 more round."
         elif status_effect == "Petrify" and duration > 0:
-            if duration > 1:
-                caller.msg("You are petrified, reducing your Speed and especially your Dodge chances but somewhat "
-                           "increasing your Block and Endure chances for {duration} rounds.".format(duration=duration))
-            else:
-                caller.msg("You are petrified, reducing your Speed and especially your Dodge chances but somewhat "
-                           "increasing your Block and Endure chances for 1 more round.")
+            duration_string = "You are petrified, reducing your Speed and especially your Dodge chances but somewhat " \
+                              "increasing your Block and Endure chances for {duration} rounds."
+            single_string = "You are petrified, reducing your Speed and especially your Dodge chances but somewhat " \
+                            "increasing your Block and Endure chances for 1 more round."
         elif status_effect == "Slime" and duration > 0:
-            if duration > 1:
-                caller.msg("You are slimy, reducing your Speed and especially your Block chances but somewhat "
-                           "increasing your Dodge and Endure chances for {duration} rounds.".format(duration=duration))
+            duration_string = "You are slimy, reducing your Speed and especially your Block chances but somewhat " \
+                              "increasing your Dodge and Endure chances for {duration} rounds."
+            single_string = "You are slimy, reducing your Speed and especially your Block chances but somewhat " \
+                            "increasing your Dodge and Endure chances for 1 more round."
+        if caller.db.debuffs_standard[status_effect] > 1:
+            caller.msg(duration_string.format(duration=duration))
+        elif caller.db.debuffs_standard[status_effect] == 1:
+            caller.msg(single_string)
+    for status_effect, duration in caller.db.debuffs_transform.items():
+        if status_effect == "Bird" and duration > 0:
+            duration_string = "You have been turned into a bird for {duration} rounds."
+            single_string = "You have been turned into a bird for 1 more round."
+        elif status_effect == "Frog" and duration > 0:
+            duration_string = "You have been turned into a frog for {duration} rounds."
+            single_string = "You have been turned into a frog for 1 more round."
+        elif status_effect == "Pig" and duration > 0:
+            duration_string = "You have been turned into a pig for {duration} rounds."
+            single_string = "You have been turned into a pig for 1 more round."
+        elif status_effect == "Pumpkin" and duration > 0:
+            duration_string = "You have been turned into a pumpkin for {duration} rounds."
+            single_string = "You have been turned into a pumpkin for 1 more round."
+        if caller.db.debuffs_transform[status_effect] > 1:
+            caller.msg(duration_string.format(duration=duration))
+        elif caller.db.debuffs_transform[status_effect] == 1:
+            caller.msg(single_string)
+    for status_effect, duration in caller.db.debuffs_hexes.items():
+        if status_effect == "Blind" and duration > 0:
+            duration_string = "Hex: you are blind for {duration} rounds. RP as though you cannot see."
+            single_string = "Hex: you are blind for 1 more round. RP as though you cannot see."
+        elif status_effect == "Silence" and duration > 0:
+            duration_string = "Hex: you are silenced for {duration} rounds. RP as though you cannot speak."
+            single_string = "Hex: you are silenced for 1 more round. RP as though you cannot speak."
+        elif status_effect == "Amnesia" and duration > 0:
+            duration_string = "Hex: you are suffering from amnesia for {duration} rounds. RP as though you are very forgetful."
+            single_string = "Hex: you are suffering from amnesia for 1 more round. RP as though you are very forgetful."
+        elif status_effect == "Sleep" and duration > 0:
+            duration_string = "Hex: you are drowsy for {duration} rounds. RP as though you are sleepy or sleepwalking."
+            single_string = "Hex: you are drowsy for 1 more round. RP as though you are sleepy or sleepwalking."
+        elif status_effect == "Charm" and duration > 0:
+            duration_string = "Hex: you are charmed for {duration} rounds. RP as though smitten with someone."
+            single_string = "Hex: you are charmed for 1 more round. RP as though smitten with someone."
+        elif status_effect == "Confuse" and duration > 0:
+            duration_string = "Hex: you are confused for {duration} rounds. RP as though you cannot distinguish friend from foe."
+            single_string = "Hex: you are confused for 1 more round. RP as though you cannot distinguish friend from foe."
+        elif status_effect == "Fear" and duration > 0:
+            duration_string = "Hex: you are afraid for {duration} rounds. RP as though stricken with terror."
+            single_string = "Hex: you are afraid for 1 more round. RP as though stricken with terror."
+        elif status_effect == "Bind" and duration > 0:
+            duration_string = "Hex: you are bound for {duration} rounds. RP as though you cannot easily move."
+            single_string = "Hex: you are bound for 1 more round. RP as though you cannot easily move."
+        elif status_effect == "Zombie" and duration > 0:
+            duration_string = "Hex: you are zombified for {duration} rounds. RP this as either literal or psychological."
+            single_string = "Hex: you are zombified for 1 more round. RP this as either literal or psychological."
+        elif status_effect == "Doom" and duration > 0:
+            duration_string = "Hex: you are doomed for {duration} rounds. RP as though having an existential crisis."
+            single_string = "Hex: you are doomed for 1 more round. RP as though having an existential crisis."
+        elif status_effect == "Dance" and duration > 0:
+            duration_string = "Hex: you are compelled to dance for {duration} rounds. RP as though you must groove."
+            single_string = "Hex: you are compelled to dance for 1 more round. RP as though you must groove."
+        elif status_effect == "Stinky" and duration > 0:
+            duration_string = "Hex: you are stinky for {duration} rounds. RP as though you reek of a terrible stench."
+            single_string = "Hex: you are stinky for 1 more round. RP as though you reek of a terrible stench."
+        elif status_effect == "Itchy" and duration > 0:
+            duration_string = "Hex: you are itchy for {duration} rounds. RP as though compelled to scratch."
+            single_string = "Hex: you are itchy for 1 more round. RP as though compelled to scratch."
+        elif status_effect == "Old" and duration > 0:
+            duration_string = "Hex: you are aged for {duration} rounds. RP as though you have considerably aged."
+            single_string = "Hex: you are aged for 1 more round. RP as though you have considerably aged."
+        if caller.db.debuffs_hexes[status_effect] > 1:
+            caller.msg(duration_string.format(duration=duration))
+        elif caller.db.debuffs_hexes[status_effect] == 1:
+            caller.msg(single_string)
+    # End with a hex summary
+    hex_count = hex_counter(caller)
+    if hex_count > 0:
+        if hex_count > 1:
+            intensity_string = ""
+            if hex_count == 2:
+                intensity_string = "moderately"
+            elif hex_count == 3:
+                intensity_string = "severely"
             else:
-                caller.msg("You are slimy, reducing your Speed and especially your Block chances but somewhat "
-                           "increasing your Dodge and Endure chances for 1 more round.")
+                intensity_string = "grievously"
+            caller.msg(f"Your {hex_count} hexes {intensity_string} reduce your effective Speed. "
+                       f"'Pass' or Cure clears hexes.")
+        else:
+            # Hex_count is exactly 1
+            caller.msg("Your hex slightly reduces your effective Speed. 'Pass' or Cure clears hexes.")
+
+
 
 def apply_buff(action, healer, target):
     # A sub-function for heal_check so that the logic of buff application need not repeat.
@@ -946,27 +1087,48 @@ def apply_debuff(action, debuffer, target):
     base_debuff_resist = 30
     if target.db.buffs["Bless"] > 0:
         base_debuff_resist += 20
-    if target.db.debuffs["Curse"][0] > 0:
+    if target.db.debuffs_standard["Curse"] > 0:
         base_debuff_resist -= 20
     application_string = ""
     extension_string = ""
     debuff_effects = []
+    morph = False
+    random_hexes_to_apply = 0
     # Find all the effects on the action that are debuffs.
     split_effect_list = action.effects.split()
     for effect in split_effect_list:
         for debuff in DEBUFFS:
-            if effect == debuff.name:
+            if effect == "Hex1":
+                random_hexes_to_apply = 1
+            elif effect == "Hex2":
+                random_hexes_to_apply = 2
+            elif effect == "Hex3":
+                random_hexes_to_apply = 3
+            elif effect == "Morph":
+                morph = True
+            # Designing this so that Hex1, Hex2, Hex3, and Morph do not themselves get added to debuff_effects.
+            elif effect == debuff.name:
                 debuff_effects.append(effect)
-    # if serendipity:
-        # Add an additional random buff that is not already one of the Art's effects.
-        # buff_options = []
-        # for buff in BUFFS:
-            # if buff.name not in buff_effects:
-                # buff_options.append(buff.name)
-        # buff_effects.append(random.choice(buff_options))
+    # Loop through the hexes as much as required, randomizing which ones to add, never duplicating.
+    while random_hexes_to_apply:
+        # Add additional random hexes that are not already one of the Art's effects.
+        hex_options = []
+        for hex in DEBUFFS_HEXES:
+            if hex.name not in debuff_effects:
+                hex_options.append(hex.name)
+        debuff_effects.append(random.choice(hex_options))
+        random_hexes_to_apply -= 1
+    if morph:
+        morph_options = []
+        # It would be weird to have an Art with both Morph and another transformation debuff, but possible!
+        for transformation in DEBUFFS_TRANSFORMATION:
+            if transformation.name not in debuff_effects:
+                morph_options.append(transformation.name)
+        debuff_effects.append(random.choice(morph_options))
+    # Now prepare debuff strings and roll the check against the appropriate resistance.
     for debuff in debuff_effects:
-        # Identify the debuff and calculate the specific resistance (overwrite debuff_resist each time)
-        debuff_resist = base_debuff_resist + target.db.debuffs[debuff][1]
+        # Find resistance in target.db.resistances
+        debuff_resist = base_debuff_resist + target.db.resistances[debuff]
         if debuff == "Poison":
             application_string = "You are poisoned, gradually losing health."
             extension_string = "The duration of your poisoning has been extended."
@@ -997,16 +1159,84 @@ def apply_debuff(action, debuffer, target):
             application_string = "You are slimy, reducing your Speed and especially your Block chances but somewhat " \
                                  "increasing your Dodge and Endure chances."
             extension_string = "The duration of your sliminess has been extended."
+        elif debuff == "Bird":
+            application_string = "You have been turned into a bird, effectively halving your Power and Parry."
+            extension_string = "The duration of your transformation to a bird has been extended."
+        elif debuff == "Frog":
+            application_string = "You have been turned into a frog, effectively halving your Power and Barrier."
+            extension_string = "The duration of your transformation to a frog has been extended."
+        elif debuff == "Pig":
+            application_string = "You have been turned into a pig, effectively halving your Knowledge and Parry."
+            extension_string = "The duration of your transformation to a pig has been extended."
+        elif debuff == "Pumpkin":
+            application_string = "You have been turned into a pumpkin, effectively halving your Knowledge and Barrier."
+            extension_string = "The duration of your transformation to a pumpkin has been extended."
+        elif debuff == "Blind":
+            application_string = "You are hexed to be blind. RP as though you cannot see."
+            extension_string = "The duration of your blindness has been extended."
+        elif debuff == "Silence":
+            application_string = "You are hexed to be silent. RP as though you cannot speak."
+            extension_string = "The duration of your silence has been extended."
+        elif debuff == "Amnesia":
+            application_string = "You are hexed with amnesia. RP as though you are very forgetful."
+            extension_string = "The duration of your amnesia has been extended."
+        elif debuff == "Sleep":
+            application_string = "You are hexed with drowsiness. RP as though you are sleepy or sleepwalking."
+            extension_string = "The duration of your drowsiness has been extended."
+        elif debuff == "Charmed":
+            application_string = "You are hexed to be charmed. RP as though smitten with someone."
+            extension_string = "The duration of your charmed state has been extended."
+        elif debuff == "Confuse":
+            application_string = "You are hexed to be confused. RP as though you cannot distinguish friend from foe."
+            extension_string = "The duration of your confusion has been extended."
+        elif debuff == "Fear":
+            application_string = "You are hexed to be afraid. RP as though stricken with terror."
+            extension_string = "The duration of your fear has been extended."
+        elif debuff == "Bind":
+            application_string = "You are hexed to be bound. RP as though you cannot easily move."
+            extension_string = "The duration of your binding has been extended."
+        elif debuff == "Zombie":
+            application_string = "You are hexed to be zombified. RP this as either literal or psychological."
+            extension_string = "The duration of your zombification has been extended."
+        elif debuff == "Doom":
+            application_string = "You are hexed to be doomed. RP as though having an existential crisis."
+            extension_string = "The duration of your doomed state has been extended."
+        elif debuff == "Dance":
+            application_string = "You are hexed to dance. RP as though compelled to groove."
+            extension_string = "The duration of your compulsion to dance has been extended."
+        elif debuff == "Stinky":
+            application_string = "You are hexed to be stinky. RP as though you reek of a terrible stench."
+            extension_string = "The duration of your stench has been extended."
+        elif debuff == "Itchy":
+            application_string = "You are hexed to be itchy. RP as though compelled to scratch."
+            extension_string = "The duration of your transformation to a bird has been extended."
+        elif debuff == "Old":
+            application_string = "You are hexed to be old. RP as though you have considerably aged."
+            extension_string = "The duration of your aged state has been extended."
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
         if debuff_check_roll > debuff_resist:
-            # If debuff succeeds, apply using consistent logic
-            if target.db.debuffs[debuff][0] == 0:
-                target.msg(application_string)
-            else:
-                target.msg(extension_string)
+            # If debuff succeeds, apply using consistent logic. Check what dict the debuff is stored in
             if debuffer == target:
-                # A combat tick is going to happen after this, so the duration will be 3 regardless. If it matters...?
-                target.db.debuffs[debuff][0] = 4
+                # A combat tick is going to happen after this, so the duration will be 3 regardless (if self-debuff).
+                new_duration = 4
             else:
-                target.db.debuffs[debuff][0] = 3
+                new_duration = 3
+            if debuff in target.db.debuffs_standard.keys():
+                if target.db.debuffs_standard[debuff] == 0:
+                    target.msg(application_string)
+                else:
+                    target.msg(extension_string)
+                target.db.debuffs_standard[debuff] = new_duration
+            elif debuff in target.db.debuffs_transform.keys():
+                if target.db.debuffs_transform[debuff] == 0:
+                    target.msg(application_string)
+                else:
+                    target.msg(extension_string)
+                target.db.debuffs_transform[debuff] = new_duration
+            elif debuff in target.db.debuffs_hexes.keys():
+                if target.db.debuffs_hexes[debuff] == 0:
+                    target.msg(application_string)
+                else:
+                    target.msg(extension_string)
+                target.db.debuffs_hexes[debuff] = new_duration

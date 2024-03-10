@@ -109,6 +109,51 @@ slime = Effect("Slime", -15, "SLM")
 # Applies the Slime Effect: Lower a target's Speed and greatly reduce their Block chance specifically, but somewhat
 # improve their Dodge and Endure chances.
 
+# Debuffs (Transformation)
+
+# Transformation debuffs have dramatic effects but serious limitations. First, they only last for 2 rounds. Second,
+# a target can only be affected by one Transformation debuff at a time. Third, being affected by a Transformation
+# debuff greatly increases the target's resistance to any future Transformation attempts during the fight. Finally,
+# these debuffs have the highest AP costs of any Effects.
+
+morph = Effect("Morph", -25, "MRPH")
+# Inflict a random Transformation Effect.
+bird = Effect("Bird", -35, "BIRD")
+# Turn the target into a bird, effectively halving their Power and Parry.
+frog = Effect("Frog", -35, "FROG")
+# Turn the target into a frog, effectively halving their Power and Barrier.
+pig = Effect("Pig", -35, "PIG")
+# Turn the target into a pig, effectively halving their Knowledge and Parry.
+pumpkin = Effect("Pumpkin", -35, "PMKN")
+# Turn the target into a pumpkin, effectively halving their Knowledge and Barrier. Somehow, they can still hop around.
+
+# Debuffs (Hexes)
+
+# Mechanically, all Hexes cost 10 AP and have the same Distraction effect, persisting for 3 actions: they moderately
+# reduce the target's reaction chances multiplied by the number of different Hexes on the target. Being Hexed also
+# moderately increases the target's resistance to being Hexed again during the fight, a bonus which depreciates with
+# each action. [Even though they're all the same, I want players to be able to pick a single one to inflict, so I'm
+# going to make them distinct Effects.]
+
+hex1 = Effect("Hex1", -10, "HEX1")
+hex2 = Effect("Hex2", -20, "HEX2")
+hex3 = Effect("Hex3", -30, "HEX3")
+# Inflict X number of random Hexes.
+blind = Effect("Blind", -10, "BLN")
+silence = Effect("Silence", -10, "SLN")
+amnesia = Effect("Amnesia", -10, "AMN")
+sleep = Effect("Sleep", -10, "SLP")
+charm = Effect("Charm", -10, "CHR")
+confuse = Effect("Confuse", -10, "CNF")
+fear = Effect("Fear", -10, "FR")
+bind = Effect("Bind", -10, "BND")
+zombie = Effect("Zombie", -10, "ZMB")
+doom = Effect("Doom", -10, "DM")
+dance = Effect("Dance", -10, "DNC")
+stinky = Effect("Stinky", -10, "STN")
+itchy = Effect("Itchy", -10, "ITC")
+old = Effect("Old", -10, "OLD")
+
 # List of all Effects
 
 EFFECTS = [crush,
@@ -141,7 +186,29 @@ EFFECTS = [crush,
            miasma,
            berserk,
            petrify,
-           slime]
+           slime,
+           morph,
+           bird,
+           frog,
+           pig,
+           pumpkin,
+           hex1,
+           hex2,
+           hex3,
+           blind,
+           silence,
+           amnesia,
+           sleep,
+           charm,
+           confuse,
+           fear,
+           bind,
+           zombie,
+           doom,
+           dance,
+           stinky,
+           itchy,
+           old]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
@@ -166,7 +233,23 @@ DEBUFFS_STANDARD = [poison,
                     berserk,
                     petrify,
                     slime]
-DEBUFFS_TRANSFORMATION = []
-DEBUFFS_HEXES = []
+DEBUFFS_TRANSFORMATION = [bird,
+                          frog,
+                          pig,
+                          pumpkin]
+DEBUFFS_HEXES = [blind,
+                 silence,
+                 amnesia,
+                 sleep,
+                 charm,
+                 confuse,
+                 fear,
+                 bind,
+                 zombie,
+                 doom,
+                 dance,
+                 stinky,
+                 itchy,
+                 old]
 DEBUFFS = DEBUFFS_STANDARD + DEBUFFS_TRANSFORMATION + DEBUFFS_HEXES
 

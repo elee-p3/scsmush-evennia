@@ -285,7 +285,7 @@ class CmdAttack(default_cmds.MuxCommand):
         action_clean = copy.copy(action_clean)
 
         # Check if the attacker is currently Berserk.
-        if caller.db.debuffs["Berserk"][0] > 0:
+        if caller.db.debuffs_standard["Berserk"] > 0:
             if berserk_check(caller, action_clean):
                 return caller.msg("Due to your Berserk state, you may only use attacks of 50 DMG or higher.")
         # If the character has insufficient AP or EX to use that move, cancel the attack.
@@ -705,7 +705,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         else:
             interrupt_clean = arts.get(name__iexact=outgoing_interrupt_arg)
         # Check if the interrupter is currently Berserk.
-        if caller.db.debuffs["Berserk"][0] > 0:
+        if caller.db.debuffs_standard["Berserk"] > 0:
             if berserk_check(caller, interrupt_clean):
                 return caller.msg("Due to your Berserk state, you may only use attacks of 50 DMG or higher.")
         # If the character has insufficient AP or EX to use that move, cancel the interrupt.
@@ -1123,6 +1123,8 @@ class CmdPass(default_cmds.MuxCommand):
         if caller.db.stunned:
             caller.db.stunned = False
             caller.msg("Your character is no longer stunned.")
+        # Clear all hexes, if applicable.
+        clear_hexes(caller)
         # If this was the attacker's final action, they are now KOed.
         if caller.db.final_action:
             final_action_taken(caller)
