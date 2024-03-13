@@ -417,7 +417,7 @@ def find_attacker_stat(attacker, base_stat):
     return attacker_stat
 
 
-def heal_check(action, healer, target):
+def heal_check(action, healer, target, switches):
     # Check for heal effect. Check has_been_healed: how much the target has already been healed this fight.
     # Come up with a formula for accuracy of heal to affect variance of heal amount (more accurate, more consistent).
     # Come up with a formula to depreciate healing amount based on has_been_healed, and apply that after variance.
@@ -440,6 +440,33 @@ def heal_check(action, healer, target):
     # Weird corner case: see if someone is trying to heal themselves out of KO state.
     if "Heal" in action.effects and healer == target and healer.db.final_action:
         return healer.msg("You may not heal or revive yourself as a final action.")
+    # See if someone has used a CmdAttack switch to try to Cure a specific debuff that the target does not have.
+    cure_match = ""
+    # Merging the three debuff dictionaries for this check
+    debuffs_all = target.db.debuffs_standard | target.db.debuffs_transform | target.db.debuffs_hexes
+    if "Cure" in action.effects and switches:
+        # For now, just ensure there's only one switch on attempted Cures.
+        if len(switches) > 1:
+            return healer.msg("Please specify only one debuff to Cure.")
+        for debuff, duration in debuffs_all.items():
+            for switch in switches:
+                # Switches is a list, so I want to compare with the string within the list.
+                if debuff.lower() == switch.lower() and duration == 0:
+                    return healer.msg("You have specified a debuff to Cure that the target does not currently have.")
+                elif debuff.lower() == switch.lower() and duration > 0:
+                    cure_match = debuff
+        # After all that, confirm that the switch is an actual existing debuff.
+        if not cure_match:
+            return healer.msg("You have specified a debuff to Cure that is not recognized.")
+    if "Cure" in action.effects and not switches:
+        # Select a random active debuff
+        debuff_options = []
+        for debuff, duration in debuffs_all.items():
+            if duration > 0:
+                debuff_options.append(debuff)
+        if debuff_options:
+            cure_match = random.choice(debuff_options)
+        # If there are no debuff_options, just let the heal go through as a normal one. No cure_match.
     if "Drain" in action.effects:
         total_healing = action.dmg / 2.5
     else:
@@ -492,7 +519,17 @@ def heal_check(action, healer, target):
         healer.location.msg_contents(combat_string)
     if regen:
         healer.msg("You have regenerated for {value}.".format(value=total_healing))
-    # Incorporate Support effects
+    # Actually Cure any debuffs here, after the heal itself.
+    if cure_match:
+        if cure_match in target.db.debuffs_standard.keys():
+            target.db.debuffs_standard[cure_match] = 0
+        elif cure_match in target.db.debuffs_transform.keys():
+            target.db.debuffs_transform[cure_match] = 0
+        elif cure_match in target.db.debuffs_hexes.keys():
+            target.db.debuffs_hexes[cure_match] = 0
+        status_effect_end_message(target, cure_match)
+        healer.msg(f"You have successfully Cured {target}'s {cure_match.title()} status effect.")
+    # Incorporate other Support effects
     else:
         apply_buff(action, healer, target)
 
@@ -724,22 +761,7 @@ def combat_tick(character, action):
             if character.db.buffs[status_effect] > 0:
                 character.db.buffs[status_effect] -= 1
                 if character.db.buffs[status_effect] == 0:
-                    if status_effect == "Vigor":
-                        character.msg("You are no longer invigorated.")
-                    elif status_effect == "Protect":
-                        character.msg("You are no longer protected from attacks.")
-                    elif status_effect == "Reflect":
-                        character.msg("You are no longer reflecting attacks.")
-                    elif status_effect == "Acuity":
-                        character.msg("You are no longer acutely attentive to critical vulnerabilities.")
-                    elif status_effect == "Haste":
-                        character.msg("You are no longer hastened.")
-                    elif status_effect == "Blink":
-                        character.msg("You are no longer trailed by afterimages.")
-                    elif status_effect == "Bless":
-                        character.msg("Your resistance to debilitating effects is no longer enhanced.")
-                    elif status_effect == "Purity":
-                        character.msg("You are no longer immune to transformation or hexes.")
+                    status_effect_end_message(character, status_effect)
     for status_effect, duration in character.db.debuffs_standard.items():
         if status_effect == "Poison" and duration > 0:
             poison_check(character)
@@ -748,64 +770,17 @@ def combat_tick(character, action):
         elif duration > 0:
             character.db.debuffs_standard[status_effect] -= 1
             if character.db.debuffs_standard[status_effect] == 0:
-                if status_effect == "Curse":
-                    character.msg("You are no longer cursed.")
-                elif status_effect == "Injure":
-                    character.msg("You are no longer injured.")
-                elif status_effect == "Muddle":
-                    character.msg("You are no longer muddled.")
-                elif status_effect == "Miasma":
-                    character.msg("You are no longer afflicted by a miasma.")
-                elif status_effect == "Berserk":
-                    character.msg("You are no longer berserk.")
-                elif status_effect == "Petrify":
-                    character.msg("You are no longer petrified.")
-                elif status_effect == "Slime":
-                    character.msg("You are no longer slimy.")
+                status_effect_end_message(character, status_effect)
     for status_effect, duration in character.db.debuffs_transform.items():
         if duration > 0:
             character.db.debuffs_transform[status_effect] -= 1
             if character.db.debuffs_transform[status_effect] == 0:
-                if status_effect == "Bird":
-                    character.msg("You are no longer a bird.")
-                if status_effect == "Frog":
-                    character.msg("You are no longer a frog.")
-                if status_effect == "Pig":
-                    character.msg("You are no longer a pig.")
-                if status_effect == "Pumpkin":
-                    character.msg("You are no longer a pumpkin.")
+                status_effect_end_message(character, status_effect)
     for status_effect, duration in character.db.debuffs_hexes.items():
         if duration > 0:
             character.db.debuffs_hexes[status_effect] -= 1
             if character.db.debuffs_hexes[status_effect] == 0:
-                if status_effect == "Blind":
-                    character.msg("You are no longer blind.")
-                if status_effect == "Silence":
-                    character.msg("You are no longer silenced.")
-                if status_effect == "Amnesia":
-                    character.msg("You are no longer suffering from amnesia.")
-                if status_effect == "Sleep":
-                    character.msg("You are no longer drowsy.")
-                if status_effect == "Charm":
-                    character.msg("You are no longer charmed.")
-                if status_effect == "Confuse":
-                    character.msg("You are no longer confused.")
-                if status_effect == "Fear":
-                    character.msg("You are no longer afraid.")
-                if status_effect == "Bind":
-                    character.msg("You are no longer bound.")
-                if status_effect == "Zombie":
-                    character.msg("You are no longer zombified.")
-                if status_effect == "Doom":
-                    character.msg("You are no longer doomed.")
-                if status_effect == "Dance":
-                    character.msg("You are no longer compelled to dance.")
-                if status_effect == "Stinky":
-                    character.msg("You are no longer stinky.")
-                if status_effect == "Itchy":
-                    character.msg("You are no longer itchy.")
-                if status_effect == "Old":
-                    character.msg("You are no longer aged.")
+                status_effect_end_message(character, status_effect)
     # Base resistance is 0, so for any resistance higher than that, decrease by 10 every tick to floor of 0.
     for resistance in character.db.resistances.keys():
         if character.db.resistances[resistance] > 0:
@@ -1255,14 +1230,7 @@ def apply_debuff(action, debuffer, target):
                 for transformation, duration in target.db.debuffs_transform.items():
                     if transformation != debuff and duration > 0:
                         target.db.debuffs_transform[transformation] = 0
-                        if transformation == "Bird":
-                            target.msg("You are no longer a bird.")
-                        if transformation == "Frog":
-                            target.msg("You are no longer a frog.")
-                        if transformation == "Pig":
-                            target.msg("You are no longer a pig.")
-                        if transformation == "Pumpkin":
-                            target.msg("You are no longer a pumpkin.")
+                        status_effect_end_message(target, transformation)
                 # For transformation debuffs, increase the resistance to that debuff by 60 and all others by 40.
                 target.db.resistances[debuff] += 20
                 for transformation in target.db.debuffs_transform.keys():
@@ -1277,3 +1245,75 @@ def apply_debuff(action, debuffer, target):
                 target.db.resistances[debuff] += 20
                 for hex in target.db.debuffs_hexes.keys():
                     target.db.resistances[hex] += 20
+
+
+def status_effect_end_message(character, status_effect):
+    # Writing a separate sub-function for when status effects end to be called both by combat_tick and heal_check
+    # for when Cure is used, so I don't have to write redundant strings for the "effect ends" message.
+    # Note that this function exclusively sends messages. It does not modify status effect durations.
+    if status_effect == "Vigor":
+        character.msg("You are no longer invigorated.")
+    elif status_effect == "Protect":
+        character.msg("You are no longer protected from attacks.")
+    elif status_effect == "Reflect":
+        character.msg("You are no longer reflecting attacks.")
+    elif status_effect == "Acuity":
+        character.msg("You are no longer acutely attentive to critical vulnerabilities.")
+    elif status_effect == "Haste":
+        character.msg("You are no longer hastened.")
+    elif status_effect == "Blink":
+        character.msg("You are no longer trailed by afterimages.")
+    elif status_effect == "Bless":
+        character.msg("Your resistance to debilitating effects is no longer enhanced.")
+    elif status_effect == "Purity":
+        character.msg("You are no longer immune to transformation or hexes.")
+    elif status_effect == "Curse":
+        character.msg("You are no longer cursed.")
+    elif status_effect == "Injure":
+        character.msg("You are no longer injured.")
+    elif status_effect == "Muddle":
+        character.msg("You are no longer muddled.")
+    elif status_effect == "Miasma":
+        character.msg("You are no longer afflicted by a miasma.")
+    elif status_effect == "Berserk":
+        character.msg("You are no longer berserk.")
+    elif status_effect == "Petrify":
+        character.msg("You are no longer petrified.")
+    elif status_effect == "Slime":
+        character.msg("You are no longer slimy.")
+    elif status_effect == "Bird":
+        character.msg("You are no longer a bird.")
+    elif status_effect == "Frog":
+        character.msg("You are no longer a frog.")
+    elif status_effect == "Pig":
+        character.msg("You are no longer a pig.")
+    elif status_effect == "Pumpkin":
+        character.msg("You are no longer a pumpkin.")
+    elif status_effect == "Blind":
+        character.msg("You are no longer blind.")
+    elif status_effect == "Silence":
+        character.msg("You are no longer silenced.")
+    elif status_effect == "Amnesia":
+        character.msg("You are no longer suffering from amnesia.")
+    elif status_effect == "Sleep":
+        character.msg("You are no longer drowsy.")
+    elif status_effect == "Charm":
+        character.msg("You are no longer charmed.")
+    elif status_effect == "Confuse":
+        character.msg("You are no longer confused.")
+    elif status_effect == "Fear":
+        character.msg("You are no longer afraid.")
+    elif status_effect == "Bind":
+        character.msg("You are no longer bound.")
+    elif status_effect == "Zombie":
+        character.msg("You are no longer zombified.")
+    elif status_effect == "Doom":
+        character.msg("You are no longer doomed.")
+    elif status_effect == "Dance":
+        character.msg("You are no longer compelled to dance.")
+    elif status_effect == "Stinky":
+        character.msg("You are no longer stinky.")
+    elif status_effect == "Itchy":
+        character.msg("You are no longer itchy.")
+    elif status_effect == "Old":
+        character.msg("You are no longer aged.")

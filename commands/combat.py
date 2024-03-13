@@ -205,7 +205,7 @@ class CmdAttack(default_cmds.MuxCommand):
     """
 
     key = "+attack"
-    aliases = ["attack", "target"]
+    aliases = ["attack", "target", "heal"]
     locks = "cmd:all()"
 
     def func(self):
@@ -215,6 +215,8 @@ class CmdAttack(default_cmds.MuxCommand):
         location = caller.location
         args = self.args
         arts = Arts.objects.filter(characters=caller)
+        switches = self.switches
+        # For attack/wild and heal/[debuff] (for Cure). Switches is a list of strings split by /. Send to heal_check.
 
         if len(args) == 0:
             return caller.msg("You need to specify a target and action. See `help attack` for syntax.")
@@ -313,12 +315,17 @@ class CmdAttack(default_cmds.MuxCommand):
         # Before modifying damage, check if the action is a heal, as there the target's defense stat will not apply.
         action_clean.acc = modify_accuracy(action_clean, caller)
         if "Heal" in action_clean.effects:
-            heal_check(action_clean, caller, target_object)
+            heal_check(action_clean, caller, target_object, switches)
         else:
             action_clean.dmg = modify_damage(action_clean, caller)
 
             new_id = assign_attack_instance_id(target_object)
-            target_object.db.queue.append(AttackInstance(new_id, action_clean, caller.key, aim_or_feint))
+            # Confirm here before passing along the attack that the switch is a valid one: currently, just "wild."
+            if switches:
+                for switch in switches:
+                    if switch.lower() != "wild":
+                        return caller.msg("Error: a switch on your attack was not recognized. See 'help attack'.")
+            target_object.db.queue.append(AttackInstance(new_id, action_clean, caller.key, aim_or_feint, switches))
 
             caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
             combat_string = "|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(

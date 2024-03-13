@@ -85,6 +85,8 @@ bless = Effect("Bless", -15, "BLS")
 # Applies the Bless Effect: Increase resistance to all Debuffs.
 purity = Effect("Purity", -15, "PUR")
 # Applies the Purity Effect: Grant immunity to all non-Standard Debuffs, i.e., Transformation and Hexes.
+cure = Effect("Cure", -10, "CURE")
+# Removes a random debuff, or a specific debuff with the switch "heal/[name of debuff]". Heal is an alias of CmdAttack.
 
 # Debuffs (Standard)
 
@@ -211,13 +213,15 @@ EFFECTS = [crush,
            stinky,
            itchy,
            old,
-           purity]
+           purity,
+           cure]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
 
 SUPPORT = [revive,
            serendipity,
+           cure,
            regen,
            vigor,
            protect,
@@ -227,7 +231,7 @@ SUPPORT = [revive,
            blink,
            bless,
            purity]
-BUFFS = SUPPORT[2:]
+BUFFS = SUPPORT[3:]
 DEBUFFS_STANDARD = [poison,
                     wound,
                     curse,

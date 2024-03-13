@@ -24,13 +24,14 @@ class Attack:
 class AttackInstance:
     # This is a class that contains an instance of an Attack (see above) as well as the attacker, an ID in the target's
     # queue, and an enum representing if the attacker was Aiming, Feinting, or neither.
-    def __init__(self, new_id, attack, attacker_key, aim_or_feint):
+    def __init__(self, new_id, attack, attacker_key, aim_or_feint, switches):
         self.id = new_id
         # self.target = target
         self.attack = attack
         self.attacker_key = attacker_key
         self.aim_or_feint = aim_or_feint
         self.modifier = ""
+        self.switches = []
         if aim_or_feint == AimOrFeint.AIM:
             self.modifier = "Aimed "
         if aim_or_feint == AimOrFeint.FEINT:
