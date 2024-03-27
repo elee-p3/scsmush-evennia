@@ -89,6 +89,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdLogmunch)
         self.add(CmdTeach)
         self.add(CmdConvertArts)
+        self.add(CmdCharSelect)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):

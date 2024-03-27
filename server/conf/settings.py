@@ -57,7 +57,7 @@ INSTALLED_APPS += [
 # that can then drift from the expected defaults over time. Will it work? /shrug
 TEMPLATES[0]["OPTIONS"]["builtins"] = [ "shared.filters" ]
 
-MULTISESSION_MODE = 1
+
 ######################################################################
 # Settings given in secret_settings.py override those in this file.
 ######################################################################
@@ -68,3 +68,9 @@ except ImportError:
 
 DEBUG = True
 COMMAND_DEFAULT_ARG_REGEX = ""
+
+# Puppeting settings
+MAX_NR_SIMULTANEOUS_PUPPETS = None
+MAX_NR_CHARACTERS = None
+MULTISESSION_MODE = 3
+AUTO_PUPPET_ON_LOGIN = False

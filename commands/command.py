@@ -15,6 +15,7 @@ from evennia.utils import utils, create, evtable, make_iter, inherits_from, date
 from evennia.comms.models import Msg
 from world.scenes.models import Scene, LogEntry
 from world.supplemental import *
+from server.conf.settings import AUTO_PUPPET_ON_LOGIN, MAX_NR_CHARACTERS
 from world.utilities.utilities import setup_table, populate_table, logger
 
 
@@ -777,3 +778,50 @@ class CmdSay(default_cmds.MuxCommand):
             scene = Scene.objects.get(pk=self.caller.location.db.event_id)
             scene.addLogEntry(LogEntry.EntryType.SAY, self.args, self.caller)
             add_participant_to_scene(self.caller, scene)
+
+
+class CmdCharSelect(default_cmds.MuxCommand):
+    """
+    stop puppeting and go to the character select screen
+
+    Usage:
+      charselect
+
+    Go to the character select screen.
+    """
+
+    key = "charselect"
+    locks = "cmd:pperm(Player)"
+    aliases = "unpuppet"
+    help_category = "General"
+
+    # this is used by the parent
+    # account_caller = True
+
+    def func(self):
+        caller = self.caller
+        account = caller.account
+        session = self.session
+        char_name = caller.name
+
+        old_char = account.get_puppet(session)
+        if not old_char:
+            string = "You are already unpuppeted."
+            self.msg(string)
+            return
+
+        account.db._last_puppet = old_char
+
+        # disconnect
+        try:
+            caller.msg("\n|GYou are no longer puppeting {0}.|n\n".format(char_name))
+            caller.msg(account.at_look(target=account.characters, session=session))
+            account.unpuppet_object(session)
+
+            if AUTO_PUPPET_ON_LOGIN and MAX_NR_CHARACTERS == 1 and self.playable:
+                # only one character exists and is allowed - simplify
+                caller.msg("You are out-of-character (OOC).\nUse |wic|n to get back into the game.")
+                return
+
+        except RuntimeError as exc:
+            self.msg(f"|rCould not unpuppet from |c{old_char}|n: {exc}")
