@@ -24,13 +24,14 @@ class Attack:
 class AttackInstance:
     # This is a class that contains an instance of an Attack (see above) as well as the attacker, an ID in the target's
     # queue, and an enum representing if the attacker was Aiming, Feinting, or neither.
-    def __init__(self, new_id, attack, attacker_key, aim_or_feint):
+    def __init__(self, new_id, attack, attacker_key, aim_or_feint, switches):
         self.id = new_id
         # self.target = target
         self.attack = attack
         self.attacker_key = attacker_key
         self.aim_or_feint = aim_or_feint
         self.modifier = ""
+        self.switches = []
         if aim_or_feint == AimOrFeint.AIM:
             self.modifier = "Aimed "
         if aim_or_feint == AimOrFeint.FEINT:
@@ -45,8 +46,10 @@ class AttackInstance:
         self.has_weave = False
         self.has_brace = False
         self.has_bait = False
+        self.has_ranged = False
         if attack.effects:
-            for effect in attack.effects:
+            split_effects = attack.effects.split()
+            for effect in split_effects:
                 if effect == "Crush":
                     self.has_crush = True
                 if effect == "Sweep":
@@ -61,3 +64,5 @@ class AttackInstance:
                     self.has_brace = True
                 if effect == "Bait":
                     self.has_bait = True
+                if effect == "Long-Range":
+                    self.has_ranged = True
