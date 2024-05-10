@@ -1,4 +1,5 @@
 from world.combat.effects import AimOrFeint
+from world.utilities.utilities import find_attacker_from_key
 
 
 class Attack:
@@ -21,17 +22,39 @@ class Attack:
             return self.name.lower() == other.name.lower()
 
 
-class AttackInstance:
+class AttackDuringAction:
+    # This is the parent class for attacks with metadata. Attackers may use either CmdAttack or CmdInterrupt to
+    # use their Attacks. CmdAttack must pass an AttackToQueue into the defender's queue so that the defender may
+    # choose a reaction. CmdInterrupt is not passed into the defender's queue and resolves without a reaction.
+    # Metadata required for both CmdAttack and CmdInterrupt and relevant combat_functions is thus stored here.
+    def __init__(self, attack, attacker_key, switches):
+        self.attack = attack
+        self.attacker_key = attacker_key
+        attacker = find_attacker_from_key(attacker_key)
+        self.modifier = ""
+        self.switches_string = "".join(switches)
+        self.has_acuity = False
+        self.is_wild = False
+        if attacker.db.buffs["Acuity"] > 0:
+            self.has_acuity = True
+        if self.switches_string:
+            switches_list = self.switches_string.split()
+            for switch in switches_list:
+                if switch.lower() == "wild":
+                    # This will be checked by critical_hits. Wild attacks are more likely to crit.
+                    self.is_wild = True
+                    # Wild attacks have -20 accuracy.
+                    self.attack.acc -= 20
+
+
+class AttackToQueue(AttackDuringAction):
     # This is a class that contains an instance of an Attack (see above) as well as the attacker, an ID in the target's
     # queue, and an enum representing if the attacker was Aiming, Feinting, or neither.
     def __init__(self, new_id, attack, attacker_key, aim_or_feint, switches):
+        super(AttackToQueue, self).__init__(attack, attacker_key, switches)
         self.id = new_id
         # self.target = target
-        self.attack = attack
-        self.attacker_key = attacker_key
         self.aim_or_feint = aim_or_feint
-        self.modifier = ""
-        self.switches = []
         if aim_or_feint == AimOrFeint.AIM:
             self.modifier = "Aimed "
         if aim_or_feint == AimOrFeint.FEINT:

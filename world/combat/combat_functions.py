@@ -1,6 +1,5 @@
 from world.scenes.models import Scene, LogEntry
 from django.utils.html import escape
-from evennia.objects.models import ObjectDB
 import random
 import math
 from world.utilities.utilities import logger
@@ -16,15 +15,6 @@ def assign_attack_instance_id(target):
         last_id = max((attack.id for attack in target.db.queue))
     new_id = last_id + 1
     return new_id
-
-
-def find_attacker_from_key(attacker_key):
-    # This finds the attacker's character object from their key.
-    # Because Evennia uses Python's default pickling method, we cannot pass character objects directly into a queue.
-    all_objects = ObjectDB.objects.all()
-    attacker_queryset = all_objects.filter(db_key=attacker_key)
-    attacker = attacker_queryset[0]
-    return attacker
 
 
 def damage_calc(attack_dmg, attacker_stat, base_stat, defender):
@@ -71,9 +61,21 @@ def modify_accuracy(action, character):
     # Check if the character is rushing and, if so, add 7 to accuracy.
     if "Rush" in action.effects:
         accuracy += 7
+    # Check if the attack is Long-Range and, if so, subtract 5 from accuracy.
     if "Long-Range" in action.effects:
         accuracy -= 5
     return accuracy
+
+
+def attack_switch_check(attacker, switches):
+    # Checking for switches on CmdAttack other than heal/cure switches, which go to heal_check.
+    # Right now, there is just attack/wild, which lowers accuracy here and increases crit threshold in critical_hits.
+    valid_switches = ["wild"]
+    error_found = False
+    for switch in switches:
+        if switch not in valid_switches:
+            error_found = True
+    return error_found
 
 
 def modify_damage(action, character):
@@ -598,15 +600,18 @@ def dispel_check(target):
         return modified_buffs
 
 
-def critical_hits(damage, attacker):
+def critical_hits(damage, action):
     # Default 5% chance to inflict 1.25x damage. There will be ways to modify that, so put them all here.
     # Take the current damage as an input and return a bool and possibly modified damage.
     is_critical = False
     critical_check = random.randint(1, 100)
     critical_threshold = 5
-    # Checking for Acuity buff on the attacker.
-    if attacker.db.buffs["Acuity"] > 0:
+    # Checking for Acuity buff on the attack. (Not the attacker, since their buff might have expired.)
+    if action.has_acuity:
         critical_threshold *= 3
+    # Attack/wild makes attacks less accurate but adds a flat crit chance bonus, for fun.
+    if action.is_wild:
+        critical_threshold += 10
     if critical_check <= critical_threshold:
         is_critical = True
         damage *= 1.25

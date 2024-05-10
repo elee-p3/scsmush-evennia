@@ -6,7 +6,7 @@ from math import floor, ceil
 from evennia import default_cmds
 from evennia.utils import evtable
 from world.arts.models import Arts
-from world.combat.attacks import AttackInstance
+from world.combat.attacks import AttackToQueue, AttackDuringAction
 from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
 # from world.combat.normals import NORMALS
@@ -156,6 +156,7 @@ class CmdSheet(default_cmds.MuxCommand):
         right_spacing = ceil(client_width / 2.0) - 3  # -2 for the borders
         sheetMsg += "|" + "=" * left_spacing + "ARTS" + "=" * right_spacing + "|"
 
+        caller.msg(client_width)
         arts_table = setup_table(client_width, is_sheet=True)
         populate_table(arts_table, arts)
         arts_string = arts_table.__str__()
@@ -320,12 +321,14 @@ class CmdAttack(default_cmds.MuxCommand):
             action_clean.dmg = modify_damage(action_clean, caller)
 
             new_id = assign_attack_instance_id(target_object)
-            # Confirm here before passing along the attack that the switch is a valid one: currently, just "wild."
+
+            # Confirm here before passing along the attack that the switch is a valid one.
             if switches:
-                for switch in switches:
-                    if switch.lower() != "wild":
-                        return caller.msg("Error: a switch on your attack was not recognized. See 'help attack'.")
-            target_object.db.queue.append(AttackInstance(new_id, action_clean, caller.key, aim_or_feint, switches))
+                error_found = attack_switch_check(caller, switches)
+                if error_found:
+                    return caller.msg("Error: a switch on your attack was not recognized. See 'help attack'.")
+
+            target_object.db.queue.append(AttackToQueue(new_id, action_clean, caller.key, aim_or_feint, switches))
 
             caller.msg("You attacked {target} with {action}.".format(target=target_object, action=action_clean))
             combat_string = "|y<COMBAT>|n {attacker} has attacked {target} with {action}.".format(
@@ -411,7 +414,7 @@ class CmdDodge(default_cmds.MuxCommand):
         if modified_acc > random100:
             # Since the attack has hit, check for critical hit.
             final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller)
-            is_critical_hit, final_damage = critical_hits(final_damage, attacker)
+            is_critical_hit, final_damage = critical_hits(final_damage, action)
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
             is_glancing_blow = glancing_blow_calc(random100, modified_acc, action.has_sweep)
             if is_critical_hit:
@@ -509,7 +512,7 @@ class CmdBlock(default_cmds.MuxCommand):
 
         if modified_acc > random100:
             # Since the attack has hit, check for critical hit.
-            is_critical_hit, final_damage = critical_hits(modified_damage, attacker)
+            is_critical_hit, final_damage = critical_hits(modified_damage, action)
             if is_critical_hit:
                 caller.msg("You have been critically hit by {attack}!".format(attack=attack.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(modified_damage)))
@@ -617,7 +620,7 @@ class CmdEndure(default_cmds.MuxCommand):
         final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller)
         if modified_acc > random100:
             # Since the attack has hit, check for critical hit.
-            is_critical_hit, final_damage = critical_hits(final_damage, attacker)
+            is_critical_hit, final_damage = critical_hits(final_damage, action)
             if is_critical_hit:
                 caller.msg("You have been critically hit by {attack}!".format(attack=attack.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
@@ -686,84 +689,96 @@ class CmdInterrupt(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         args = self.args
+        switches = self.switches
         arts = Arts.objects.filter(characters=caller)
         id_list = [attack.id for attack in caller.db.queue]
         # Like +attack, +interrupt requires two arguments: a incoming attack and an outgoing interrupt.
         if "=" not in args:
             return caller.msg("Please use proper syntax: interrupt <id>=<name of interrupt>.")
         split_args = args.split("=")
-        incoming_attack_arg = split_args[0]
-        outgoing_interrupt_arg = split_args[1].lower()
+        incoming_attack_id = split_args[0]
+        outgoing_attack_name = split_args[1].lower()
 
         # Syntax of the first argument is "interrupt <id>".
-        if not incoming_attack_arg.isdigit():
+        if not incoming_attack_id.isdigit():
             return caller.msg("Please input the attack ID as an integer.")
 
-        if int(incoming_attack_arg) not in id_list:
+        if int(incoming_attack_id) not in id_list:
             return caller.msg("Cannot find that attack in your queue.")
 
         # Make sure that the outgoing interrupt is an available Art/Normal.
-        interrupt_clean = None  # this will be an Attack object
-        if outgoing_interrupt_arg not in NORMALS:
-            if outgoing_interrupt_arg not in arts:
+        if outgoing_attack_name not in NORMALS:
+            if outgoing_attack_name not in arts:
                 return caller.msg("Your selected interrupt action cannot be found.")
-        if outgoing_interrupt_arg in NORMALS:
-            interrupt_clean = NORMALS.get(name__iexact=outgoing_interrupt_arg)  # found action with correct capitalization
+        if outgoing_attack_name in NORMALS:
+            outgoing_interrupt = NORMALS.get(name__iexact=outgoing_attack_name)
         else:
-            interrupt_clean = arts.get(name__iexact=outgoing_interrupt_arg)
+            outgoing_interrupt = arts.get(name__iexact=outgoing_attack_name)
         # Check if the interrupter is currently Berserk.
         if caller.db.debuffs_standard["Berserk"] > 0:
-            if berserk_check(caller, interrupt_clean):
+            if berserk_check(caller, outgoing_interrupt):
                 return caller.msg("Due to your Berserk state, you may only use attacks of 50 DMG or higher.")
+        # Check if the interrupter is currently Aiming or Feinting.
+        if caller.db.is_aiming:
+            return caller.msg("You cannot Aim an interrupt. First type 'aim' again to cease aiming.")
+        if caller.db.is_feinting:
+            return caller.msg("You cannot Feint an interrupt. First type 'feint' again to cease feinting.")
         # If the character has insufficient AP or EX to use that move, cancel the interrupt.
         # Otherwise, if EX move, set their EX from 100 to 0.
-        total_ap_change = interrupt_clean.ap
+        total_ap_change = outgoing_interrupt.ap
         if caller.db.ap + total_ap_change < 0:
             return caller.msg("You do not have enough AP to do that.")
-        if "EX" in interrupt_clean.effects:
+        if "EX" in outgoing_interrupt.effects:
             if caller.db.ex - 100 < 0:
                 return caller.msg("You do not have enough EX to do that.")
             caller.db.ex = 0
         caller.db.ap += total_ap_change
 
         # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
-        incoming_action = caller.db.queue[id_list.index(int(incoming_attack_arg))]
-        incoming_attack = incoming_action.attack
-        incoming_damage = incoming_attack.dmg
-        attacker = find_attacker_from_key(incoming_action.attacker_key)
-        aim_or_feint = incoming_action.aim_or_feint
-        modifier = incoming_action.modifier
-        outgoing_interrupt = interrupt_clean
+        incoming_atk_in_queue = caller.db.queue[id_list.index(int(incoming_attack_id))]
+        incoming_atk = incoming_atk_in_queue.attack
+        incoming_damage = incoming_atk.dmg
+        attacker = find_attacker_from_key(incoming_atk_in_queue.attacker_key)
+        aim_or_feint = incoming_atk_in_queue.aim_or_feint
+        modifier = incoming_atk_in_queue.modifier
         random100 = random.randint(1, 100)
 
-        incoming_attack_stat = find_attacker_stat(attacker, incoming_attack.stat)
+        incoming_attack_stat = find_attacker_stat(attacker, incoming_atk.stat)
         outgoing_interrupt_stat = find_attacker_stat(caller, outgoing_interrupt.stat)
 
-        modified_acc = interrupt_chance_calc(caller, incoming_action, outgoing_interrupt)
+        # Spawn an InterruptInstance here to begin modifying its accuracy, etc. Will need this for critical_hits
+        interrupt = AttackDuringAction(outgoing_interrupt, caller.key, switches)
 
-        # do the aiming/feinting modification here since we don't want to show the modified value in the queue
-        modified_acc = modify_aim_and_feint(modified_acc, "interrupt", aim_or_feint)
+        interrupt.attack.acc = interrupt_chance_calc(caller, incoming_atk_in_queue, outgoing_interrupt)
+
+        # effects of aim and feint on incoming attack checked here
+        interrupt.attack.acc = modify_aim_and_feint(interrupt.attack.acc, "interrupt", aim_or_feint)
+
+        modified_acc = interrupt.attack.acc
 
         msg = ""
+        # In case of interrupt failure
         if modified_acc < random100:
-            # attack_with_effects = check_for_effects(attack)
-            final_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_attack.stat, caller)
+            final_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_atk.stat, caller)
+
             # Check for Protect/Reflect moderate damage mitigation.
-            final_damage = protect_and_reflect_check(final_damage, caller, incoming_attack, False)
+            final_damage = protect_and_reflect_check(final_damage, caller, incoming_atk, False)
+
             # Since the incoming attack has hit, check for critical hit.
-            is_critical_hit, final_damage = critical_hits(final_damage, attacker)
+            is_critical_hit, final_damage = critical_hits(final_damage, incoming_atk_in_queue)
             if is_critical_hit:
-                caller.msg("You have critically failed to interrupt {attack}!".format(attack=incoming_attack.name))
+                caller.msg("You have critically failed to interrupt {attack}!".format(attack=incoming_atk.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
                 msg = "|y<COMBAT>|n {target} has failed to interrupt {attacker}'s {modifier}{attack} with {interrupt}.\n" \
                       "|-|r** CRITICAL HIT! **|n"
             else:
-                caller.msg("You have failed to interrupt {attack}.".format(attack=incoming_attack.name))
+                caller.msg("You have failed to interrupt {attack}.".format(attack=incoming_atk.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
                 msg = "|y<COMBAT>|n {target} has failed to interrupt {attacker}'s {modifier}{attack} with {interrupt}."
 
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= final_damage
+
             # Modify EX based on damage taken.
             # Modify the character's EX based on the damage inflicted.
             new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
@@ -771,55 +786,71 @@ class CmdInterrupt(default_cmds.MuxCommand):
             # Modify the attacker's EX based on the damage inflicted.
             new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex
+
             # Apply debuffs only if interrupt fails
-            apply_debuff(incoming_action, attacker, caller)
-            if "Drain" in incoming_attack.effects:
-                drain_check(incoming_action, attacker, caller, final_damage)
-            if "Dispel" in incoming_attack.effects:
+            apply_debuff(incoming_atk, attacker, caller)
+            if "Drain" in incoming_atk.effects:
+                drain_check(incoming_atk_in_queue, attacker, caller, final_damage)
+            if "Dispel" in incoming_atk.effects:
                 dispel_check(caller)
-            if "Long-Range" in incoming_attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
+            if "Long-Range" in incoming_atk.effects and attacker.key not in caller.db.ranged_knockback[1]:
                 ranged_knockback(caller, attacker)
-            record_combat(caller, incoming_action, "interrupt", False, final_damage)
+            record_combat(caller, incoming_atk_in_queue, "interrupt", False, final_damage)
+
+        # In case of interrupt success
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
             modified_int_damage = modify_damage(outgoing_interrupt, caller)
             final_outgoing_damage = damage_calc(modified_int_damage, outgoing_interrupt_stat, outgoing_interrupt.stat, attacker)
+
             # Check if the interrupt is a critical hit!
-            is_critical_hit, final_outgoing_damage = critical_hits(final_outgoing_damage, caller)
+            is_critical_hit, final_outgoing_damage = critical_hits(final_outgoing_damage, interrupt)
+
             # Determine how much damage the incoming attack would do if unmitigated.
-            unmitigated_incoming_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_attack.stat, caller)
+            unmitigated_incoming_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_atk.stat, caller)
+
             # Determine how the Damage of the outgoing interrupt mitigates incoming Damage.
             mitigated_damage = interrupt_mitigation_calc(unmitigated_incoming_damage, final_outgoing_damage)
+
             # Check for Protect/Reflect moderate damage mitigation.
-            mitigated_damage = protect_and_reflect_check(mitigated_damage, caller, incoming_attack, True)
+            mitigated_damage = protect_and_reflect_check(mitigated_damage, caller, incoming_atk, True)
+
             if is_critical_hit:
-                caller.msg("You critically interrupt {attack} with {interrupt}!".format(attack=incoming_attack.name, interrupt=outgoing_interrupt.name))
+                caller.msg("You critically interrupt {attack} with {interrupt}!".format(attack=incoming_atk.name, interrupt=outgoing_interrupt.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
                 msg = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}.\n" \
                       "|-|r** CRITICAL HIT! **|n"
             else:
-                caller.msg("You interrupt {attack} with {interrupt}.".format(attack=incoming_attack.name, interrupt=outgoing_interrupt.name))
+                caller.msg("You interrupt {attack} with {interrupt}.".format(attack=incoming_atk.name, interrupt=outgoing_interrupt.name))
                 caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
                 msg = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}."
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= mitigated_damage
             attacker.db.lf -= final_outgoing_damage
             attacker.msg("You took {dmg} damage.".format(dmg=round(final_outgoing_damage)))
+
+            # Check if your successful interrupt was your final action.
             final_action_check(attacker)
+
+            # TODO: make combat_function to reduce 1) redundant EX calculation 2) redundant critical hit verbiage
+
             # Modify EX based on damage taken.
             # Modify the character's EX based on the damage dealt AND inflicted.
             new_ex_first = ex_gain_on_defense(mitigated_damage, caller.db.ex, caller.db.maxex)
             caller.db.ex = new_ex_first
             new_ex_second = ex_gain_on_attack(final_outgoing_damage, caller.db.ex, caller.db.maxex)
             caller.db.ex = new_ex_second
+
             # Modify the attacker's EX based on the damage dealt AND inflicted.
             new_attacker_ex_first = ex_gain_on_attack(mitigated_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex_first
             new_attacker_ex_second = ex_gain_on_defense(final_outgoing_damage, attacker.db.ex, attacker.db.maxex)
             attacker.db.ex = new_attacker_ex_second
+
             # Interrupting a Drain attack partially drains you, but if you interrupt Long-Range, you're not knocked back
-            if "Drain" in incoming_attack.effects:
-                drain_check(incoming_action, attacker, caller, mitigated_damage)
+            if "Drain" in incoming_atk.effects:
+                drain_check(incoming_atk_in_queue, attacker, caller, mitigated_damage)
+
             # Apply debuffs to interrupted attacker
             apply_debuff(outgoing_interrupt, caller, attacker)
             if "Drain" in outgoing_interrupt.effects:
@@ -828,25 +859,28 @@ class CmdInterrupt(default_cmds.MuxCommand):
                 dispel_check(attacker)
             if "Long-Range" in outgoing_interrupt.effects and caller.key not in attacker.db.ranged_knockback[1]:
                 ranged_knockback(attacker, caller)
-            record_combat(caller, incoming_action, "interrupt", True, mitigated_damage)
+            record_combat(caller, incoming_atk_in_queue, "interrupt", True, mitigated_damage)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier,
-                                        attack=incoming_attack.name, interrupt=outgoing_interrupt.name)
+                                   attack=incoming_atk.name, interrupt=outgoing_interrupt.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
+
         # If interrupting puts you at 0 LF or below, instead of the usual final action/KO check, combine them.
+        # TODO: is this redundant with final_action_check?
         if caller.db.lf <= 0:
             caller.db.KOed = True
             caller.msg("You have taken your final action and can no longer fight.")
             combat_string = "|y<COMBAT>|n {0} can no longer fight.".format(caller.name)
             caller.location.msg_contents(combat_string)
             combat_log_entry(caller, combat_string)
+
         # If the defender survives the interrupt, do a combat tick to clear status, as with +attack and +pass.
         else:
             combat_tick(caller, outgoing_interrupt)
             # Might have just taken poison damage and been reduced below 0 LF then! Check, but can't be KOed from that.
             final_action_check(caller)
-        del caller.db.queue[id_list.index(int(incoming_attack_arg))]
+        del caller.db.queue[id_list.index(int(incoming_attack_id))]
 
 
 class CmdArts(default_cmds.MuxCommand):

@@ -1,5 +1,6 @@
 from evennia import EvTable
 from world.combat.effects import EFFECTS
+from evennia.objects.models import ObjectDB
 
 def location_character_search(location):
     location_objects = location.contents
@@ -67,3 +68,12 @@ def logger(caller, message, level="info"):
     # We're just putting in this if/else statement provisionally for when we implement more involved debug logging.
     else:
         caller.msg("|cDEBUG:|n " + message)
+
+
+def find_attacker_from_key(attacker_key):
+    # This finds the attacker's character object from their key.
+    # Because Evennia uses Python's default pickling method, we cannot pass character objects directly into a queue.
+    all_objects = ObjectDB.objects.all()
+    attacker_queryset = all_objects.filter(db_key=attacker_key)
+    attacker = attacker_queryset[0]
+    return attacker
