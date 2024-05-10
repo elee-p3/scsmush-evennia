@@ -1,4 +1,4 @@
-from evennia import EvTable
+from evennia.utils import evtable
 from world.combat.effects import EFFECTS
 from evennia.objects.models import ObjectDB
 
@@ -14,11 +14,11 @@ def location_character_search(location):
 # creates the approriate evtable object given the contextual bools
 def setup_table(client_width, is_sheet=False, is_check=False):
     if is_sheet:
-        table = EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
+        table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
                                      border_left_char="|", border_right_char="|", border_top_char="",
                                      border_bottom_char="-", width=client_width)
     else:
-        table = EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
+        table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
                                     border_left_char="|", border_right_char="|", border_top_char="-",
                                     border_bottom_char="-", width=client_width)
     table.reformat_column(1, width=7)

@@ -156,7 +156,6 @@ class CmdSheet(default_cmds.MuxCommand):
         right_spacing = ceil(client_width / 2.0) - 3  # -2 for the borders
         sheetMsg += "|" + "=" * left_spacing + "ARTS" + "=" * right_spacing + "|"
 
-        caller.msg(client_width)
         arts_table = setup_table(client_width, is_sheet=True)
         populate_table(arts_table, arts)
         arts_string = arts_table.__str__()
