@@ -157,7 +157,7 @@ class CmdSheet(default_cmds.MuxCommand):
         sheetMsg += "|" + "=" * left_spacing + "ARTS" + "=" * right_spacing + "|"
 
         arts_table = setup_table(client_width, is_sheet=True)
-        populate_table(arts_table, arts)
+        populate_table(arts_table, arts, caller)
         arts_string = arts_table.__str__()
         sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
 
@@ -286,10 +286,6 @@ class CmdAttack(default_cmds.MuxCommand):
         # Copy.copy is used to ensure we do not modify the attack in the character's list, just this instance of it.
         action_clean = copy.copy(action_clean)
 
-        # Check if the attacker is currently Berserk.
-        if caller.db.debuffs_standard["Berserk"] > 0:
-            if berserk_check(caller, action_clean):
-                return caller.msg("Due to your Berserk state, you may only use attacks of 50 DMG or higher.")
         # If the character has insufficient AP or EX to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
         total_ap_change = action_clean.ap
@@ -299,6 +295,12 @@ class CmdAttack(default_cmds.MuxCommand):
             total_ap_change -= 10
         if caller.db.ap + total_ap_change < 0:
             return caller.msg("You do not have enough AP to do that.")
+        # Check if the attacker is currently Berserk.
+        if caller.db.debuffs_standard["Berserk"] > 0:
+            if berserk_check(caller, action_clean) == "success":
+                total_ap_change -= 10
+            elif berserk_check(caller, action_clean) == "failure":
+                return caller.msg("You do not have enough AP to do that.")
         if "EX" in action_clean.effects:
             if caller.db.ex - 100 < 0:
                 return caller.msg("You do not have enough EX to do that.")
@@ -903,7 +905,7 @@ class CmdArts(default_cmds.MuxCommand):
 
         client_width = self.client_width()
         arts_table = setup_table(client_width)
-        populate_table(arts_table, arts)
+        populate_table(arts_table, arts, caller)
 
         arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
         arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/
@@ -936,8 +938,8 @@ class CmdListAttacks(default_cmds.MuxCommand):
         client_width = self.client_width()
         arts_table = setup_table(client_width)
         normals_table = setup_table(client_width)
-        populate_table(arts_table, arts)
-        populate_table(normals_table, NORMALS)
+        populate_table(arts_table, arts, caller)
+        populate_table(normals_table, NORMALS, caller)
 
         arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
         arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/

@@ -40,9 +40,10 @@ def get_abbreviations(action):
 
     return effects_abbrev
 
+
 # in-place modification of the evtable that populates it with attacks or arts. Note that CmdCheck duplicates this code
 # because there wasn't an overdesigned way to have this function take care of that edge case too
-def populate_table(table, actions):
+def populate_table(table, actions, caller):
     for action in actions:
         stat_string = action.stat
         if stat_string == "Power":
@@ -52,13 +53,24 @@ def populate_table(table, actions):
 
         effects_abbrev = get_abbreviations(action)
 
+        ap_string = modify_ap_string(action, caller)
         table.add_row(action.name,
-                      "|g" + str(action.ap) + "|n",
+                      ap_string,
                       action.dmg,
                       action.acc,
                       stat_string,
                       effects_abbrev)
     return table
+
+
+def modify_ap_string(action, caller):
+    # Define default ap_string.
+    ap_string = "|g" + str(action.ap) + "|n"
+    # If the caller is Berserk and the attack's damage is less than 50, it will appear in red and with a higher cost.
+    if caller.db.debuffs_standard["Berserk"] > 0:
+        if action.dmg < 50:
+            ap_string = "|r" + str(action.ap - 10) + "|n"
+    return ap_string
 
 
 def logger(caller, message, level="info"):

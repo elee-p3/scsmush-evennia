@@ -713,10 +713,16 @@ def wound_check(character, action):
 
 
 def berserk_check(caller, attack):
-    # If an attacker is Berserk, check if the attack is above 50 Force/Damage and, if not, prevent them from attacking.
-    if attack.dmg < 50:
-        return True
-    # Simple for now, but if this seems OP, I may change it so weaker attacks cost more AP or some EX from caller.
+    # If a character is Berserk, Arts of lower than 50 DMG cost 10 more AP. Return "success" if the user has enough AP.
+    ap_change = attack.ap - 10
+    if attack.dmg < 50 and caller.db.ap + ap_change > 0:
+        return "success"
+    # Return "failure" if the user does not have sufficient AP.
+    elif attack.dmg < 50 and caller.db.ap + ap_change < 0:
+        return "failure"
+    # Return NA if the attack was not below 50 DMG to begin with. Berserk will make no change this way.
+    else:
+        return "NA"
 
 
 def hex_counter(caller):
@@ -911,10 +917,10 @@ def display_status_effects(caller):
             duration_string = "You are afflicted by a miasma that halves the effects of healing upon you for {duration} rounds."
             single_string = "You are afflicted by a miasma that halves the effects of healing upon you for 1 more round."
         elif status_effect == "Berserk" and duration > 0:
-            duration_string = "You are berserk, increasing your effective Power, Knowledge, and Speed but preventing you " \
-                              "from using Arts with a Force of less than 50 for {duration} rounds."
-            single_string = "You are berserk, increasing your effective Power, Knowledge, and Speed but preventing you " \
-                            "from using Arts with a Force of less than 50 for 1 more round."
+            duration_string = "You are berserk, increasing your effective Power, Knowledge, and Speed, but also the AP " \
+                              "cost of Arts and Normals with a DMG of less than 50, for {duration} rounds."
+            single_string = "You are berserk, increasing your effective Power, Knowledge, and Speed, but also the AP " \
+                            "cost of Arts and Normals with a DMG of less than 50, for 1 round."
         elif status_effect == "Petrify" and duration > 0:
             duration_string = "You are petrified, reducing your Speed and especially your Dodge chances but somewhat " \
                               "increasing your Block and Endure chances for {duration} rounds."
@@ -1144,7 +1150,7 @@ def apply_debuff(action, debuffer, target):
             extension_string = "The duration of the miasma afflicting you has been extended."
         elif debuff == "Berserk":
             application_string = "You have gone berserk, increasing your effective Power, Knowledge, and Speed but " \
-                                 "compelling you to use more damaging, less accurate attacks."
+                                 "increasing the cost of using less damaging, more accurate attacks."
             extension_string = "The duration of your berserk fury has been extended."
         elif debuff == "Petrify":
             application_string = "You are petrified, reducing your Speed and especially your Dodge chances but " \
