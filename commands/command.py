@@ -33,20 +33,20 @@ def add_participant_to_scene(character, scene):
 def prune_sessions(session_list):
     # This function modifies the display of "who" and "+pot" so that, if the same player is connected from multiple
     # devices, their character name is only displayed once to avoid confusion. Admin still see all connected sessions.
-    session_accounts = [session.account.key for session in session_list]  # get a list of just the names
+    session_chars = [session.puppet.key for session in session_list]  # get a list of just the character names
 
-    unique_accounts = set(session_accounts)
+    unique_chars = set(session_chars)
     positions = []
 
-    for acct in unique_accounts:
-        # finds positions of account name matches in the session_accounts list
-        account_positions = [i for i, x in enumerate(session_accounts) if x == acct]
+    for acct in unique_chars:
+        # finds positions of character name matches in the session_accounts list
+        char_positions = [i for i, x in enumerate(session_chars) if x == acct]
 
         # add the position of the account entry we want to the positions list
-        if len(account_positions) != 1:
-            positions.append(account_positions[-1])
+        if len(char_positions) != 1:
+            positions.append(char_positions[-1])
         else:
-            positions.append(account_positions[0])
+            positions.append(char_positions[0])
 
     positions.sort()  # since set() unorders the initial list and we want to keep a specific printed order
     pruned_sessions = []
