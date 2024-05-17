@@ -108,6 +108,9 @@ def modify_damage(action, character):
 
     damage_multiplier = (0.00583 * damage) + 0.708
     total_damage = (damage + base_stat) * damage_multiplier
+    # Check for the Strain effect on the attack and modify total_damage accordingly.
+    if "Strain" in action.effects:
+        total_damage = strain_check(total_damage, action, character)
     return total_damage
 
 
@@ -740,6 +743,26 @@ def clear_hexes(caller):
         if duration > 0:
             caller.db.debuffs_hexes[status_effect] = 0
             caller.msg(f"You are no longer afflicted by {status_effect}.")
+
+
+def strain_check(damage, action, character):
+    # Currently, for self-damage, Strain uses the same math as Wound.
+    damage_floor = action.ap * -1
+    # Ensure that the minimum damage_floor is 1 in case of, like, EX moves that regain AP or something.
+    if damage_floor < 1:
+        damage_floor = 1
+    damage_ceil = math.ceil(damage_floor * 2.5)
+    strain_damage = random.randint(damage_floor, damage_ceil)
+    character.db.lf -= strain_damage
+    character.msg("You have taken {damage} damage from strain.".format(damage=strain_damage))
+    initial_state = character.db.final_action
+    final_action_check(character)
+    # Check if it's now your final_action BECAUSE of the wound damage specifically.
+    if character.db.final_action and not initial_state:
+        character.db.negative_lf_from_dot = True
+    # Increase damage from Strain attacks proportional to the self-damage inflicted.
+    outgoing_damage = damage + strain_damage
+    return outgoing_damage
 
 
 # FUNCTIONS TO BE MODIFIED WHEN NEW EFFECTS ARE IMPLEMENTED IN EFFECTS.PY

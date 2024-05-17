@@ -47,6 +47,8 @@ drain = Effect("Drain", -20, "DRN")
 # Note that this healing counts toward the attacker's per-fight healing limit.
 dispel = Effect("Dispel", -10, "DIS")
 # If the attack is successful or endured, remove one random buff from the target.
+strain = Effect("Strain", -5, "STR")
+# Damage oneself in exchange for inflicting more damage on a successful hit, relative to the AP cost of the action.
 
 # Reaction Modifiers
 
@@ -214,7 +216,8 @@ EFFECTS = [crush,
            itchy,
            old,
            purity,
-           cure]
+           cure,
+           strain]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
