@@ -6,13 +6,14 @@ from math import floor, ceil
 from evennia import default_cmds
 from evennia.utils import evtable
 from world.arts.models import Arts
-from world.combat.attacks import AttackToQueue, AttackDuringAction
+from world.combat.attacks import AttackToQueue, AttackDuringAction, ActionResult
 from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
 # from world.combat.normals import NORMALS
 from world.utilities.utilities import *
 
 NORMALS = Arts.objects.filter(isNormal=True)
+
 
 def record_combat(defender, attack_instance, reaction_name, is_success, dmg):
     attacker = find_attacker_from_key(attack_instance.attacker_key)
@@ -419,30 +420,19 @@ class CmdDodge(default_cmds.MuxCommand):
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
             is_glancing_blow = glancing_blow_calc(random100, modified_acc, action.has_sweep)
             if is_critical_hit:
-                caller.msg("You have been critically hit by {attack}!".format(attack=attack.name))
-                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
-                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}.\n" \
-                      "|-|r** CRITICAL HIT! **|n"
+                msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, final_damage)
             elif is_glancing_blow:
                 # For now, halving the damage of glancing blows.
                 final_damage = final_damage / 2
-                caller.msg("You have been glanced by {attack}.".format(attack=attack.name))
-                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
-                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}.\n" \
-                      "|-|c** Glancing Blow **|n"
+                msg = damage_message_strings(ActionResult.GLANCING_BLOW, caller, attack, final_damage)
             else:
-                caller.msg("You have been hit by {attack}.".format(attack=attack.name))
-                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
-                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
+                msg = damage_message_strings(ActionResult.REACT_FAIL, caller, attack, final_damage)
 
             caller.db.lf -= final_damage
+
             # Modify EX based on damage taken.
-            # Modify the character's EX based on the damage inflicted.
-            new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
-            caller.db.ex = new_ex
-            # Modify the attacker's EX based on the damage inflicted.
-            new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
-            attacker.db.ex = new_attacker_ex
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(final_damage, caller, attacker)
+
             # Effect check
             apply_debuff(attack, attacker, caller)
             if "Drain" in attack.effects:
@@ -515,22 +505,14 @@ class CmdBlock(default_cmds.MuxCommand):
             # Since the attack has hit, check for critical hit.
             is_critical_hit, final_damage = critical_hits(modified_damage, action)
             if is_critical_hit:
-                caller.msg("You have been critically hit by {attack}!".format(attack=attack.name))
-                caller.msg("You took {dmg} damage.".format(dmg=round(modified_damage)))
-                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}.\n" \
-                      "|-|r** CRITICAL HIT! **|n"
+                msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, final_damage)
             else:
-                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
-                caller.msg("You have been hit by {attack}.".format(attack=attack.name))
-                caller.msg("You took {dmg} damage.".format(dmg=round(modified_damage)))
+                msg = damage_message_strings(ActionResult.REACT_FAIL, caller, attack, final_damage)
             caller.db.lf -= modified_damage
 
-            # Modify the character's EX based on the damage inflicted.
-            new_ex = ex_gain_on_defense(modified_damage, caller.db.ex, caller.db.maxex)
-            caller.db.ex = new_ex
-            # Modify the attacker's EX based on the damage inflicted.
-            new_attacker_ex = ex_gain_on_attack(modified_damage, attacker.db.ex, attacker.db.maxex)
-            attacker.db.ex = new_attacker_ex
+            # Modify EX based on the damage.
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(final_damage, caller, attacker)
+
             # Modify the defender's block penalty (a little, since the block failed).
             block_bool = False
             new_block_penalty = accrue_block_penalty(caller, modified_damage, block_bool, action)
@@ -544,18 +526,12 @@ class CmdBlock(default_cmds.MuxCommand):
             record_combat(caller, action, "block", False, modified_damage)
         else:
             final_damage = block_damage_calc(modified_damage, caller.db.block_penalty)
-            caller.msg("You have successfully blocked {attack}.".format(attack=attack.name))
-            caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
+            msg = damage_message_strings(ActionResult.BLOCK_SUCCESS, caller, attack, final_damage)
             caller.db.lf -= final_damage
 
-            msg = "|y<COMBAT>|n {target} has blocked {attacker}'s {modifier}{attack}."
+            # Modify EX (based on modified, not final, dmg).
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(modified_damage, caller, attacker)
 
-            # Modify the character's EX based on the damage inflicted.
-            new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
-            caller.db.ex = new_ex
-            # Modify the attacker's EX based on the damage inflicted.
-            new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
-            attacker.db.ex = new_attacker_ex
             # Modify the defender's block penalty (a lot, since the block succeeded). Based on modified, not final, dmg.
             block_bool = True
             new_block_penalty = accrue_block_penalty(caller, modified_damage, block_bool, action)
@@ -623,19 +599,13 @@ class CmdEndure(default_cmds.MuxCommand):
             # Since the attack has hit, check for critical hit.
             is_critical_hit, final_damage = critical_hits(final_damage, action)
             if is_critical_hit:
-                caller.msg("You have been critically hit by {attack}!".format(attack=attack.name))
-                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
-                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}.\n" \
-                      "|-|r** CRITICAL HIT! **|n"
+                msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, final_damage)
             else:
-                caller.msg("You have been hit by {attack}.".format(attack=attack.name))
-                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
-                msg = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
+                msg = damage_message_strings(ActionResult.REACT_FAIL, caller, attack, final_damage)
             record_combat(caller, action, "endure", False, final_damage)
         else:
-            caller.msg("You endure {attack}.".format(attack=attack.name))
-            caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
-            msg = "|y<COMBAT>|n {target} endures {attacker}'s {modifier}{attack}."
+            msg = damage_message_strings(ActionResult.ENDURE_SUCCESS, caller, attack, final_damage)
+
             # Now calculate endure bonus. Currently, let's set it so if you endure multiple attacks in a round,
             # you get to keep whatever endure bonus is higher. But endure bonus is not cumulative. (That's OP.)
             if endure_bonus_calc(final_damage) > caller.db.endure_bonus:
@@ -643,13 +613,10 @@ class CmdEndure(default_cmds.MuxCommand):
             record_combat(caller, action, "endure", True, final_damage)
 
         caller.db.lf -= final_damage
-        # Modify EX based on damage taken.
-        # Modify the character's EX based on the damage inflicted.
-        new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
-        caller.db.ex = new_ex
-        # Modify the attacker's EX based on the damage inflicted.
-        new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
-        attacker.db.ex = new_attacker_ex
+
+        # Modify EX.
+        caller.db.ex, attacker.db.ex = modify_ex_on_hit(final_damage, caller, attacker)
+
         # Apply debuffs regardless of if endure succeeds or fails
         apply_debuff(attack, attacker, caller)
         if "Drain" in attack.effects:
@@ -768,25 +735,15 @@ class CmdInterrupt(default_cmds.MuxCommand):
             # Since the incoming attack has hit, check for critical hit.
             is_critical_hit, final_damage = critical_hits(final_damage, incoming_atk_in_queue)
             if is_critical_hit:
-                caller.msg("You have critically failed to interrupt {attack}!".format(attack=incoming_atk.name))
-                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
-                msg = "|y<COMBAT>|n {target} has failed to interrupt {attacker}'s {modifier}{attack} with {interrupt}.\n" \
-                      "|-|r** CRITICAL HIT! **|n"
+                msg = damage_message_strings(ActionResult.INTERRUPT_CRIT_FAIL, caller, incoming_atk, final_damage)
             else:
-                caller.msg("You have failed to interrupt {attack}.".format(attack=incoming_atk.name))
-                caller.msg("You took {dmg} damage.".format(dmg=round(final_damage)))
-                msg = "|y<COMBAT>|n {target} has failed to interrupt {attacker}'s {modifier}{attack} with {interrupt}."
+                msg = damage_message_strings(ActionResult.INTERRUPT_FAIL, caller, incoming_atk, final_damage)
 
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= final_damage
 
-            # Modify EX based on damage taken.
-            # Modify the character's EX based on the damage inflicted.
-            new_ex = ex_gain_on_defense(final_damage, caller.db.ex, caller.db.maxex)
-            caller.db.ex = new_ex
-            # Modify the attacker's EX based on the damage inflicted.
-            new_attacker_ex = ex_gain_on_attack(final_damage, attacker.db.ex, attacker.db.maxex)
-            attacker.db.ex = new_attacker_ex
+            # Modify EX based on damage.
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(final_damage, caller, attacker)
 
             # Apply debuffs only if interrupt fails
             apply_debuff(incoming_atk, attacker, caller)
@@ -817,36 +774,20 @@ class CmdInterrupt(default_cmds.MuxCommand):
             mitigated_damage = protect_and_reflect_check(mitigated_damage, caller, incoming_atk, True)
 
             if is_critical_hit:
-                caller.msg("You critically interrupt {attack} with {interrupt}!".format(attack=incoming_atk.name, interrupt=outgoing_interrupt.name))
-                caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
-                msg = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}.\n" \
-                      "|-|r** CRITICAL HIT! **|n"
+                msg = damage_message_strings(ActionResult.INTERRUPT_CRIT_SUCCESS, caller, incoming_atk,
+                                             final_outgoing_damage, outgoing_interrupt, mitigated_damage, attacker)
             else:
-                caller.msg("You interrupt {attack} with {interrupt}.".format(attack=incoming_atk.name, interrupt=outgoing_interrupt.name))
-                caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
-                msg = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}."
+                msg = damage_message_strings(ActionResult.INTERRUPT_SUCCESS, caller, incoming_atk,
+                                             final_outgoing_damage, outgoing_interrupt, mitigated_damage, attacker)
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= mitigated_damage
             attacker.db.lf -= final_outgoing_damage
-            attacker.msg("You took {dmg} damage.".format(dmg=round(final_outgoing_damage)))
 
             # Check if your successful interrupt was your final action.
             final_action_check(attacker)
 
-            # TODO: make combat_function to reduce 1) redundant EX calculation 2) redundant critical hit verbiage
-
-            # Modify EX based on damage taken.
-            # Modify the character's EX based on the damage dealt AND inflicted.
-            new_ex_first = ex_gain_on_defense(mitigated_damage, caller.db.ex, caller.db.maxex)
-            caller.db.ex = new_ex_first
-            new_ex_second = ex_gain_on_attack(final_outgoing_damage, caller.db.ex, caller.db.maxex)
-            caller.db.ex = new_ex_second
-
-            # Modify the attacker's EX based on the damage dealt AND inflicted.
-            new_attacker_ex_first = ex_gain_on_attack(mitigated_damage, attacker.db.ex, attacker.db.maxex)
-            attacker.db.ex = new_attacker_ex_first
-            new_attacker_ex_second = ex_gain_on_defense(final_outgoing_damage, attacker.db.ex, attacker.db.maxex)
-            attacker.db.ex = new_attacker_ex_second
+            # Modify EX.
+            caller.db.ex, attacker.db.ex = modify_ex_on_interrupt_success(mitigated_damage, final_outgoing_damage, caller, attacker)
 
             # Interrupting a Drain attack partially drains you, but if you interrupt Long-Range, you're not knocked back
             if "Drain" in incoming_atk.effects:
@@ -868,7 +809,6 @@ class CmdInterrupt(default_cmds.MuxCommand):
         combat_log_entry(caller, combat_string)
 
         # If interrupting puts you at 0 LF or below, instead of the usual final action/KO check, combine them.
-        # TODO: is this redundant with final_action_check?
         if caller.db.lf <= 0:
             caller.db.KOed = True
             caller.msg("You have taken your final action and can no longer fight.")

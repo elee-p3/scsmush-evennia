@@ -1,5 +1,6 @@
 from world.combat.effects import AimOrFeint
 from world.utilities.utilities import find_attacker_from_key
+from enum import Enum
 
 
 class Attack:
@@ -89,3 +90,17 @@ class AttackToQueue(AttackDuringAction):
                     self.has_bait = True
                 if effect == "Long-Range":
                     self.has_ranged = True
+
+
+# Enumerate possible attack results to pass into the damage message string function
+class ActionResult(Enum):
+    REACT_CRIT_FAIL = 1
+    REACT_FAIL = 2
+    GLANCING_BLOW = 3
+    DODGE_SUCCESS = 4
+    BLOCK_SUCCESS = 5
+    ENDURE_SUCCESS = 6
+    INTERRUPT_CRIT_FAIL = 7
+    INTERRUPT_FAIL = 8
+    INTERRUPT_SUCCESS = 9
+    INTERRUPT_CRIT_SUCCESS = 10

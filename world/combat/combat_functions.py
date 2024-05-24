@@ -3,7 +3,7 @@ from django.utils.html import escape
 import random
 import math
 from world.utilities.utilities import logger
-from world.combat.attacks import Attack
+from world.combat.attacks import Attack, ActionResult
 from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint
 
 
@@ -621,6 +621,70 @@ def critical_hits(damage, action):
     return is_critical, damage
 
 
+def damage_message_strings(action_result, caller, attack, damage, interrupt=None, mitigated_damage=None,
+                           interrupted_char=None):
+    # Consolidated all message strings related to damage here, to reduce repetition in the commands themselves.
+    msg_to_room = ""
+    # 1: Critically fail to dodge/block/endure
+    if action_result == ActionResult.REACT_CRIT_FAIL:
+        caller.msg("You have been critically hit by {attack}!".format(attack=attack.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}.\n" \
+                      "|-|r** CRITICAL HIT! **|n"
+    # 2: Fail to dodge/block/endure
+    elif action_result == ActionResult.REACT_FAIL:
+        caller.msg("You have been hit by {attack}.".format(attack=attack.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}."
+    # 3: Glancing blow
+    elif action_result == ActionResult.GLANCING_BLOW:
+        caller.msg("You have been glanced by {attack}.".format(attack=attack.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} has been hit by {attacker}'s {modifier}{attack}.\n" \
+                      "|-|c** Glancing Blow **|n"
+    # 4: Successful dodge (no damage taken)
+    elif action_result == ActionResult.DODGE_SUCCESS:
+        caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
+        msg_to_room = "|y<COMBAT>|n {target} has dodged {attacker}'s {modifier}{attack}."
+    # 5: Successful block (partial damage taken)
+    elif action_result == ActionResult.BLOCK_SUCCESS:
+        caller.msg("You have successfully blocked {attack}.".format(attack=attack.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} has blocked {attacker}'s {modifier}{attack}."
+    # 6: Successful endure (full damage taken)
+    elif action_result == ActionResult.ENDURE_SUCCESS:
+        caller.msg("You endure {attack}.".format(attack=attack.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} endures {attacker}'s {modifier}{attack}."
+    # 7: Critically fail to interrupt
+    elif action_result == ActionResult.INTERRUPT_CRIT_FAIL:
+        caller.msg("You have critically failed to interrupt {attack}!".format(attack=attack.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} has failed to interrupt {attacker}'s {modifier}{attack} with {interrupt}.\n" \
+                      "|-|r** CRITICAL HIT! **|n"
+    # 8: Fail to interrupt
+    elif action_result == ActionResult.INTERRUPT_FAIL:
+        caller.msg("You have failed to interrupt {attack}.".format(attack=attack.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} has failed to interrupt {attacker}'s {modifier}{attack} with {interrupt}."
+    # 9: Successfully interrupt
+    elif action_result == ActionResult.INTERRUPT_SUCCESS:
+        caller.msg("You interrupt {attack} with {interrupt}.".format(attack=attack.name,
+                                                                     interrupt=interrupt.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
+        msg_to_room = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}."
+        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(damage)))
+    # 10: Critically succeed at interrupt
+    elif action_result == ActionResult.INTERRUPT_CRIT_SUCCESS:
+        caller.msg("You critically interrupt {attack} with {interrupt}!".format(attack=attack.name,
+                                                                                interrupt=interrupt.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
+        msg_to_room = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}.\n" \
+                      "|-|r** CRITICAL HIT! **|n"
+        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(damage)))
+    return msg_to_room
+
+
 def protect_and_reflect_check(incoming_damage, defender, attack, interrupt_success):
     # Protect and Reflect mitigate damage specifically for an interrupter when interrupting.
     if (defender.db.buffs["Protect"] > 0 and attack.stat.lower() == "power") or (defender.db.buffs["Reflect"] > 0 and attack.stat.lower() == "knowledge"):
@@ -763,6 +827,30 @@ def strain_check(damage, action, character):
     # Increase damage from Strain attacks proportional to the self-damage inflicted.
     outgoing_damage = damage + strain_damage
     return outgoing_damage
+
+
+def modify_ex_on_hit(damage, defender, attacker):
+    # Called when 1) a defender fails a reaction and is damaged or 2) fails an interrupt action and is damaged.
+    # The damaged character gains a fair amount of EX and the damaging character gains some EX, proportional to damage.
+    # Modify EX based on damage taken.
+    # Modify the character's EX based on the damage inflicted.
+    new_defender_ex = ex_gain_on_defense(damage, defender.db.ex, defender.db.maxex)
+    # Modify the attacker's EX based on the damage inflicted.
+    new_attacker_ex = ex_gain_on_attack(damage, attacker.db.ex, attacker.db.maxex)
+    return new_defender_ex, new_attacker_ex
+
+
+def modify_ex_on_interrupt_success(mitigated_damage, interrupt_damage, interrupting_char, interrupted_char):
+    # Called specifically when a target successfully interrupts. In this case, both characters are damaged by each
+    # other's attacks, so EX is gained BY both FOR both damaging and being damaged, proportional to damage.
+    # Modify the interrupting character's EX based on the damage dealt AND inflicted.
+    interrupting_char_ex = ex_gain_on_defense(mitigated_damage, interrupting_char.db.ex, interrupting_char.db.maxex)
+    interrupting_char_ex = ex_gain_on_attack(interrupt_damage, interrupting_char_ex, interrupting_char.db.maxex)
+
+    # Modify the interrupted character's EX based on the damage dealt AND inflicted.
+    interrupted_char_ex = ex_gain_on_attack(mitigated_damage, interrupted_char.db.ex, interrupted_char.db.maxex)
+    interrupted_char_ex = ex_gain_on_defense(interrupt_damage, interrupted_char_ex, interrupted_char.db.maxex)
+    return interrupting_char_ex, interrupted_char_ex
 
 
 # FUNCTIONS TO BE MODIFIED WHEN NEW EFFECTS ARE IMPLEMENTED IN EFFECTS.PY
