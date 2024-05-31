@@ -1,4 +1,6 @@
 from world.combat.effects import AimOrFeint
+from world.utilities.utilities import find_attacker_from_key
+from enum import Enum
 
 
 class Attack:
@@ -21,16 +23,39 @@ class Attack:
             return self.name.lower() == other.name.lower()
 
 
-class AttackInstance:
-    # This is a class that contains an instance of an Attack (see above) as well as the attacker, an ID in the target's
-    # queue, and an enum representing if the attacker was Aiming, Feinting, or neither.
-    def __init__(self, new_id, attack, attacker_key, aim_or_feint):
-        self.id = new_id
-        # self.target = target
+class AttackDuringAction:
+    # This is the parent class for attacks with metadata. Attackers may use either CmdAttack or CmdInterrupt to
+    # use their Attacks. CmdAttack must pass an AttackToQueue into the defender's queue so that the defender may
+    # choose a reaction. CmdInterrupt is not passed into the defender's queue and resolves without a reaction.
+    # Metadata required for both CmdAttack and CmdInterrupt and relevant combat_functions is thus stored here.
+    def __init__(self, attack, attacker_key, switches):
         self.attack = attack
         self.attacker_key = attacker_key
-        self.aim_or_feint = aim_or_feint
+        attacker = find_attacker_from_key(attacker_key)
         self.modifier = ""
+        self.switches_string = "".join(switches)
+        self.has_acuity = False
+        self.is_wild = False
+        if attacker.db.buffs["Acuity"] > 0:
+            self.has_acuity = True
+        if self.switches_string:
+            switches_list = self.switches_string.split()
+            for switch in switches_list:
+                if switch.lower() == "wild":
+                    # This will be checked by critical_hits. Wild attacks are more likely to crit.
+                    self.is_wild = True
+                    # Wild attacks have -20 accuracy.
+                    self.attack.acc -= 20
+
+
+class AttackToQueue(AttackDuringAction):
+    # This is a class that contains an instance of an Attack (see above) as well as the attacker, an ID in the target's
+    # queue, and an enum representing if the attacker was Aiming, Feinting, or neither.
+    def __init__(self, new_id, attack, attacker_key, aim_or_feint, switches):
+        super(AttackToQueue, self).__init__(attack, attacker_key, switches)
+        self.id = new_id
+        # self.target = target
+        self.aim_or_feint = aim_or_feint
         if aim_or_feint == AimOrFeint.AIM:
             self.modifier = "Aimed "
         if aim_or_feint == AimOrFeint.FEINT:
@@ -45,8 +70,10 @@ class AttackInstance:
         self.has_weave = False
         self.has_brace = False
         self.has_bait = False
+        self.has_ranged = False
         if attack.effects:
-            for effect in attack.effects:
+            split_effects = attack.effects.split()
+            for effect in split_effects:
                 if effect == "Crush":
                     self.has_crush = True
                 if effect == "Sweep":
@@ -61,3 +88,19 @@ class AttackInstance:
                     self.has_brace = True
                 if effect == "Bait":
                     self.has_bait = True
+                if effect == "Long-Range":
+                    self.has_ranged = True
+
+
+# Enumerate possible attack results to pass into the damage message string function
+class ActionResult(Enum):
+    REACT_CRIT_FAIL = 1
+    REACT_FAIL = 2
+    GLANCING_BLOW = 3
+    DODGE_SUCCESS = 4
+    BLOCK_SUCCESS = 5
+    ENDURE_SUCCESS = 6
+    INTERRUPT_CRIT_FAIL = 7
+    INTERRUPT_FAIL = 8
+    INTERRUPT_SUCCESS = 9
+    INTERRUPT_CRIT_SUCCESS = 10

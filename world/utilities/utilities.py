@@ -1,5 +1,6 @@
-from evennia import EvTable
+from evennia.utils import evtable
 from world.combat.effects import EFFECTS
+from evennia.objects.models import ObjectDB
 
 def location_character_search(location):
     location_objects = location.contents
@@ -13,11 +14,11 @@ def location_character_search(location):
 # creates the approriate evtable object given the contextual bools
 def setup_table(client_width, is_sheet=False, is_check=False):
     if is_sheet:
-        table = EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
+        table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
                                      border_left_char="|", border_right_char="|", border_top_char="",
                                      border_bottom_char="-", width=client_width)
     else:
-        table = EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
+        table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
                                     border_left_char="|", border_right_char="|", border_top_char="-",
                                     border_bottom_char="-", width=client_width)
     table.reformat_column(1, width=7)
@@ -39,9 +40,10 @@ def get_abbreviations(action):
 
     return effects_abbrev
 
+
 # in-place modification of the evtable that populates it with attacks or arts. Note that CmdCheck duplicates this code
 # because there wasn't an overdesigned way to have this function take care of that edge case too
-def populate_table(table, actions):
+def populate_table(table, actions, caller):
     for action in actions:
         stat_string = action.stat
         if stat_string == "Power":
@@ -51,13 +53,24 @@ def populate_table(table, actions):
 
         effects_abbrev = get_abbreviations(action)
 
+        ap_string = modify_ap_string(action, caller)
         table.add_row(action.name,
-                      "|g" + str(action.ap) + "|n",
+                      ap_string,
                       action.dmg,
                       action.acc,
                       stat_string,
                       effects_abbrev)
     return table
+
+
+def modify_ap_string(action, caller):
+    # Define default ap_string.
+    ap_string = "|g" + str(action.ap) + "|n"
+    # If the caller is Berserk and the attack's damage is less than 50, it will appear in red and with a higher cost.
+    if caller.db.debuffs_standard["Berserk"] > 0:
+        if action.dmg < 50:
+            ap_string = "|r" + str(action.ap - 10) + "|n"
+    return ap_string
 
 
 def logger(caller, message, level="info"):
@@ -67,3 +80,12 @@ def logger(caller, message, level="info"):
     # We're just putting in this if/else statement provisionally for when we implement more involved debug logging.
     else:
         caller.msg("|cDEBUG:|n " + message)
+
+
+def find_attacker_from_key(attacker_key):
+    # This finds the attacker's character object from their key.
+    # Because Evennia uses Python's default pickling method, we cannot pass character objects directly into a queue.
+    all_objects = ObjectDB.objects.all()
+    attacker_queryset = all_objects.filter(db_key=attacker_key)
+    attacker = attacker_queryset[0]
+    return attacker
