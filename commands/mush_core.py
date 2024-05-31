@@ -116,7 +116,7 @@ class CmdPot(default_cmds.MuxCommand):
 
         all_sessions = SESSIONS.get_sessions()
 
-        all_sessions = sorted(all_sessions, key=lambda o: o.account.character.get_pose_time()) # sort by last posed time
+        all_sessions = sorted(all_sessions, key=lambda o: o.puppet.get_pose_time()) # sort by last posed time
         pruned_sessions = prune_sessions(all_sessions)
 
         # TODO: replace styled_table with evtable?
@@ -134,7 +134,7 @@ class CmdPot(default_cmds.MuxCommand):
             if not session.logged_in:
                 continue
 
-            puppet = session.get_puppet()
+            puppet = session.puppet
             delta_cmd = time.time() - session.cmd_last_visible
             delta_conn = time.time() - session.conn_time
             delta_pose_time = time.time() - puppet.get_pose_time()
@@ -146,7 +146,9 @@ class CmdPot(default_cmds.MuxCommand):
                 old_session_list.append(session)
                 continue
 
-            if puppet.location == self.caller.character.location:
+            # assuming it's ok to have a static index here since there will always be a puppet, and it will always
+            # have a location
+            if puppet.location == self.caller.puppet[0].location:
                 # logic for setting up pose table
                 table.add_row(puppet.key,
                               utils.time_format(delta_conn, 0),
@@ -155,14 +157,16 @@ class CmdPot(default_cmds.MuxCommand):
                               lf + "/" + max_lf)
 
         for session in old_session_list:
-            puppet = session.get_puppet()
+            puppet = session.puppet
             delta_cmd = time.time() - session.cmd_last_visible
             delta_conn = time.time() - session.conn_time
             lf = str(int(puppet.db.lf))
             max_lf = str(int(puppet.db.maxlf))
 
             # Changes display depending on if someone has set themselves as an observer or not.
-            if puppet.location == self.caller.character.location:
+            # assuming it's ok to have a static index here since there will always be a puppet, and it will always
+            # have a location
+            if puppet.location == self.caller.puppet[0].location:
                 if puppet.get_obs_mode() == True:
                     table.add_row("|y" + puppet.key + " (O)",
                                   utils.time_format(delta_conn, 0),

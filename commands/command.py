@@ -15,6 +15,7 @@ from evennia.utils import utils, create, evtable, make_iter, inherits_from, date
 from evennia.comms.models import Msg
 from world.scenes.models import Scene, LogEntry
 from world.supplemental import *
+from server.conf.settings import AUTO_PUPPET_ON_LOGIN, MAX_NR_CHARACTERS
 from world.utilities.utilities import setup_table, populate_table, logger
 
 
@@ -32,20 +33,20 @@ def add_participant_to_scene(character, scene):
 def prune_sessions(session_list):
     # This function modifies the display of "who" and "+pot" so that, if the same player is connected from multiple
     # devices, their character name is only displayed once to avoid confusion. Admin still see all connected sessions.
-    session_accounts = [session.account.key for session in session_list]  # get a list of just the names
+    session_chars = [session.puppet.key for session in session_list]  # get a list of just the character names
 
-    unique_accounts = set(session_accounts)
+    unique_chars = set(session_chars)
     positions = []
 
-    for acct in unique_accounts:
-        # finds positions of account name matches in the session_accounts list
-        account_positions = [i for i, x in enumerate(session_accounts) if x == acct]
+    for acct in unique_chars:
+        # finds positions of character name matches in the session_accounts list
+        char_positions = [i for i, x in enumerate(session_chars) if x == acct]
 
         # add the position of the account entry we want to the positions list
-        if len(account_positions) != 1:
-            positions.append(account_positions[-1])
+        if len(char_positions) != 1:
+            positions.append(char_positions[-1])
         else:
-            positions.append(account_positions[0])
+            positions.append(char_positions[0])
 
     positions.sort()  # since set() unorders the initial list and we want to keep a specific printed order
     pruned_sessions = []
@@ -777,3 +778,50 @@ class CmdSay(default_cmds.MuxCommand):
             scene = Scene.objects.get(pk=self.caller.location.db.event_id)
             scene.addLogEntry(LogEntry.EntryType.SAY, self.args, self.caller)
             add_participant_to_scene(self.caller, scene)
+
+
+class CmdCharSelect(default_cmds.MuxCommand):
+    """
+    stop puppeting and go to the character select screen
+
+    Usage:
+      charselect
+
+    Go to the character select screen.
+    """
+
+    key = "charselect"
+    locks = "cmd:pperm(Player)"
+    aliases = "unpuppet"
+    help_category = "General"
+
+    # this is used by the parent
+    # account_caller = True
+
+    def func(self):
+        caller = self.caller
+        account = caller.account
+        session = self.session
+        char_name = caller.name
+
+        old_char = account.get_puppet(session)
+        if not old_char:
+            string = "You are already unpuppeted."
+            self.msg(string)
+            return
+
+        account.db._last_puppet = old_char
+
+        # disconnect
+        try:
+            caller.msg("\n|GYou are no longer puppeting {0}.|n\n".format(char_name))
+            caller.msg(account.at_look(target=account.characters, session=session))
+            account.unpuppet_object(session)
+
+            if AUTO_PUPPET_ON_LOGIN and MAX_NR_CHARACTERS == 1 and self.playable:
+                # only one character exists and is allowed - simplify
+                caller.msg("You are out-of-character (OOC).\nUse |wic|n to get back into the game.")
+                return
+
+        except RuntimeError as exc:
+            self.msg(f"|rCould not unpuppet from |c{old_char}|n: {exc}")
