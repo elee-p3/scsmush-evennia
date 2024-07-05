@@ -21,6 +21,7 @@ class CmdEvent(default_cmds.MuxCommand):
             @event/info: Display the current log's ID number, name, etc.
             @event/name [string]: Set the current log's name as [string].
             @event/desc [string]: Set the current log's desc as [string].
+            @event/resume [int]: Begin logging poses in the current room as a specified preexisting log ID.
     """
 
     key = "@event"
@@ -51,6 +52,14 @@ class CmdEvent(default_cmds.MuxCommand):
         caller = self.caller
         try:
             events = Scene.objects.filter(id=caller.location.db.event_id).get()
+        except Exception as original:
+            raise Exception("Found zero or multiple Scenes :/") from original
+        return events
+
+    def resume_event(self, scene_id):
+        # Find the scene object that matches the specified ID number in Scene.objects.
+        try:
+            events = Scene.objects.filter(id=scene_id).get()
         except Exception as original:
             raise Exception("Found zero or multiple Scenes :/") from original
         return events
@@ -120,3 +129,18 @@ class CmdEvent(default_cmds.MuxCommand):
 
             Scene.objects.filter(id=caller.location.db.event_id).update(description=self.args)
             caller.msg("Scene description set.")
+
+        elif "resume" in self.switches:
+            # Make sure there is no scene already running when you try to resume one
+            if caller.location.db.active_event:
+                caller.msg("There is currently an active event running in this room already.")
+                return
+            if not self.args:
+                caller.msg("Please specify a scene ID, which individuates each log's URL, to resume.")
+            event = self.resume_event(self.args)
+            caller.location.db.active_event = True
+            caller.location.db.event_id = event.id
+
+            self.caller.location.msg_contents(
+                "|y<SCENE>|n A log has been resumed in this room with scene ID {0}.".format(event.id))
+            return
