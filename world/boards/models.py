@@ -18,7 +18,6 @@ class Board(models.Model):
     description = models.TextField(null=False, blank=True)
 
     # The set of accounts who are subscribed to this board.
-    # TODO(daniel): add validation that this is only ever set with accounts.
     subscribers = models.ManyToManyField(
         "accounts.AccountDB",
         blank=True,
@@ -71,8 +70,6 @@ class Post(models.Model):
     #
     # As mentioned above, post READS are tracked at the account level (IRL human being), while writes
     # are tracked as actions of a particular puppetted character for in-universe whimsy and privacy.
-    #
-    # TODO(daniel): add valiation so that only Accounts can be set here.
     readers = models.ManyToManyField(
         "accounts.AccountDB",
         related_name="posts_read",
