@@ -1,6 +1,8 @@
 import re
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponseNotFound
+from evennia.accounts.models import AccountDB
+
 from world.boards.models import Board, Post
 
 # List page for all boards.
@@ -26,7 +28,9 @@ def detail(request, board_id, post_id=None):
         # Mark the post as viewed by the current user (if there is a current user).
         # This call is idempotent and checks for an existing relationship under the hood,
         # so allowing it to be called again will not create a duplicate relationship.
-        post.readers.add(request.user)
+        if request.user.is_authenticated:
+            evennia_account = AccountDB.objects.get(pk=request.user.id)
+            post.readers.add(evennia_account)
     else:
         # If no post is explicitly specified, just default to the most recent post.
         post = sorted_posts.last()

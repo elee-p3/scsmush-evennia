@@ -17,10 +17,10 @@ class Board(models.Model):
     # bother with error handling on content length.
     description = models.TextField(null=False, blank=True)
 
-    # The set of characters who are subscribed to this board.
-    # TODO(daniel): add validation that this is only ever set with characters.
+    # The set of accounts who are subscribed to this board.
+    # TODO(daniel): add validation that this is only ever set with accounts.
     subscribers = models.ManyToManyField(
-        "objects.ObjectDB",
+        "accounts.AccountDB",
         blank=True,
         related_name="subscribed_boards",
     )
@@ -74,7 +74,7 @@ class Post(models.Model):
     #
     # TODO(daniel): add valiation so that only Accounts can be set here.
     readers = models.ManyToManyField(
-        "objects.ObjectDB",
+        "accounts.AccountDB",
         related_name="posts_read",
         blank=True)
 

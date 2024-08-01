@@ -21,8 +21,11 @@ def render_post_detail(post, body_paragraphs):
 
 @register.simple_tag
 def get_board_detail_url(board, post=None):
+    if post == None:
+      return reverse('boards:detail', kwargs={'board_id': board.id})
+    
     return reverse('boards:detail_for_post',
-                   kwargs={'board_id': board.id, 'post_id': post.id if post else None})
+                   kwargs={'board_id': board.id, 'post_id': post.id})
 
 @register.simple_tag
 def get_focused_style(post_to_style, focused_post):
