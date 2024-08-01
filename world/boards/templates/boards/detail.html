@@ -10,10 +10,19 @@
 {% endblock %}
 
 {% block content %}
-<a href={% url 'boards:list' %} class="back-button">Back to list</a>
+<div class="post-container">
+  <div class="left-column">
+    <h1 class="breadcrumbs">
+      <a href="{% url 'boards:list' %}">{{ board.name }}</a>: {{ post.title }}
+    </h1>
+    {% render_post_nav post previous next %}
+    {% render_post_detail post paragraphs %}
+    {% render_post_nav post previous next %}
+  </div>
 
-<h1>Viewing Board: {{ board.name }}</h1>
-{% for post in sorted_posts %}
-  {% render_post_summary post %}
-{% endfor %}
+  <section class="right-column">
+    <h2>Posts in "{{ board.name }}"</h2>
+    {% render_post_list sorted_posts post %}
+  </section>
+</div>
 {% endblock %}
