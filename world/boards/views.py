@@ -22,6 +22,11 @@ def detail(request, board_id, post_id=None):
         # Make sure this post actually belongs to the specified board.
         if post.board.id != board.id:
             return HttpResponseNotFound
+        
+        # Mark the post as viewed by the current user (if there is a current user).
+        # This call is idempotent and checks for an existing relationship under the hood,
+        # so allowing it to be called again will not create a duplicate relationship.
+        post.readers.add(request.user)
     else:
         # If no post is explicitly specified, just default to the most recent post.
         post = sorted_posts.last()
