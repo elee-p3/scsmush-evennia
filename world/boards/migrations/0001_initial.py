@@ -9,7 +9,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("objects", "0014_defaultobject_defaultcharacter_defaultexit_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
