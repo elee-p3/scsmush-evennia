@@ -115,6 +115,8 @@ class CmdPot(default_cmds.MuxCommand):
         """
 
         all_sessions = SESSIONS.get_sessions()
+        # Not sure how a None entry is sneaking into all_sessions, but we did run into this so filtering Nones here
+        all_sessions = [session for session in all_sessions if session is not None]
 
         all_sessions = sorted(all_sessions, key=lambda o: o.puppet.get_pose_time()) # sort by last posed time
         pruned_sessions = prune_sessions(all_sessions)

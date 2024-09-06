@@ -350,6 +350,8 @@ class CmdWho(default_cmds.MuxCommand):
 
         account = self.account
         all_sessions = SESSIONS.get_sessions()
+        # Not sure how a None entry is sneaking into all_sessions, but we did run into this
+        all_sessions = [session for session in all_sessions if session is not None]
 
         all_sessions = sorted(all_sessions, key=lambda o: o.account.key) # sort sessions by account name
         pruned_sessions = prune_sessions(all_sessions)
