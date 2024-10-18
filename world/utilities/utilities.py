@@ -2,6 +2,7 @@ from evennia.utils import evtable
 from world.combat.effects import EFFECTS
 from evennia.objects.models import ObjectDB
 
+
 def location_character_search(location):
     location_objects = location.contents
     characters = []
@@ -43,7 +44,7 @@ def get_abbreviations(action):
 
 # in-place modification of the evtable that populates it with attacks or arts. Note that CmdCheck duplicates this code
 # because there wasn't an overdesigned way to have this function take care of that edge case too
-def populate_table(table, actions, caller):
+def populate_table(table, actions, base_arts):
     for action in actions:
         stat_string = action.stat
         if stat_string == "Power":
@@ -53,7 +54,7 @@ def populate_table(table, actions, caller):
 
         effects_abbrev = get_abbreviations(action)
 
-        ap_string = modify_ap_string(action, caller)
+        ap_string = modify_ap_string(action, base_arts)
         table.add_row(action.name,
                       ap_string,
                       action.dmg,
@@ -63,13 +64,18 @@ def populate_table(table, actions, caller):
     return table
 
 
-def modify_ap_string(action, caller):
+def modify_ap_string(action, base_arts):
+    # Modify the appearance of the Art in Sheet, Arts, etc., depending on status effects, etc.
+    baseline = next(x for x in base_arts if x.name.lower() == action.name.lower())
+    # Use the baseline for comparison to check if, e.g., AP cost has gone up or down.
     # Define default ap_string.
     ap_string = "|g" + str(action.ap) + "|n"
-    # If the caller is Berserk and the attack's damage is less than 50, it will appear in red and with a higher cost.
-    if caller.db.debuffs_standard["Berserk"] > 0:
-        if action.dmg < 50:
-            ap_string = "|r" + str(action.ap - 10) + "|n"
+    if action.ap < baseline.ap:
+        # If the action is more costly than usual, the value is colored red.
+        ap_string = "|r" + str(action.ap) + "|n"
+    elif action.ap > baseline.ap:
+        # If the action is less costly than usual, the value is colored cyan.
+        ap_string = "|c" + str(action.ap) + "|n"
     return ap_string
 
 
