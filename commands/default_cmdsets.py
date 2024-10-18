@@ -90,6 +90,8 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdTeach)
         self.add(CmdConvertArts)
         self.add(CmdCharSelect)
+        self.add(CmdTest)
+        self.add(CmdDel)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):

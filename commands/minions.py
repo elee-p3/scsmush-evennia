@@ -1,5 +1,8 @@
 from evennia import default_cmds
 from world.minions.models import Minion
+from typeclasses.characters import Character
+import random
+import string
 
 class CmdCreateMinion(default_cmds.MuxCommand):
     """
@@ -87,3 +90,32 @@ class CmdCreateMinion(default_cmds.MuxCommand):
                               arts=arts_final_string)
 
         caller.msg("Minion template added!")
+
+
+class CmdTest(default_cmds.MuxCommand):
+    """
+    some stuff
+    """
+
+    key = "test"
+    locks = "cmd:all()"
+
+    def func(self):
+        random_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+        Character.create(random_name,
+                         location=self.caller.location)
+        created_char = next(x for x in self.caller.location.contents_get(content_type="character") if x.name == random_name)
+        created_char.db.sex = "Female"
+        created_char.db.maxlf = 20000
+        self.caller.msg(f"Created #{created_char.name}")
+
+class CmdDel(default_cmds.MuxCommand):
+    key = "deltron"
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        input_name = self.args
+        char = next(x for x in self.caller.location.contents_get(content_type="character") if x.name == input_name)
+        char.delete()
+        caller.msg(f"Deleted #{input_name}")

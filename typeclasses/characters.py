@@ -34,7 +34,7 @@ class Character(DefaultCharacter):
     """
 
     def at_object_creation(self):
-        "This is called when object is first created, only."
+        # This is called when object is first created, only.
         self.db.sex = "Unknown"
         self.db.race = "Unknown"
         self.db.occupation = "Unknown"
