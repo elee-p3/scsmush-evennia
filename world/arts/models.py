@@ -53,7 +53,7 @@ class Arts(models.Model):
     def addArt(cls, art: Attack, is_normal=False):
         Arts.objects.create(
             name=art.name,
-            ap=art.ap_change,
+            ap=art.ap,
             dmg=art.dmg,
             acc=art.acc,
             stat=art.base_stat,

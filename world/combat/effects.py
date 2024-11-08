@@ -8,9 +8,9 @@ class AimOrFeint(Enum):
     BLINKED_FEINT = 5
 
 class Effect:
-    def __init__(self, name: str, ap_change: int, abbr: str):
+    def __init__(self, name: str, ap: int, abbr: str):
         self.name = name
-        self.ap_change = ap_change
+        self.ap = ap
         self.abbreviation = abbr
 
     def __eq__(self, other):
