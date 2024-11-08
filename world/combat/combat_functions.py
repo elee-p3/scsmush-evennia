@@ -1,3 +1,5 @@
+import copy
+
 from world.scenes.models import Scene, LogEntry
 from django.utils.html import escape
 import random
@@ -5,6 +7,45 @@ import math
 from world.utilities.utilities import logger
 from world.combat.attacks import Attack, ActionResult
 from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint
+from world.combat.normals import NORMALS
+from world.arts.models import Arts
+
+
+class ArtBaseline:
+    # A data container to keep a copy of an art prior to it being modified by, e.g., a character's status effects.
+    # The purpose is for comparison with base values, e.g., did AP cost go up or down overall.
+    def __init__(self, name, base_dmg, base_acc, base_stat, base_ap, base_effects):
+        self.name = name
+        self.dmg = base_dmg
+        self.acc = base_acc
+        self.stat = base_stat
+        self.ap = base_ap
+        self.effects = base_effects
+
+
+def filter_and_modify_arts(caller):
+    # Centralizes the function of sorting through the Arts table, finding those linked to a character, and then
+    # modifying them based on the character's status effect. This way, e.g., if a Berserk character's AP costs for
+    # attacks of damage less than 50 are increased by 10, this is reflected in both CmdAttack and CmdSheet.
+    # This function will be used in CmdAttack, CmdInterrupt, CmdArts, CmdListAttacks, CmdCheck, and CmdSheet.
+    arts = Arts.objects.filter(characters=caller)
+    base_arts = []
+    modified_arts = []
+    modified_normals = []
+    for art in arts:
+        # Copy.copy is used to ensure we do not modify the attack in the character's list, just this instance of it.
+        art_clean = copy.copy(art)
+        base_art = ArtBaseline(art.name, art.dmg, art.acc, art.stat, art.ap, art.effects)
+        base_arts.append(base_art)
+        # Modify the copy of the art
+        art_clean = berserk_check(caller, art_clean)
+        modified_arts.append(art_clean)
+    # Now search through the generic normals list and apply the same checks. No need to create a baseline
+    for normal in NORMALS:
+        normal_clean = copy.copy(normal)
+        normal_clean = berserk_check(caller, normal_clean)
+        modified_normals.append(normal_clean)
+    return modified_arts, base_arts, modified_normals
 
 
 def assign_attack_instance_id(target):
@@ -779,17 +820,12 @@ def wound_check(character, action):
         character.msg("You are no longer wounded.")
 
 
-def berserk_check(caller, attack):
-    # If a character is Berserk, Arts of lower than 50 DMG cost 10 more AP. Return "success" if the user has enough AP.
-    ap_change = attack.ap - 10
-    if attack.dmg < 50 and caller.db.ap + ap_change > 0:
-        return "success"
-    # Return "failure" if the user does not have sufficient AP.
-    elif attack.dmg < 50 and caller.db.ap + ap_change < 0:
-        return "failure"
-    # Return NA if the attack was not below 50 DMG to begin with. Berserk will make no change this way.
-    else:
-        return "NA"
+def berserk_check(caller, action):
+    # If a character is Berserk, Arts of lower than 50 DMG cost 10 more AP.
+    if caller.db.debuffs_standard["Berserk"] > 0:
+        if action.dmg < 50:
+            action.ap -= 10
+    return action
 
 
 def hex_counter(caller):

@@ -9,10 +9,8 @@ from world.arts.models import Arts
 from world.combat.attacks import AttackToQueue, AttackDuringAction, ActionResult
 from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
-# from world.combat.normals import NORMALS
+from world.combat.normals import NORMALS
 from world.utilities.utilities import *
-
-NORMALS = Arts.objects.filter(isNormal=True)
 
 
 def record_combat(defender, attack_instance, reaction_name, is_success, dmg):
@@ -97,7 +95,7 @@ class CmdSheet(default_cmds.MuxCommand):
         caller = self.caller
         client_width = self.client_width()
         char = caller.get_abilities()
-        arts = Arts.objects.filter(characters=self.caller)
+        arts, base_arts, normals = filter_and_modify_arts(caller)
         sheetMsg = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"  # top border
 
         header = ""
@@ -158,7 +156,7 @@ class CmdSheet(default_cmds.MuxCommand):
         sheetMsg += "|" + "=" * left_spacing + "ARTS" + "=" * right_spacing + "|"
 
         arts_table = setup_table(client_width, is_sheet=True)
-        populate_table(arts_table, arts, caller)
+        populate_table(arts_table, arts, base_arts)
         arts_string = arts_table.__str__()
         sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
 
@@ -190,6 +188,7 @@ class CmdSheet(default_cmds.MuxCommand):
 
         return meter + "]"
 
+
 class CmdAttack(default_cmds.MuxCommand):
     """
         Combat command. Use to attack an opponent during combat.
@@ -215,7 +214,7 @@ class CmdAttack(default_cmds.MuxCommand):
         caller = self.caller
         location = caller.location
         args = self.args
-        arts = Arts.objects.filter(characters=caller)
+        arts, base_arts, normals = filter_and_modify_arts(caller)
         switches = self.switches
         # For attack/wild and heal/[debuff] (for Cure). Switches is a list of strings split by /. Send to heal_check.
 
@@ -270,22 +269,18 @@ class CmdAttack(default_cmds.MuxCommand):
                     target_object = obj
 
         # Now check that the action is an attack.
-        if action not in NORMALS:
-            if action not in arts:
-                return caller.msg("Your selected action cannot be found.")
-        if action in NORMALS:
-            action_clean = NORMALS.get(name__iexact=action)    # found action with correct capitalization
+        if action in arts:
+            action_clean = next(x for x in arts if x == action)
+        elif action in normals:
+            action_clean = next(x for x in normals if x == action)
         else:
-            action_clean = arts.get(name__iexact=action)
+            return caller.msg("Your selected action cannot be found.")
 
         # If the target is here and the action exists, then we add the attack to the target's queue.
         # The attack should be assigned an ID based on its place in the queue.
         # Check if the "queue" attribute exists and, if not, create an empty list first.
         if target_object.db.queue is None:
             target_object.db.queue = []
-
-        # Copy.copy is used to ensure we do not modify the attack in the character's list, just this instance of it.
-        action_clean = copy.copy(action_clean)
 
         # If the character has insufficient AP or EX to use that move, cancel the attack.
         # Otherwise, set their EX from 100 to 0.
@@ -296,12 +291,6 @@ class CmdAttack(default_cmds.MuxCommand):
             total_ap_change -= 10
         if caller.db.ap + total_ap_change < 0:
             return caller.msg("You do not have enough AP to do that.")
-        # Check if the attacker is currently Berserk.
-        if caller.db.debuffs_standard["Berserk"] > 0:
-            if berserk_check(caller, action_clean) == "success":
-                total_ap_change -= 10
-            elif berserk_check(caller, action_clean) == "failure":
-                return caller.msg("You do not have enough AP to do that.")
         if "EX" in action_clean.effects:
             if caller.db.ex - 100 < 0:
                 return caller.msg("You do not have enough EX to do that.")
@@ -658,7 +647,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         caller = self.caller
         args = self.args
         switches = self.switches
-        arts = Arts.objects.filter(characters=caller)
+        arts, base_arts, normals = filter_and_modify_arts(caller)
         id_list = [attack.id for attack in caller.db.queue]
         # Like +attack, +interrupt requires two arguments: a incoming attack and an outgoing interrupt.
         if "=" not in args:
@@ -675,17 +664,13 @@ class CmdInterrupt(default_cmds.MuxCommand):
             return caller.msg("Cannot find that attack in your queue.")
 
         # Make sure that the outgoing interrupt is an available Art/Normal.
-        if outgoing_attack_name not in NORMALS:
+        if outgoing_attack_name not in normals:
             if outgoing_attack_name not in arts:
                 return caller.msg("Your selected interrupt action cannot be found.")
-        if outgoing_attack_name in NORMALS:
-            outgoing_interrupt = NORMALS.get(name__iexact=outgoing_attack_name)
+        if outgoing_attack_name in normals:
+            outgoing_interrupt = next(x for x in normals if x == outgoing_attack_name.lower())
         else:
-            outgoing_interrupt = arts.get(name__iexact=outgoing_attack_name)
-        # Check if the interrupter is currently Berserk.
-        if caller.db.debuffs_standard["Berserk"] > 0:
-            if berserk_check(caller, outgoing_interrupt):
-                return caller.msg("Due to your Berserk state, you may only use attacks of 50 DMG or higher.")
+            outgoing_interrupt = next(x for x in arts if x == outgoing_attack_name.lower())
         # Check if the interrupter is currently Aiming or Feinting.
         if caller.db.is_aiming:
             return caller.msg("You cannot Aim an interrupt. First type 'aim' again to cease aiming.")
@@ -839,13 +824,13 @@ class CmdArts(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
-        arts = Arts.objects.filter(characters=caller)
+        arts, base_arts, normals = filter_and_modify_arts(caller)
         if arts is None:
             return caller.msg("Your character has no Arts. Use +setart to create some.")
 
         client_width = self.client_width()
         arts_table = setup_table(client_width)
-        populate_table(arts_table, arts, caller)
+        populate_table(arts_table, arts, base_arts)
 
         arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
         arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/
@@ -871,15 +856,15 @@ class CmdListAttacks(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         args = self.args
-        arts = Arts.objects.filter(characters=caller)
+        arts, base_arts, normals = filter_and_modify_arts(caller)
         if args:
             return caller.msg("The command +attacks should be input without arguments.")
 
         client_width = self.client_width()
         arts_table = setup_table(client_width)
         normals_table = setup_table(client_width)
-        populate_table(arts_table, arts, caller)
-        populate_table(normals_table, NORMALS, caller)
+        populate_table(arts_table, arts, base_arts)
+        populate_table(normals_table, normals, NORMALS)
 
         arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
         arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/
@@ -918,7 +903,7 @@ class CmdCheck(default_cmds.MuxCommand):
         client_width = self.client_width()
         caller = self.caller
         args = self.args
-        arts = Arts.objects.filter(characters=caller)
+        arts, base_arts, normals = filter_and_modify_arts(caller)
 
         # Check if the command is check by itself or check with args.
         if not args:
@@ -945,7 +930,7 @@ class CmdCheck(default_cmds.MuxCommand):
             normals_table = setup_table(client_width, is_check=True)
             arts_table = setup_table(client_width, is_check=True)
 
-            for normal in NORMALS:
+            for normal in normals:
                 # this code block is copied from CmdInterrupt
                 # TODO: refactor CmdInterrupt and figure out how to move this all into a separate function
                 incoming_action = caller.db.queue[id_list.index(attack_id)]

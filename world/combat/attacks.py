@@ -5,12 +5,12 @@ from enum import Enum
 
 class Attack:
     # This is the attack object as stored in individual lists of Arts or in the universal list of Normals.
-    def __init__(self, name: str, ap_change: int, dmg: int, acc: int, base_stat="", effects=[]):
+    def __init__(self, name: str, ap: int, dmg: int, acc: int, base_stat="", effects=""):
         self.name = name # make case-insensitive
-        self.ap_change = ap_change
+        self.ap = ap
         self.dmg = dmg
         self.acc = acc
-        self.base_stat = base_stat
+        self.stat = base_stat
         self.effects = effects
 
     def __str__(self):
