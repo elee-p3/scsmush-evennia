@@ -214,7 +214,7 @@ class CmdAttack(default_cmds.MuxCommand):
         caller = self.caller
         location = caller.location
         args = self.args
-        arts, base_arts, normals = filter_and_modify_arts(caller)
+        arts, base_arts, modified_normals = filter_and_modify_arts(caller)
         switches = self.switches
         # For attack/wild and heal/[debuff] (for Cure). Switches is a list of strings split by /. Send to heal_check.
 
@@ -271,8 +271,8 @@ class CmdAttack(default_cmds.MuxCommand):
         # Now check that the action is an attack.
         if action in arts:
             action_clean = next(x for x in arts if x == action)
-        elif action in normals:
-            action_clean = next(x for x in normals if x == action)
+        elif action in modified_normals:
+            action_clean = next(x for x in modified_normals if x == action)
         else:
             return caller.msg("Your selected action cannot be found.")
 
@@ -824,7 +824,7 @@ class CmdArts(default_cmds.MuxCommand):
 
     def func(self):
         caller = self.caller
-        arts, base_arts, normals = filter_and_modify_arts(caller)
+        arts, base_arts, modified_normals = filter_and_modify_arts(caller)
         if arts is None:
             return caller.msg("Your character has no Arts. Use +setart to create some.")
 
@@ -856,7 +856,7 @@ class CmdListAttacks(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         args = self.args
-        arts, base_arts, normals = filter_and_modify_arts(caller)
+        arts, base_arts, modified_normals = filter_and_modify_arts(caller)
         if args:
             return caller.msg("The command +attacks should be input without arguments.")
 
@@ -864,7 +864,7 @@ class CmdListAttacks(default_cmds.MuxCommand):
         arts_table = setup_table(client_width)
         normals_table = setup_table(client_width)
         populate_table(arts_table, arts, base_arts)
-        populate_table(normals_table, normals, NORMALS)
+        populate_table(normals_table, modified_normals, NORMALS)
 
         arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
         arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/
@@ -903,7 +903,7 @@ class CmdCheck(default_cmds.MuxCommand):
         client_width = self.client_width()
         caller = self.caller
         args = self.args
-        arts, base_arts, normals = filter_and_modify_arts(caller)
+        arts, base_arts, modified_normals = filter_and_modify_arts(caller)
 
         # Check if the command is check by itself or check with args.
         if not args:
@@ -930,7 +930,7 @@ class CmdCheck(default_cmds.MuxCommand):
             normals_table = setup_table(client_width, is_check=True)
             arts_table = setup_table(client_width, is_check=True)
 
-            for normal in normals:
+            for normal in modified_normals:
                 # this code block is copied from CmdInterrupt
                 # TODO: refactor CmdInterrupt and figure out how to move this all into a separate function
                 incoming_action = caller.db.queue[id_list.index(attack_id)]
