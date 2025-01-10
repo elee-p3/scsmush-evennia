@@ -34,17 +34,17 @@ def filter_and_modify_arts(caller):
     modified_normals = []
     for art in arts:
         # Copy.copy is used to ensure we do not modify the attack in the character's list, just this instance of it.
-        art_clean = copy.copy(art)
+        modified_art = copy.copy(art)
         base_art = ArtBaseline(art.name, art.dmg, art.acc, art.stat, art.ap, art.effects)
         base_arts.append(base_art)
         # Modify the copy of the art
-        art_clean = berserk_check(caller, art_clean)
-        modified_arts.append(art_clean)
+        modified_art = berserk_check(caller, modified_art)
+        modified_arts.append(modified_art)
     # Now search through the generic normals list and apply the same checks. No need to create a baseline
     for normal in NORMALS:
-        normal_clean = copy.copy(normal)
-        normal_clean = berserk_check(caller, normal_clean)
-        modified_normals.append(normal_clean)
+        modified_normal = copy.copy(normal)
+        modified_normal = berserk_check(caller, modified_normal)
+        modified_normals.append(modified_normal)
     return modified_arts, base_arts, modified_normals
 
 
