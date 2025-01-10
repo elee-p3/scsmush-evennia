@@ -16,6 +16,7 @@ from world.supplemental import *
 from world.arts.models import Arts
 from world.combat.normals import NORMALS
 from world.utilities.utilities import logger
+import math
 import re
 
 
@@ -307,22 +308,21 @@ class CmdTeach(default_cmds.MuxCommand):
         command.Command.execute_cmd(self, raw_string=str(args))
         # TODO: Would be nice if, when the command doesn't exist, teach doesn't run. Review cmdhandler.py.
 
-# TODO: once we run this command to convert all the arts to table form, we should delete this class/command and check in the change since this isn't meant to be reusable
-class CmdConvertArts(default_cmds.MuxCommand):
-    key = "convertarts"
+# TODO: these two commands should be deleted after damage and accuracy number conversion
+# in the case of 5s in the single digits I'm letting dmg take precedence and giving it the extra whole number
+# e.g. dmg 15, acc 85 -> dmg 2, acc 8
+class CmdConvertNumbers(default_cmds.MuxCommand):
+    key = "convertnum"
     locks = "cmd:perm(Admin)"
 
     def func(self):
-        caller = self.caller
-        allCharacters = Character.objects.all()
-        for char in allCharacters:
-            artsList = char.db.arts
-            if artsList:
-                for art in artsList:
-                    Arts.addArt(art)
-                    Arts.objects.latest("pk").characters.add(char)
-                    logger(caller, "Added " + art.name + " to Arts table")
-            caller.msg("Finished adding " + char.name + "'s Arts to Arts table")
-        for normal in NORMALS:
-            Arts.addArt(normal, is_normal=True)
-            logger(self.caller, "Added " + normal.name + " to Arts table")
+        allArts = Arts.objects.all()
+        for art in allArts:
+            if art.dmg%5 == 0:
+                art.dmg = math.ceil(art.dmg/10)
+                art.acc = math.floor(art.acc/10)
+            else:
+                art.dmg = round(art.dmg/10)
+                art.acc = round(art.acc/10)
+            self.caller.msg("Edited " + art.name)
+            art.save()
