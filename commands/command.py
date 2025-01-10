@@ -16,7 +16,7 @@ from evennia.comms.models import Msg
 from world.scenes.models import Scene, LogEntry
 from world.supplemental import *
 from server.conf.settings import AUTO_PUPPET_ON_LOGIN, MAX_NR_CHARACTERS
-from world.utilities.utilities import setup_table, populate_table, logger
+from world.utilities.utilities import logger
 
 
 def add_participant_to_scene(character, scene):

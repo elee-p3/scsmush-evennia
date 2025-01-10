@@ -11,6 +11,7 @@ from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
 from world.combat.normals import NORMALS
 from world.utilities.utilities import *
+from world.utilities.tables import setup_table, populate_table
 
 
 def record_combat(defender, attack_instance, reaction_name, is_success, dmg):
@@ -917,6 +918,7 @@ class CmdCheck(default_cmds.MuxCommand):
 
             attack_id = int(args)
             id_list = [attack.id for attack in caller.db.queue]
+            interrupted_action = caller.db.queue[id_list.index(attack_id)]
 
             # Now, beautifully display the arts and normals with an added column for relative interrupt chance.
             normals_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Normals") / 2.0)) - 2)  # -2 for the \/
@@ -930,51 +932,12 @@ class CmdCheck(default_cmds.MuxCommand):
             normals_table = setup_table(client_width, is_check=True)
             arts_table = setup_table(client_width, is_check=True)
 
-            for normal in modified_normals:
-                # this code block is copied from CmdInterrupt
-                # TODO: refactor CmdInterrupt and figure out how to move this all into a separate function
-                incoming_action = caller.db.queue[id_list.index(attack_id)]
-                modified_acc = interrupt_chance_calc(caller, incoming_action, normal)
-
-                stat_string = normal.stat
-                if stat_string == "Power":
-                    stat_string = "PWR"
-                else:
-                    stat_string = "KNW"
-
-                normals_table.add_row(normal.name,
-                                      "|g" + str(normal.ap) + "|n",
-                                      normal.dmg,
-                                      normal.acc,
-                                      stat_string,
-                                      " ",
-                                      modified_acc)
-
+            populate_table(normals_table, modified_normals, NORMALS, interrupted_action, caller)
             caller.msg(normals_header + normals_table.__str__())
 
             # If the character has arts, list them.
             if arts:
-                for art in arts:
-                    # this code block is copied from CmdInterrupt
-                    incoming_action = caller.db.queue[id_list.index(attack_id)]
-                    modified_acc = interrupt_chance_calc(caller, incoming_action, art)
-
-                    stat_string = art.stat
-                    if stat_string == "Power":
-                        stat_string = "PWR"
-                    else:
-                        stat_string = "KNW"
-
-                    effects_abbrev = get_abbreviations(art)
-
-                    arts_table.add_row(art.name,
-                                      "|g" + str(art.ap) + "|n",
-                                      art.dmg,
-                                      art.acc,
-                                      stat_string,
-                                      effects_abbrev,
-                                      modified_acc)
-
+                populate_table(arts_table, arts, base_arts, interrupted_action, caller)
                 caller.msg(arts_header + arts_table.__str__())
 
 
