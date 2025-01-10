@@ -14,6 +14,7 @@ from world.utilities.utilities import *
 from world.utilities.tables import setup_table, populate_table
 
 
+
 def record_combat(defender, attack_instance, reaction_name, is_success, dmg):
     attacker = find_attacker_from_key(attack_instance.attacker_key)
     attack = attack_instance.attack

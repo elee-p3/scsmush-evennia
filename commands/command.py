@@ -350,6 +350,8 @@ class CmdWho(default_cmds.MuxCommand):
 
         account = self.account
         all_sessions = SESSIONS.get_sessions()
+        # Not quite sure how a non-puppeted session can exist - need to dig into this
+        all_sessions = [session for session in all_sessions if session.puppet is not None]
 
         all_sessions = sorted(all_sessions, key=lambda o: o.account.key) # sort sessions by account name
         pruned_sessions = prune_sessions(all_sessions)
