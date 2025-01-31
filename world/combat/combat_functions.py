@@ -120,6 +120,7 @@ def attack_switch_check(attacker, switches):
 
 
 def modify_damage(action, character):
+    # TODO: Phase out entirely (it is no longer called but keeping it for reference just in case)
     damage = action.dmg
     # Modify attack damage based on base stat.
     if action.stat.lower() == "power":
@@ -846,6 +847,8 @@ def clear_hexes(caller):
 
 
 def strain_check(damage, action, character):
+    # TODO: Modify so that Strain's self-damage/increased outgoing damage is relative to Art Damage value, not actual
+    # damage done, so that self-damage can be calculated in advance.
     # Currently, for self-damage, Strain uses the same math as Wound.
     damage_floor = action.ap * -1
     # Ensure that the minimum damage_floor is 1 in case of, like, EX moves that regain AP or something.

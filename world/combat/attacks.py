@@ -35,9 +35,34 @@ class AttackDuringAction:
         self.modifier = ""
         self.switches_string = "".join(switches)
         self.has_acuity = False
+        self.has_vigor = False
+        self.has_bird = False
+        self.has_frog = False
+        self.has_injure = False
+        self.has_pig = False
+        self.has_pumpkin = False
+        self.has_berserk = False
+        self.has_muddle = False
+        self.has_strain = False
         self.is_wild = False
         if attacker.db.buffs["Acuity"] > 0:
             self.has_acuity = True
+        if attacker.db.buffs["Vigor"] > 0:
+            self.has_vigor = True
+        if attacker.db.debuffs_transform["Bird"] > 0:
+            self.has_bird = True
+        if attacker.db.debuffs_transform["Frog"] > 0:
+            self.has_frog = True
+        if attacker.db.debuffs_transform["Pig"] > 0:
+            self.has_pig = True
+        if attacker.db.debuffs_transform["Pumpkin"] > 0:
+            self.has_pumpkin = True
+        if attacker.db.debuffs_standard["Injure"] > 0:
+            self.has_injure = True
+        if attacker.db.debuffs_standard["Muddle"] > 0:
+            self.has_muddle = True
+        if attacker.db.debuffs_standard["Berserk"] > 0:
+            self.has_berserk = True
         if self.switches_string:
             switches_list = self.switches_string.split()
             for switch in switches_list:
@@ -46,6 +71,11 @@ class AttackDuringAction:
                     self.is_wild = True
                     # Wild attacks have -20 accuracy.
                     self.attack.acc -= 20
+        if attack.effects:
+            split_effects = attack.effects.split()
+            for effect in split_effects:
+                if effect == "Strain":
+                    self.has_strain = True
 
 
 class AttackToQueue(AttackDuringAction):

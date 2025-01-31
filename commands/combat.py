@@ -311,7 +311,7 @@ class CmdAttack(default_cmds.MuxCommand):
         if "Heal" in action_clean.effects:
             heal_check(action_clean, caller, target_object, switches)
         else:
-            action_clean.dmg = modify_damage(action_clean, caller)
+            # action_clean.dmg = modify_damage(action_clean, caller)
 
             new_id = assign_attack_instance_id(target_object)
 
