@@ -389,9 +389,6 @@ class CmdDodge(default_cmds.MuxCommand):
 
         # The attack is an AttackInstance object in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
-        attack = action.attack
-        attack_damage = attack.dmg
-        attacker = find_attacker_from_key(action.attacker_key)
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)
@@ -403,10 +400,9 @@ class CmdDodge(default_cmds.MuxCommand):
 
         msg = ""
         is_glancing_blow = False
-        attacker_stat = find_attacker_stat(attacker, attack.stat)
         if modified_acc > random100:
             # Since the attack has hit, check for critical hit.
-            final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller)
+            final_damage = damage_calc(action, caller)
             is_critical_hit, final_damage = critical_hits(final_damage, action)
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
             is_glancing_blow = glancing_blow_calc(random100, modified_acc, action.has_sweep)

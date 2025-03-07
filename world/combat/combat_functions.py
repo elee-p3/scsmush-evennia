@@ -9,6 +9,7 @@ from world.combat.attacks import Attack, ActionResult
 from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint
 from world.combat.normals import NORMALS
 from world.arts.models import Arts
+from world.utilities.utilities import find_attacker_from_key
 
 
 class ArtBaseline:
@@ -58,7 +59,17 @@ def assign_attack_instance_id(target):
     return new_id
 
 
-def damage_calc(attack_dmg, attacker_stat, base_stat, defender):
+def damage_calc(incoming_attack, defender):
+    attack_dmg = incoming_attack.dmg
+    base_stat = incoming_attack.stat
+    attacker = find_attacker_from_key(incoming_attack.attacker_key)
+    attacker_stat = find_attacker_stat(attacker, base_stat)
+    default_dmg = 160
+
+    # base damage will be scaled by the attack's dmg property, with 6 being the baseline 1.0x
+    multiplier = 1.0 - ((6 - attack_dmg) * 0.1)
+
+    # stats will affect damage via a flat modifier that depends on a piecewise function
     def_stat = 0
     if base_stat == "Power":
         def_stat = defender.db.parry
@@ -80,14 +91,19 @@ def damage_calc(attack_dmg, attacker_stat, base_stat, defender):
             def_stat += 10
         if defender.db.debuffs_standard["Muddle"] > 0:
             def_stat -= 10
-    # Now magnify or mitigate the stat multiplier depending on how different they are.
-    # This works OK, but is a placeholder for a more complex curve that I want to implement eventually.
-    defender_advantage = def_stat - attacker_stat
-    stat_mitigation = def_stat * (-0.00188 * defender_advantage + 1.05)
-    damage = 1.85 * attack_dmg - stat_mitigation
-    if damage < 0:
-        damage = 0
-    return damage
+
+    # use modified stat to calculate the flat modifier via a piecewise function
+
+    final_damage = default_dmg * multiplier # + flat modifier
+
+    # # Now magnify or mitigate the stat multiplier depending on how different they are.
+    # # This works OK, but is a placeholder for a more complex curve that I want to implement eventually.
+    # defender_advantage = def_stat - attacker_stat
+    # stat_mitigation = def_stat * (-0.00188 * defender_advantage + 1.05)
+    # damage = 1.85 * attack_dmg - stat_mitigation
+    # if damage < 0:
+    #     damage = 0
+    return final_damage
 
 
 def modify_accuracy(action, character):
