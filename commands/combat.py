@@ -389,6 +389,8 @@ class CmdDodge(default_cmds.MuxCommand):
 
         # The attack is an AttackInstance object in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
+        attack = action.attack
+        attacker = find_attacker_from_key(action.attacker_key)
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)

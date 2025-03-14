@@ -59,10 +59,11 @@ def assign_attack_instance_id(target):
     return new_id
 
 
-def damage_calc(incoming_attack, defender):
+def damage_calc(queued_attack, defender):
+    incoming_attack = queued_attack.attack
     attack_dmg = incoming_attack.dmg
     base_stat = incoming_attack.stat
-    attacker = find_attacker_from_key(incoming_attack.attacker_key)
+    attacker = find_attacker_from_key(queued_attack.attacker_key)
     attacker_stat = find_attacker_stat(attacker, base_stat)
     default_dmg = 160
 
@@ -93,16 +94,22 @@ def damage_calc(incoming_attack, defender):
             def_stat -= 10
 
     # use modified stat to calculate the flat modifier via a piecewise function
+    stat_diff = attacker_stat - def_stat
+    sign = math.floor(stat_diff/abs(stat_diff))
+    abs_stat_diff = abs(stat_diff)
+    if abs_stat_diff <= 25:
+        flat_mod = stat_diff
+    elif abs_stat_diff <= 50:
+        flat_mod = (sign*25) + ((stat_diff-25)*0.7)
+    elif abs_stat_diff <= 75:
+        # (sign*25) + (sign*25*0.7) + remaining_stat*0.4
+        flat_mod = (sign*42.5) + (sign*(abs_stat_diff-50)*0.4)
+    else:
+        # (sign*25) + (sign*25*0.7) + (sign*25*0.4) + remaining_stat*0.1
+        flat_mod = (sign*52.5) + (sign*(abs_stat_diff-75)*0.1)
 
-    final_damage = default_dmg * multiplier # + flat modifier
+    final_damage = default_dmg * multiplier + flat_mod
 
-    # # Now magnify or mitigate the stat multiplier depending on how different they are.
-    # # This works OK, but is a placeholder for a more complex curve that I want to implement eventually.
-    # defender_advantage = def_stat - attacker_stat
-    # stat_mitigation = def_stat * (-0.00188 * defender_advantage + 1.05)
-    # damage = 1.85 * attack_dmg - stat_mitigation
-    # if damage < 0:
-    #     damage = 0
     return final_damage
 
 
@@ -472,12 +479,12 @@ def combat_log_entry(caller, logstring):
 
 def find_attacker_stat(attacker, base_stat):
     # Use the base stat of the attack to pull the attacker's corresponding stat value.
-    attacker_stat = 0
     if base_stat == "Power":
-        attacker_stat += attacker.db.power
-    if base_stat == "Knowledge":
-        attacker_stat += attacker.db.knowledge
-    return attacker_stat
+        return attacker.db.power
+    elif base_stat == "Knowledge":
+        return attacker.db.knowledge
+    else:
+        return 0
 
 
 def heal_check(action, healer, target, switches):
