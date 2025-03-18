@@ -46,6 +46,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         #
         self.add(CmdOOC)
         self.add(CmdSCSDice)
+        self.add(CmdEZRoll)
         self.add(CmdEmit)
         self.add(CmdSheet)
         self.add(CmdSetDesc)
