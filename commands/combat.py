@@ -483,7 +483,7 @@ class CmdBlock(default_cmds.MuxCommand):
         # Find the attacker's relevant attack stat for damage_calc.
         attacker_stat = find_attacker_stat(attacker, attack.stat)
         modified_acc = block_chance_calc(caller, action)
-        modified_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller)
+        modified_damage = damage_calc(action, caller)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         modified_acc = modify_aim_and_feint(modified_acc, "block", aim_or_feint)
@@ -583,7 +583,7 @@ class CmdEndure(default_cmds.MuxCommand):
 
         msg = ""
         attacker_stat = find_attacker_stat(attacker, attack.stat)
-        final_damage = damage_calc(attack_damage, attacker_stat, attack.stat, caller)
+        final_damage = damage_calc(action, caller)
         if modified_acc > random100:
             # Since the attack has hit, check for critical hit.
             is_critical_hit, final_damage = critical_hits(final_damage, action)
@@ -712,7 +712,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         msg = ""
         # In case of interrupt failure
         if modified_acc < random100:
-            final_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_atk.stat, caller)
+            final_damage = damage_calc(incoming_atk_in_queue, caller)
 
             # Check for Protect/Reflect moderate damage mitigation.
             final_damage = protect_and_reflect_check(final_damage, caller, incoming_atk, False)
@@ -743,14 +743,14 @@ class CmdInterrupt(default_cmds.MuxCommand):
         # In case of interrupt success
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
-            modified_int_damage = modify_damage(outgoing_interrupt, caller)
-            final_outgoing_damage = damage_calc(modified_int_damage, outgoing_interrupt_stat, outgoing_interrupt.stat, attacker)
+            # modified_int_damage = modify_damage(outgoing_interrupt, caller)
+            final_outgoing_damage = damage_calc(interrupt, attacker)
 
             # Check if the interrupt is a critical hit!
             is_critical_hit, final_outgoing_damage = critical_hits(final_outgoing_damage, interrupt)
 
             # Determine how much damage the incoming attack would do if unmitigated.
-            unmitigated_incoming_damage = damage_calc(incoming_damage, incoming_attack_stat, incoming_atk.stat, caller)
+            unmitigated_incoming_damage = damage_calc(incoming_atk_in_queue, caller)
 
             # Determine how the Damage of the outgoing interrupt mitigates incoming Damage.
             mitigated_damage = interrupt_mitigation_calc(unmitigated_incoming_damage, final_outgoing_damage)
