@@ -83,6 +83,7 @@ class AttackToQueue(AttackDuringAction):
     # queue, and an enum representing if the attacker was Aiming, Feinting, or neither.
     def __init__(self, new_id, attack, attacker_key, aim_or_feint, switches):
         super(AttackToQueue, self).__init__(attack, attacker_key, switches)
+        attacker = find_attacker_from_key(attacker_key)
         self.id = new_id
         # self.target = target
         self.aim_or_feint = aim_or_feint
@@ -101,6 +102,8 @@ class AttackToQueue(AttackDuringAction):
         self.has_brace = False
         self.has_bait = False
         self.has_ranged = False
+        self.is_final_action = True if attacker.db.final_action else False
+        self.endure_bonus = attacker.db.endure_bonus
         if attack.effects:
             split_effects = attack.effects.split()
             for effect in split_effects:

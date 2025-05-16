@@ -5,7 +5,7 @@ from django.utils.html import escape
 import random
 import math
 from world.utilities.utilities import logger
-from world.combat.attacks import Attack, ActionResult
+from world.combat.attacks import Attack, ActionResult, AttackToQueue
 from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint
 from world.combat.normals import NORMALS
 from world.arts.models import Arts
@@ -95,12 +95,12 @@ def damage_calc(queued_attack, defender):
 
     # use modified stat to calculate the flat modifier via a piecewise function
     stat_diff = attacker_stat - def_stat
-    sign = math.floor(stat_diff/abs(stat_diff))
     abs_stat_diff = abs(stat_diff)
+    sign = math.floor(stat_diff/abs_stat_diff)
     if abs_stat_diff <= 25:
         flat_mod = stat_diff
     elif abs_stat_diff <= 50:
-        flat_mod = (sign*25) + ((stat_diff-25)*0.7)
+        flat_mod = (sign*25) + (sign*(abs_stat_diff-25)*0.7)
     elif abs_stat_diff <= 75:
         # (sign*25) + (sign*25*0.7) + remaining_stat*0.4
         flat_mod = (sign*42.5) + (sign*(abs_stat_diff-50)*0.4)
@@ -111,24 +111,6 @@ def damage_calc(queued_attack, defender):
     final_damage = default_dmg * multiplier + flat_mod
 
     return final_damage
-
-
-def modify_accuracy(action, character):
-    accuracy = action.acc
-    # First, check if this is the attacker's final action, and if so, apply a final action penalty.
-    if hasattr(character.db, "final_action"):
-        if character.db.final_action:
-            accuracy -= 30
-    # Then, check if the character has an endure bonus and, if so, apply it.
-    if character.db.endure_bonus:
-        accuracy += character.db.endure_bonus
-    # Check if the character is rushing and, if so, add 7 to accuracy.
-    if "Rush" in action.effects:
-        accuracy += 7
-    # Check if the attack is Long-Range and, if so, subtract 5 from accuracy.
-    if "Long-Range" in action.effects:
-        accuracy -= 5
-    return accuracy
 
 
 def attack_switch_check(attacker, switches):
@@ -214,35 +196,54 @@ def modify_speed(speed, defender):
     return effective_speed
 
 
-def dodge_calc(defender, attack_instance):
-    # accuracy = int(int(attack_acc) / (speed/100))
+def dodge_calc(defender, attack_instance: AttackToQueue):
     speed = defender.db.speed
     attack_acc = attack_instance.attack.acc
-    accuracy = 100.0 - (0.475 * (modify_speed(speed, defender) - attack_acc) + 5)
+    # base dodge %
+    base_dodge_pct = 45 + attack_acc*5
+    # modify base % with speed scaling with respect to a base of 125 via a piecewise function
+    speed_diff = speed - 125
+    abs_speed_diff = abs(speed_diff)
+    sign = math.floor(speed_diff/abs_speed_diff)
+    if abs_speed_diff <= 15:
+        mod = 0.7 * speed_diff
+    elif abs_speed_diff <= 30:
+        # (sign*15*0.7) + remaining_speed_diff*0.4
+        mod = (sign*15*0.7) + (sign*(abs_speed_diff-15)*0.4)
+    else:
+        # (sign*15*0.7) + (sign*15*0.4) + remaining_speed_diff*0.1
+        mod = (sign*16.5) + (sign*(abs_speed_diff-30)*0.1)
+    dodge_pct = round(base_dodge_pct + mod)
     # Checking to see if the attack has sweep and improving accuracy/reducing dodge chance if so.
     if attack_instance.has_sweep:
-        accuracy += 10
+        dodge_pct += 10
     # Checking to see if the defender is_rushing and improving accuracy if so.
     if defender.db.is_rushing:
-        accuracy += 5
+        dodge_pct += 5
     # Checking to see if the defender is_weaving and reducing accuracy/improving dodge chance if so.
     if defender.db.is_weaving:
-        accuracy -= 10
+        dodge_pct -= 10
     # Checking to see if the defender used_ranged and improving accuracy if so.
     if defender.db.used_ranged:
-        accuracy += 5
+        dodge_pct += 5
     # Checking to see if the defender is Petrified and improving accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
-        accuracy += 12
+        dodge_pct += 12
     # Checking to see if the defender is Slimy and reducing accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
-        accuracy -= 12
+        dodge_pct -= 12
+    if attack_instance.is_final_action:
+        dodge_pct -= 30
+    if attack_instance.has_rush:
+        dodge_pct += 7
+    if attack_instance.has_ranged:
+        dodge_pct -= 5
     # cap accuracy at 99%
-    if accuracy > 99:
-        accuracy = 99
-    elif accuracy < 1:
-        accuracy = 1
-    return accuracy
+    if dodge_pct > 99:
+        dodge_pct = 99
+    elif dodge_pct < 1:
+        dodge_pct = 1
+    return dodge_pct
 
 
 def block_chance_calc(defender, attack_instance):
@@ -759,7 +760,7 @@ def protect_and_reflect_check(incoming_damage, defender, attack, interrupt_succe
             incoming_damage = incoming_damage * 0.85
     return incoming_damage
 
-
+#TODO: rename all the accuracy vars to "percentage" or something
 def modify_aim_and_feint(accuracy, reaction, aim_or_feint):
     # Centralizing any modifications to Aim and Feint from buffs, etc. Call this in each reaction. Return mod acc.
     if reaction == "dodge" or "block":

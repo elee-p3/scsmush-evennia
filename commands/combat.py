@@ -307,7 +307,6 @@ class CmdAttack(default_cmds.MuxCommand):
 
         # Modify the damage and accuracy of the attack based on our combat functions.
         # Before modifying damage, check if the action is a heal, as there the target's defense stat will not apply.
-        action_clean.acc = modify_accuracy(action_clean, caller)
         if "Heal" in action_clean.effects:
             heal_check(action_clean, caller, target_object, switches)
         else:
@@ -395,19 +394,20 @@ class CmdDodge(default_cmds.MuxCommand):
         modifier = action.modifier
         random100 = random.randint(1, 100)
 
-        modified_acc = dodge_calc(caller, action)
+        # modified_acc = dodge_calc(caller, action)
+        dodge_pct = dodge_calc(caller, action)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
-        modified_acc = modify_aim_and_feint(modified_acc, "dodge", aim_or_feint)
+        dodge_pct = modify_aim_and_feint(dodge_pct, "dodge", aim_or_feint)
 
         msg = ""
         is_glancing_blow = False
-        if modified_acc > random100:
+        if dodge_pct > random100:
             # Since the attack has hit, check for critical hit.
             final_damage = damage_calc(action, caller)
             is_critical_hit, final_damage = critical_hits(final_damage, action)
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
-            is_glancing_blow = glancing_blow_calc(random100, modified_acc, action.has_sweep)
+            is_glancing_blow = glancing_blow_calc(random100, dodge_pct, action.has_sweep)
             if is_critical_hit:
                 msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, final_damage)
             elif is_glancing_blow:
