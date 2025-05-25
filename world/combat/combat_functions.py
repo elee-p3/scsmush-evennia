@@ -67,6 +67,10 @@ def damage_calc(queued_attack, defender):
     attacker_stat = find_attacker_stat(attacker, base_stat)
     default_dmg = 160
 
+    # Check for the Strain effect on the attack to modify attack_dmg before determining multiplier.
+    if queued_attack.has_strain:
+        attack_dmg = strain_check(attack_dmg, attacker)
+
     # base damage will be scaled by the attack's dmg property, with 6 being the baseline 1.0x
     multiplier = 1.0 - ((6 - attack_dmg) * 0.1)
 
@@ -92,6 +96,9 @@ def damage_calc(queued_attack, defender):
             def_stat += 10
         if defender.db.debuffs_standard["Muddle"] > 0:
             def_stat -= 10
+
+    # Check for Vigor buff (attack.has_vigor).
+    attacker_stat = vigor_check(queued_attack, attacker_stat)
 
     # use modified stat to calculate the flat modifier via a piecewise function
     stat_diff = attacker_stat - def_stat
@@ -122,43 +129,6 @@ def attack_switch_check(attacker, switches):
         if switch not in valid_switches:
             error_found = True
     return error_found
-
-
-def modify_damage(action, character):
-    # TODO: Phase out entirely (it is no longer called but keeping it for reference just in case)
-    damage = action.dmg
-    # Modify attack damage based on base stat.
-    if action.stat.lower() == "power":
-        base_stat = character.db.power
-        # Check for Bird or Frog transformations.
-        if character.db.debuffs_transform["Bird"] > 0 or character.db.debuffs_transform["Frog"] > 0:
-            base_stat = math.ceil(base_stat * 0.5)
-        # Check for Injure.
-        if character.db.debuffs_standard["Injure"] > 0:
-            base_stat -= 10
-        # Check for Berserk.
-        if character.db.debuffs_standard["Berserk"] > 0:
-            base_stat += 10
-    if action.stat.lower() == "knowledge":
-        base_stat = character.db.knowledge
-        # Check for Pig or Pumpkin transformations.
-        if character.db.debuffs_transform["Pig"] > 0 or character.db.debuffs_transform["Pumpkin"] > 0:
-            base_stat = math.ceil(base_stat * 0.5)
-        # Check for Muddle.
-        if character.db.debuffs_standard["Muddle"] > 0:
-            base_stat -= 10
-        # Check for Berserk.
-        if character.db.debuffs_standard["Berserk"] > 0:
-            base_stat += 10
-    # Check for Vigor buff.
-    base_stat = vigor_check(character, base_stat)
-
-    damage_multiplier = (0.00583 * damage) + 0.708
-    total_damage = (damage + base_stat) * damage_multiplier
-    # Check for the Strain effect on the attack and modify total_damage accordingly.
-    if "Strain" in action.effects:
-        total_damage = strain_check(total_damage, action, character)
-    return total_damage
 
 
 def modify_speed(speed, defender):
@@ -646,11 +616,11 @@ def regen_check(character):
         character.msg("You are no longer gradually regenerating.")
 
 
-def vigor_check(character, base_stat):
+def vigor_check(attack, attack_stat):
     # Checks if the character has the Vigor buff, and if so, Power/Knowledge is effectively +25.
-    if character.db.buffs["Vigor"] > 0:
-        base_stat += 25
-    return base_stat
+    if attack.has_vigor:
+        attack_stat += 25
+    return attack_stat
 
 
 def dispel_check(target):
@@ -870,26 +840,22 @@ def clear_hexes(caller):
             caller.msg(f"You are no longer afflicted by {status_effect}.")
 
 
-def strain_check(damage, action, character):
-    # TODO: Modify so that Strain's self-damage/increased outgoing damage is relative to Art Damage value, not actual
-    # damage done, so that self-damage can be calculated in advance.
-    # Currently, for self-damage, Strain uses the same math as Wound.
-    damage_floor = action.ap * -1
-    # Ensure that the minimum damage_floor is 1 in case of, like, EX moves that regain AP or something.
-    if damage_floor < 1:
-        damage_floor = 1
-    damage_ceil = math.ceil(damage_floor * 2.5)
-    strain_damage = random.randint(damage_floor, damage_ceil)
-    character.db.lf -= strain_damage
-    character.msg("You have taken {damage} damage from strain.".format(damage=strain_damage))
-    initial_state = character.db.final_action
-    final_action_check(character)
-    # Check if it's now your final_action BECAUSE of the wound damage specifically.
-    if character.db.final_action and not initial_state:
-        character.db.negative_lf_from_dot = True
-    # Increase damage from Strain attacks proportional to the self-damage inflicted.
-    outgoing_damage = damage + strain_damage
-    return outgoing_damage
+def strain_check(attack_damage, attacker):
+    # Currently, Strain effectively increases the Damage value of an Art by 1.
+    attack_damage = attack_damage + 1
+    # Strain's self-damage calculation is a random integer, multiplied by the same damage scale as in damage_calc.
+    strain_damage = random.randint(20, 40)
+    multiplier = 1.0 - ((6 - attack_damage) * 0.1)
+    strain_damage = int(strain_damage * multiplier)
+    attacker.db.lf -= strain_damage
+    attacker.msg("You have taken {damage} damage from strain.".format(damage=strain_damage))
+    initial_state = attacker.db.final_action
+    final_action_check(attacker)
+    # Check if it's now your final_action BECAUSE of the strain damage specifically.
+    if attacker.db.final_action and not initial_state:
+        attacker.db.negative_lf_from_dot = True
+    # Now that attacker self-damage has been resolved, return the incresaed Damage value of the Art.
+    return attack_damage
 
 
 def modify_ex_on_hit(damage, defender, attacker):

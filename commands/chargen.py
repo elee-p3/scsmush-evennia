@@ -106,7 +106,7 @@ class CmdSetArt(default_cmds.MuxCommand):
                 for real_effect in EFFECTS:
                     if art_effect.lower() == real_effect.name.lower():
                         effect_ok = True
-                        true_ap_change += int(real_effect.ap_change)
+                        true_ap_change += int(real_effect.ap)
                         if real_effect.name == "EX":
                             ex_move = True
                 if not effect_ok:
