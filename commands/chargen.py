@@ -4,6 +4,16 @@ from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS
 from world.combat.attacks import Attack
 
 
+def accuracy_check(accuracy, ex_move=False):
+    string = ""
+    if ex_move:
+        accuracy = accuracy + 2
+    if accuracy <= 0:
+        string = "Error: your damage value must be an integer between 1 and 11 (or 13 for EX moves). Make sure " \
+                 "that your format is: name, damage value, base stat, and effects (if any)."
+    return accuracy, string
+
+
 class CmdSetArt(default_cmds.MuxCommand):
     """
         A character generation command that adds an Art to or
@@ -27,6 +37,7 @@ class CmdSetArt(default_cmds.MuxCommand):
     key = "+setart"
     aliases = ["setart"]
     locks = "cmd:all()"
+
 
     def func(self):
         # TODO: Check if a art of the same name already exists and, if so, modify it instead of creating a new one.
@@ -60,9 +71,8 @@ class CmdSetArt(default_cmds.MuxCommand):
         except ValueError:
             return caller.msg("Error: your damage value must be an integer. Make sure that your format is: name, damage"
                               " value, base stat, and effects (if any).")
-        if damage_int not in range(0, 101):
-            return caller.msg("Error: your damage value must be an integer between 0 and 100. Make sure that your format"
-                              " is: name, damage value, base stat, and effects (if any).")
+        # Base accuracy for Arts will be 12 - damage_int, increased by 2 for EX moves after effects are checked.
+        accuracy = 12 - damage_int
         base_stat = art_list[2].lower()
         # Checking that the base stat is either Power or Knowledge.
         if base_stat == "power":
@@ -117,35 +127,27 @@ class CmdSetArt(default_cmds.MuxCommand):
                     return caller.msg(f"Error: {effect} is a Support effect. All Support Arts must have the Heal Effect.")
                 if effect in DEBUFFS and "Heal" in title_split_effects:
                     return caller.msg(f"Error: {effect} is a Debuff effect and is not compatible with the Heal Effect.")
-            # Having confirmed the Art is well-formed, add it to the character's list of Arts.
-            # Check if it is regular Art (120 points between Damage/Acc) or EX (140 points).
-            if ex_move:
-                final_acc = 140 - damage_int
-                Arts.objects.create(
-                    name=name,
-                    ap=true_ap_change,
-                    dmg=damage_int,
-                    acc=final_acc,
-                    stat=base_stat,
-                    effects=' '.join(title_split_effects),
-                )
-            else:
-                final_acc = 120 - damage_int
-                Arts.objects.create(
-                    name=name,
-                    ap=true_ap_change,
-                    dmg=damage_int,
-                    acc=final_acc,
-                    stat=base_stat,
-                    effects=' '.join(title_split_effects),
-                )
-        else:
-            final_acc = 120 - damage_int
+            # Confirm that accuracy is above minimum before adding Art object.
+            accuracy, error_string = accuracy_check(accuracy, ex_move)
+            if error_string:
+                return caller.msg(error_string)
             Arts.objects.create(
                 name=name,
                 ap=true_ap_change,
                 dmg=damage_int,
-                acc=final_acc,
+                acc=accuracy,
+                stat=base_stat,
+                effects=' '.join(title_split_effects),
+                )
+        else:
+            accuracy, error_string = accuracy_check(accuracy)
+            if error_string:
+                return caller.msg(error_string)
+            Arts.objects.create(
+                name=name,
+                ap=true_ap_change,
+                dmg=damage_int,
+                acc=accuracy,
                 stat=base_stat,
                 effects=""
             )
