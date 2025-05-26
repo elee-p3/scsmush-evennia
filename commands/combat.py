@@ -61,7 +61,7 @@ def display_queue(calling_class, caller):
         for atk_obj in caller.db.queue:
             attack = atk_obj.attack
             id = atk_obj.id
-            modified_acc_for_dodge = dodge_calc(caller, atk_obj)
+            modified_acc_for_dodge = dodge_hit_chance_calc(caller, atk_obj)
             dodge_pct = 100 - modified_acc_for_dodge
             modified_acc_for_block = block_chance_calc(caller, atk_obj)
             block_pct = 100 - modified_acc_for_block
@@ -395,7 +395,7 @@ class CmdDodge(default_cmds.MuxCommand):
         random100 = random.randint(1, 100)
 
         # modified_acc = dodge_calc(caller, action)
-        dodge_pct = dodge_calc(caller, action)
+        dodge_pct = dodge_hit_chance_calc(caller, action)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         dodge_pct = modify_aim_and_feint(dodge_pct, "dodge", aim_or_feint)
@@ -471,17 +471,14 @@ class CmdBlock(default_cmds.MuxCommand):
         if input_id not in id_list:
             return caller.msg("Cannot find that attack in your queue.")
 
-        # The attack is a string in the queue. Roll the die and remove the attack from the queue.
         action = caller.db.queue[id_list.index(input_id)]
         attack = action.attack
-        attack_damage = attack.dmg
         attacker = find_attacker_from_key(action.attacker_key)
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)
 
         # Find the attacker's relevant attack stat for damage_calc.
-        attacker_stat = find_attacker_stat(attacker, attack.stat)
         modified_acc = block_chance_calc(caller, action)
         modified_damage = damage_calc(action, caller)
 
