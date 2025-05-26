@@ -211,6 +211,7 @@ def dodge_calc(defender, attack_instance: AttackToQueue):
         chance_to_hit += 7
     if attack_instance.has_ranged:
         chance_to_hit -= 5
+    chance_to_hit += attack_instance.endure_bonus
     # cap accuracy at 99%
     if chance_to_hit > 99:
         chance_to_hit = 99
@@ -267,6 +268,7 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
         chance_to_hit += 12
     # Incorporating block penalty.
     chance_to_hit += defender.db.block_penalty
+    chance_to_hit += attack_instance.endure_bonus
     # cap block percentage at 99%
     if chance_to_hit > 99:
         chance_to_hit = 99
