@@ -357,6 +357,8 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
     if incoming_attack_instance.has_ranged:
         if "Long-Range" not in outgoing_interrupt.effects:
             interrupt_chance -= 15
+    # Incorporating incoming attacks's endure bonus, reducing interrupt chance.
+    interrupt_chance -= incoming_attack_instance.endure_bonus
     # cap interrupt percentage at 99%
     if interrupt_chance > 99:
         interrupt_chance = 99
