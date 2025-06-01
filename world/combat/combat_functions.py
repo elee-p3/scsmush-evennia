@@ -165,11 +165,11 @@ def modify_speed(speed, defender):
 
 # percent chance to hit upon dodge
 def dodge_calc(defender, attack_instance: AttackToQueue):
-    defender_speed = defender.db.speed
+    defender_speed = modify_speed(defender.db.speed, defender)
     attack_acc = attack_instance.attack.acc
 
     # base chance to hit %
-    base_chance_to_hit = 45 + attack_acc*5
+    base_chance_to_hit = 40 + attack_acc*5
 
     # modify base % with speed scaling with respect to a base of 125 via a piecewise function
     speed_diff = 125 - defender_speed
@@ -222,16 +222,18 @@ def dodge_calc(defender, attack_instance: AttackToQueue):
 
 # percent chance to hit upon block
 def block_chance_calc(defender, attack_instance: AttackToQueue):
+    defender_speed = modify_speed(defender.db.speed, defender)
+    attack_acc = attack_instance.attack.acc
+
     def_stat = 0
     if attack_instance.attack.stat == "Power":
         def_stat = defender.db.parry
     if attack_instance.attack.stat == "Knowledge":
         def_stat = defender.db.barrier
-    speed = defender.db.speed
 
     # block stat is an average between the effect-modified speed and the defensive stat
-    block_stat = (modify_speed(speed, defender) + def_stat)/2
-    base_chance_to_hit = 70
+    block_stat = (defender_speed + def_stat)/2
+    base_chance_to_hit = 40 + attack_acc*5
 
     # modify base % with scaling with respect to a base of 125 via a piecewise function
     stat_diff = 125 - block_stat
@@ -249,6 +251,7 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
 
     chance_to_hit = round(base_chance_to_hit + mod)
 
+    # Checking to see if the attack has the Crush Effect and improving accuracy if so.
     if attack_instance.has_crush:
         chance_to_hit += 10
     # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
@@ -266,7 +269,7 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
     # Checking to see if the defender is Slimy and improving accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
         chance_to_hit += 12
-    # Incorporating block penalty.
+    # Incorporating defender's block penalty and attacker's endure bonus.
     chance_to_hit += defender.db.block_penalty
     chance_to_hit += attack_instance.endure_bonus
     # cap block percentage at 99%
@@ -278,37 +281,58 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
 
 
 def endure_chance_calc(defender, attack_instance):
-    # Calculate the chance of successfully enduring. Like Block, should be based on both Speed and relevant defense.
+    defender_speed = modify_speed(defender.db.speed, defender)
+    attack_acc = attack_instance.attack.acc
+
     def_stat = 0
     if attack_instance.attack.stat == "Power":
         def_stat = defender.db.parry
     if attack_instance.attack.stat == "Knowledge":
         def_stat = defender.db.barrier
-    speed = defender.db.speed
-    attack_acc = attack_instance.attack.acc
-    averaged_def = modify_speed(speed, defender) + def_stat*.5
-    # accuracy = int(int(attack_acc) / (averaged_def / 100))
-    accuracy = 100.0 - (0.475 * (averaged_def - attack_acc))
-    # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
+
+    # block stat is an average between the effect-modified speed and the defensive stat
+    endure_stat = (defender_speed + def_stat) / 2
+    base_chance_to_hit = 40 + attack_acc * 5
+
+    # modify base % with scaling with respect to a base of 125 via a piecewise function
+    stat_diff = 125 - endure_stat
+    abs_stat_diff = abs(stat_diff)
+    sign = math.floor(stat_diff / abs_stat_diff)
+
+    if abs_stat_diff <= 15:
+        mod = 0.7 * stat_diff
+    elif abs_stat_diff <= 30:
+        # (sign*15*0.7) + remaining_speed_diff*0.4
+        mod = (sign * 15 * 0.7) + (sign * (abs_stat_diff - 15) * 0.4)
+    else:
+        # (sign*15*0.7) + (sign*15*0.4) + remaining_speed_diff*0.1
+        mod = (sign * 16.5) + (sign * (abs_stat_diff - 30) * 0.1)
+
+    chance_to_hit = round(base_chance_to_hit + mod)
+
+    # Checking to see if the defender is_bracing and reducing accuracy/improving endure chance if so.
     if defender.db.is_bracing:
-        accuracy -= 10
+        chance_to_hit -= 10
     # Checking to see if the defender is_rushing and improving accuracy if so.
     if defender.db.is_rushing:
-        accuracy += 5
+        chance_to_hit += 5
     # Checking to see if the defender used_ranged and improving accuracy if so.
     if defender.db.used_ranged:
-        accuracy += 5
+        chance_to_hit += 5
     # Checking to see if the defender is Petrified and reducing accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
-        accuracy -= 12
-    # Checking to see if the defender is Slimy and reducing accuracy if so.
+        chance_to_hit -= 12
+    # Checking to see if the defender is Slimy and improving accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
-        accuracy -= 12
-    if accuracy > 99:
-        accuracy = 99
-    elif accuracy < 1:
-        accuracy = 1
-    return accuracy
+        chance_to_hit += 12
+    # Incorporating attacker's endure bonus. Block penalty does not apply to defender's endure chance.
+    chance_to_hit += attack_instance.endure_bonus
+    # cap endure percentage at 99%
+    if chance_to_hit > 99:
+        chance_to_hit = 99
+    elif chance_to_hit < 1:
+        chance_to_hit = 1
+    return chance_to_hit
 
 
 def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interrupt):
