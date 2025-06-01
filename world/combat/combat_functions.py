@@ -336,20 +336,32 @@ def endure_chance_calc(defender, attack_instance):
 
 
 def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interrupt):
-    interrupt_chance = 40 + int(outgoing_interrupt.acc) - int(incoming_attack_instance.attack.acc)
+    accuracy_diff = outgoing_interrupt.acc - incoming_attack_instance.attack.acc
+    interrupt_chance = 40 + (accuracy_diff * 5)
+    # If the interrupter is baiting, interrupt chance increases.
     if interrupter.db.is_baiting:
         interrupt_chance += 10
+    # If the interrupter had rushed, interrupt chance decreases.
     if interrupter.db.is_rushing:
         interrupt_chance -= 5
+    # If the interrupter had used a ranged attack, interrupt chance decreases.
     if interrupter.db.used_ranged:
         interrupt_chance -= 5
+    # If the incoming attack has the Priority effect, interrupt chance greatly decreases.
     if incoming_attack_instance.has_priority:
         interrupt_chance -= 15
+    # If the outgoing interrupt has the Priority effect, interrupt chance greatly increases.
     if "Priority" in outgoing_interrupt.effects:
         interrupt_chance += 15
+    # If the incoming attack is Ranged and the outgoing interrupt is *not* Ranged, interrupt chance greatly decreases.
     if incoming_attack_instance.has_ranged:
         if "Long-Range" not in outgoing_interrupt.effects:
             interrupt_chance -= 15
+    # cap interrupt percentage at 99%
+    if interrupt_chance > 99:
+        interrupt_chance = 99
+    elif interrupt_chance < 1:
+        interrupt_chance = 1
     return interrupt_chance
 
 

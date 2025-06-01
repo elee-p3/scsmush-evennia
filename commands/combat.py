@@ -394,19 +394,19 @@ class CmdDodge(default_cmds.MuxCommand):
         modifier = action.modifier
         random100 = random.randint(1, 100)
 
-        dodge_pct = dodge_calc(caller, action)
+        chance_to_be_hit = dodge_calc(caller, action)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
-        dodge_pct = modify_aim_and_feint(dodge_pct, "dodge", aim_or_feint)
+        chance_to_be_hit = modify_aim_and_feint(chance_to_be_hit, "dodge", aim_or_feint)
 
         msg = ""
         is_glancing_blow = False
-        if dodge_pct > random100:
+        if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
             final_damage = damage_calc(action, caller)
             is_critical_hit, final_damage = critical_hits(final_damage, action)
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
-            is_glancing_blow = glancing_blow_calc(random100, dodge_pct, action.has_sweep)
+            is_glancing_blow = glancing_blow_calc(random100, chance_to_be_hit, action.has_sweep)
             if is_critical_hit:
                 msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, final_damage)
             elif is_glancing_blow:
@@ -477,17 +477,17 @@ class CmdBlock(default_cmds.MuxCommand):
         modifier = action.modifier
         random100 = random.randint(1, 100)
 
-        block_pct = block_chance_calc(caller, action)
+        chance_to_be_hit = block_chance_calc(caller, action)
 
         # Calculate initial damage. Successfully blocking
         damage = damage_calc(action, caller)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
-        block_pct = modify_aim_and_feint(block_pct, "block", aim_or_feint)
+        chance_to_be_hit = modify_aim_and_feint(chance_to_be_hit, "block", aim_or_feint)
 
         msg = ""
 
-        if block_pct > random100:
+        if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
             is_critical_hit, damage = critical_hits(damage, action)
             if is_critical_hit:
@@ -573,14 +573,14 @@ class CmdEndure(default_cmds.MuxCommand):
         modifier = action.modifier
         random100 = random.randint(1, 100)
 
-        endure_pct = endure_chance_calc(caller, action)
+        chance_to_be_hit = endure_chance_calc(caller, action)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
-        endure_pct = modify_aim_and_feint(endure_pct, "endure", aim_or_feint)
+        chance_to_be_hit = modify_aim_and_feint(chance_to_be_hit, "endure", aim_or_feint)
 
         msg = ""
         damage = damage_calc(action, caller)
-        if endure_pct > random100:
+        if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
             is_critical_hit, damage = critical_hits(damage, action)
             if is_critical_hit:
@@ -684,17 +684,13 @@ class CmdInterrupt(default_cmds.MuxCommand):
             caller.db.ex = 0
         caller.db.ap += total_ap_change
 
-        # The attack is an Attack object in the queue. Roll the die and remove the attack from the queue.
+        # The attack is an AttackInstance object in the queue. Roll the die and remove the attack from the queue.
         incoming_atk_in_queue = caller.db.queue[id_list.index(int(incoming_attack_id))]
         incoming_atk = incoming_atk_in_queue.attack
-        incoming_damage = incoming_atk.dmg
         attacker = find_attacker_from_key(incoming_atk_in_queue.attacker_key)
         aim_or_feint = incoming_atk_in_queue.aim_or_feint
         modifier = incoming_atk_in_queue.modifier
         random100 = random.randint(1, 100)
-
-        incoming_attack_stat = find_attacker_stat(attacker, incoming_atk.stat)
-        outgoing_interrupt_stat = find_attacker_stat(caller, outgoing_interrupt.stat)
 
         # Spawn an InterruptInstance here to begin modifying its accuracy, etc. Will need this for critical_hits
         interrupt = AttackDuringAction(outgoing_interrupt, caller.key, switches)
@@ -704,11 +700,9 @@ class CmdInterrupt(default_cmds.MuxCommand):
         # effects of aim and feint on incoming attack checked here
         interrupt.attack.acc = modify_aim_and_feint(interrupt.attack.acc, "interrupt", aim_or_feint)
 
-        modified_acc = interrupt.attack.acc
-
         msg = ""
         # In case of interrupt failure
-        if modified_acc < random100:
+        if interrupt.attack.acc < random100:
             final_damage = damage_calc(incoming_atk_in_queue, caller)
 
             # Check for Protect/Reflect moderate damage mitigation.
