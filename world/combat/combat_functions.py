@@ -103,7 +103,11 @@ def damage_calc(queued_attack, defender):
     # use modified stat to calculate the flat modifier via a piecewise function
     stat_diff = attacker_stat - def_stat
     abs_stat_diff = abs(stat_diff)
-    sign = math.floor(stat_diff/abs_stat_diff)
+    # Accounting for zero stat difference and possible ZeroDivisionError.
+    if abs_stat_diff == 0:
+        sign = 0
+    else:
+        sign = math.floor(stat_diff/abs_stat_diff)
     if abs_stat_diff <= 25:
         flat_mod = stat_diff
     elif abs_stat_diff <= 50:
@@ -174,7 +178,11 @@ def dodge_calc(defender, attack_instance: AttackToQueue):
     # modify base % with speed scaling with respect to a base of 125 via a piecewise function
     speed_diff = 125 - defender_speed
     abs_speed_diff = abs(speed_diff)
-    sign = math.floor(speed_diff/abs_speed_diff)
+    # Accounting for zero stat difference and possible ZeroDivisionError.
+    if abs_speed_diff == 0:
+        sign = 0
+    else:
+        sign = math.floor(speed_diff / abs_speed_diff)
 
     if abs_speed_diff <= 15:
         mod = 0.7 * speed_diff
@@ -238,7 +246,11 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
     # modify base % with scaling with respect to a base of 125 via a piecewise function
     stat_diff = 125 - block_stat
     abs_stat_diff = abs(stat_diff)
-    sign = math.floor(stat_diff / abs_stat_diff)
+    # Accounting for zero stat difference and possible ZeroDivisionError.
+    if abs_stat_diff == 0:
+        sign = 0
+    else:
+        sign = math.floor(stat_diff / abs_stat_diff)
 
     if abs_stat_diff <= 15:
         mod = 0.7 * stat_diff
@@ -297,7 +309,11 @@ def endure_chance_calc(defender, attack_instance):
     # modify base % with scaling with respect to a base of 125 via a piecewise function
     stat_diff = 125 - endure_stat
     abs_stat_diff = abs(stat_diff)
-    sign = math.floor(stat_diff / abs_stat_diff)
+    # Accounting for zero stat difference and possible ZeroDivisionError.
+    if abs_stat_diff == 0:
+        sign = 0
+    else:
+        sign = math.floor(stat_diff / abs_stat_diff)
 
     if abs_stat_diff <= 15:
         mod = 0.7 * stat_diff
@@ -585,7 +601,7 @@ def heal_check(action, healer, target, switches, regen=False, drain_dmg=None):
     accuracy = heal_instance.acc * 10
     if accuracy > 80:
         accuracy = 80
-    base_variance = math.ceil((80 - accuracy) * 3)
+    base_variance = math.ceil((81 - accuracy) * 3)
     variance = random.randrange(base_variance*-1, base_variance)
     total_healing += variance
     # logger(healer, "Healing after variance: " + str(total_healing))
