@@ -308,7 +308,9 @@ class CmdAttack(default_cmds.MuxCommand):
         # Modify the damage and accuracy of the attack based on our combat functions.
         # Before modifying damage, check if the action is a heal, as there the target's defense stat will not apply.
         if "Heal" in action_clean.effects:
-            heal_check(action_clean, caller, target_object, switches)
+            # Because a Heal will not be added to a queue, spawn an instance (as we do with CmdInterrupt).
+            heal = AttackDuringAction(action_clean, caller.key, switches)
+            heal_check(heal, caller, target_object, switches)
         else:
             # action_clean.dmg = modify_damage(action_clean, caller)
 
@@ -424,7 +426,7 @@ class CmdDodge(default_cmds.MuxCommand):
             # Effect check
             apply_debuff(attack, attacker, caller)
             if "Drain" in attack.effects:
-                drain_check(attack, attacker, caller, final_damage)
+                drain_check(action, attacker, caller, final_damage)
             if "Dispel" in attack.effects:
                 dispel_check(caller)
             if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
@@ -506,7 +508,7 @@ class CmdBlock(default_cmds.MuxCommand):
             # Apply debuffs only on failed blocks
             apply_debuff(attack, attacker, caller)
             if "Drain" in attack.effects:
-                drain_check(attack, attacker, caller, damage)
+                drain_check(action, attacker, caller, damage)
             if "Dispel" in attack.effects:
                 dispel_check(caller)
             record_combat(caller, action, "block", False, damage)
@@ -523,7 +525,7 @@ class CmdBlock(default_cmds.MuxCommand):
             new_block_penalty = accrue_block_penalty(caller, damage, block_bool, action)
             caller.db.block_penalty = new_block_penalty
             if "Drain" in attack.effects:
-                drain_check(attack, attacker, caller, damage)
+                drain_check(action, attacker, caller, damage)
             record_combat(caller, action, "block", True, damage)
 
         # Applying ranged_knockback here since it applies whether or not you successfully block
@@ -606,7 +608,7 @@ class CmdEndure(default_cmds.MuxCommand):
         # Apply debuffs regardless of if endure succeeds or fails
         apply_debuff(attack, attacker, caller)
         if "Drain" in attack.effects:
-            drain_check(attack, attacker, caller, damage)
+            drain_check(action, attacker, caller, damage)
         if "Dispel" in attack.effects:
             dispel_check(caller)
         if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
@@ -772,7 +774,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             # Apply debuffs to interrupted attacker
             apply_debuff(outgoing_interrupt, caller, attacker)
             if "Drain" in outgoing_interrupt.effects:
-                drain_check(outgoing_interrupt, caller, attacker, final_outgoing_damage)
+                drain_check(interrupt, caller, attacker, final_outgoing_damage)
             if "Dispel" in outgoing_interrupt.effects:
                 dispel_check(attacker)
             if "Long-Range" in outgoing_interrupt.effects and caller.key not in attacker.db.ranged_knockback[1]:

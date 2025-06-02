@@ -5,7 +5,7 @@ from django.utils.html import escape
 import random
 import math
 from world.utilities.utilities import logger
-from world.combat.attacks import Attack, ActionResult, AttackToQueue
+from world.combat.attacks import Attack, ActionResult, AttackToQueue, AttackDuringAction
 from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint
 from world.combat.normals import NORMALS
 from world.arts.models import Arts
@@ -322,9 +322,9 @@ def endure_chance_calc(defender, attack_instance):
     # Checking to see if the defender is Petrified and reducing accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
         chance_to_hit -= 12
-    # Checking to see if the defender is Slimy and improving accuracy if so.
+    # Checking to see if the defender is Slimy and reducing accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
-        chance_to_hit += 12
+        chance_to_hit -= 12
     # Incorporating attacker's endure bonus. Block penalty does not apply to defender's endure chance.
     chance_to_hit += attack_instance.endure_bonus
     # cap endure percentage at 99%
@@ -520,34 +520,33 @@ def find_attacker_stat(attacker, base_stat):
         return 0
 
 
-def heal_check(action, healer, target, switches):
+def heal_check(action, healer, target, switches, regen=False, drain_dmg=None):
     # Check for heal effect. Check has_been_healed: how much the target has already been healed this fight.
     # Come up with a formula for accuracy of heal to affect variance of heal amount (more accurate, more consistent).
     # Come up with a formula to depreciate healing amount based on has_been_healed, and apply that after variance.
     # Then make custom in-room announcement and end turn, to avoid putting any of this code into CmdAttack.
 
-    # Regen_check passes heal_check the string "regen" rather than an Attack instance, so make a substitute action.
-    regen = False
-    if action == "regen":
-        regen = True
-        action = Attack("", 0, 50, 50, "", [])
-        base_stat = 20
     # Set baseline healing amount based on Art Damage and healer's stat. This replaces damage_calc.
-    else:
-        if action.stat.lower() == "power":
-            base_stat = healer.db.power
-        if action.stat.lower() == "knowledge":
-            base_stat = healer.db.knowledge
+    # If the heal_check is called for the Regen buff, the simulated stat is extremely low to minimize healing.
+
+    heal_instance = action.attack
+
+    if not regen:
+        base_stat = find_attacker_stat(healer, heal_instance.stat)
         # Check for Vigor buff on healer.
-        base_stat = vigor_check(healer, base_stat)
+        base_stat = vigor_check(action, base_stat)
+    else:
+        # Regeneration simulates a simple Heal action with a very weak base stat, so little LF is regenerated per turn.
+        base_stat = 20
+
     # Weird corner case: see if someone is trying to heal themselves out of KO state.
-    if "Heal" in action.effects and healer == target and healer.db.final_action:
+    if "Heal" in heal_instance.effects and healer == target and healer.db.final_action:
         return healer.msg("You may not heal or revive yourself as a final action.")
     # See if someone has used a CmdAttack switch to try to Cure a specific debuff that the target does not have.
     cure_match = ""
     # Merging the three debuff dictionaries for this check
     debuffs_all = target.db.debuffs_standard | target.db.debuffs_transform | target.db.debuffs_hexes
-    if "Cure" in action.effects and switches:
+    if "Cure" in heal_instance.effects and switches:
         # For now, just ensure there's only one switch on attempted Cures.
         if len(switches) > 1:
             return healer.msg("Please specify only one debuff to Cure.")
@@ -561,7 +560,7 @@ def heal_check(action, healer, target, switches):
         # After all that, confirm that the switch is an actual existing debuff.
         if not cure_match:
             return healer.msg("You have specified a debuff to Cure that is not recognized.")
-    if "Cure" in action.effects and not switches:
+    if "Cure" in heal_instance.effects and not switches:
         # Select a random active debuff
         debuff_options = []
         for debuff, duration in debuffs_all.items():
@@ -570,18 +569,21 @@ def heal_check(action, healer, target, switches):
         if debuff_options:
             cure_match = random.choice(debuff_options)
         # If there are no debuff_options, just let the heal go through as a normal one. No cure_match.
-    if "Drain" in action.effects:
-        total_healing = action.dmg / 2.5
+    if drain_dmg is not None:
+        # Drain_check will have assigned an integer to drain_dmg.
+        total_healing = math.ceil(drain_dmg / 3)
+        healer.msg("You healed yourself with {action} for {value}.".format(action=heal_instance,
+                                                                           value=total_healing))
     else:
-        healing = 1.55 * action.dmg
+        healing = 15.5 * heal_instance.dmg
         healing_multiplier = (0.00583 * healing) + 0.708
         total_healing = (healing + base_stat) * healing_multiplier
     # logger(healer, "Healing after multiplier: " + str(total_healing))
     # Then, apply variance to healing amount based on Art Accuracy.
     # Currently, there's minimal variance above 80 Accuracy, and then more as you go down.
     # TODO: More complex calculation for slope of increase in variance as accuracy decreases.
-    accuracy = action.acc
-    if action.acc > 80:
+    accuracy = heal_instance.acc * 10
+    if accuracy > 80:
         accuracy = 80
     base_variance = math.ceil((80 - accuracy) * 3)
     variance = random.randrange(base_variance*-1, base_variance)
@@ -606,19 +608,19 @@ def heal_check(action, healer, target, switches):
     target.db.lf += total_healing
     target.db.has_been_healed += total_healing
     # Announce healing to room and end the healer's turn as per CmdAttack.
-    if "Heal" in action.effects and healer != target:
-        healer.msg("You healed {target} with {action} for {value}.".format(target=target, action=action,
+    if "Heal" in heal_instance.effects and healer != target:
+        healer.msg("You healed {target} with {action} for {value}.".format(target=target, action=heal_instance,
                                                                            value=total_healing))
-        target.msg("You have been healed by {healer} with {action} for {value}.". format(healer=healer, action=action,
+        target.msg("You have been healed by {healer} with {action} for {value}.". format(healer=healer, action=heal_instance,
                                                                                          value=total_healing))
         combat_string = "|y<COMBAT>|n {attacker} has healed {target} with {action}.".format(
-            attacker=healer.key, target=target, action=action)
+            attacker=healer.key, target=target, action=heal_instance)
         healer.location.msg_contents(combat_string)
-    elif "Heal" in action.effects and healer == target:
-        healer.msg("You healed yourself with {action} for {value}.".format(action=action,
+    elif "Heal" in heal_instance.effects and healer == target:
+        healer.msg("You healed yourself with {action} for {value}.".format(action=heal_instance,
                                                                            value=total_healing))
         combat_string = "|y<COMBAT>|n {attacker} has healed themselves with {action}.".format(
-            attacker=healer.key, action=action)
+            attacker=healer.key, action=heal_instance)
         healer.location.msg_contents(combat_string)
     if regen:
         healer.msg("You have regenerated for {value}.".format(value=total_healing))
@@ -634,16 +636,16 @@ def heal_check(action, healer, target, switches):
         healer.msg(f"You have successfully Cured {target}'s {cure_match.title()} status effect.")
     # Incorporate other Support effects
     else:
-        apply_buff(action, healer, target)
+        apply_buff(heal_instance, healer, target)
 
     # Incorporate revival, i.e., being healed up from 0 LF and out of KO state
     # Corner casing: if someone else has already done a normal heal, leaving the target stunned, a raise will fix that
-    if "Revive" in action.effects and target.db.stunned:
+    if "Revive" in heal_instance.effects and target.db.stunned:
         target.db.stunned = False
         target.msg("You are revived and thus no longer stunned.")
     if target.db.KOed:
         target.db.KOed = False
-        if "Revive" in action.effects:
+        if "Revive" in heal_instance.effects:
             target.msg("You are revived: you may rejoin the fight and act as normal on your next turn.")
         else:
             target.db.stunned = True
@@ -653,7 +655,7 @@ def heal_check(action, healer, target, switches):
         if regen:
             target.msg("You have regenerated sufficiently to continue fighting!")
             target.db.final_action = False
-        elif "Revive" in action.effects:
+        elif "Revive" in heal_instance.effects:
             target.db.revived_during_final_action = True
             target.msg("Your next action will still have a final action penalty, but you will not be KOed.")
         else:
@@ -661,26 +663,27 @@ def heal_check(action, healer, target, switches):
                        "for one turn but not KOed.")
 
 
-def drain_check(action, attacker, target, damage_dealt):
+def drain_check(attack, attacker, target, damage_dealt):
     # Weird corner case: you cannot Drain from yourself.
     if attacker != target:
     # For the purposes of self-healing, treat the power of the attack as relative to the damage it dealt (so less if blocked)
-        action.dmg = damage_dealt
-        heal_check(action, attacker, attacker)
+        heal_check(attack, attacker, attacker, "", False, damage_dealt)
     # But don't "return" here, because the rest of the attack will proceed as normal after self-healing
 
 
 def regen_check(character):
-    # Route the Regen effect through heal_check so that all healing works the same. Use a string, "regen."
-    heal_check("regen", character, character)
+    # Regeneration, in order to call heal_check, simulates a simple action with Heal.
+    temp_action = Attack("", 0, 5, 5, "", "")
+    action = AttackDuringAction(temp_action, character.key, [])
+    heal_check(action, character, character, [], True)
     character.db.buffs["Regen"] -= 1
     if character.db.buffs["Regen"] == 0:
         character.msg("You are no longer gradually regenerating.")
 
 
-def vigor_check(attack, attack_stat):
-    # Checks if the character has the Vigor buff, and if so, Power/Knowledge is effectively +25.
-    if attack.has_vigor:
+def vigor_check(action, attack_stat):
+    # Checks if the AttackDuringAction has the Vigor buff, and if so, Power/Knowledge is effectively +25.
+    if action.has_vigor:
         attack_stat += 25
     return attack_stat
 
@@ -878,9 +881,9 @@ def wound_check(character, action):
 
 
 def berserk_check(caller, action):
-    # If a character is Berserk, Arts of lower than 50 DMG cost 10 more AP.
+    # If a character is Berserk, Arts of lower than 5 Damage value cost 10 more AP.
     if caller.db.debuffs_standard["Berserk"] > 0:
-        if action.dmg < 50:
+        if action.dmg < 5:
             action.ap -= 10
     return action
 
@@ -916,7 +919,7 @@ def strain_check(attack_damage, attacker):
     # Check if it's now your final_action BECAUSE of the strain damage specifically.
     if attacker.db.final_action and not initial_state:
         attacker.db.negative_lf_from_dot = True
-    # Now that attacker self-damage has been resolved, return the incresaed Damage value of the Art.
+    # Now that attacker self-damage has been resolved, return the increased Damage value of the Art.
     return attack_damage
 
 
