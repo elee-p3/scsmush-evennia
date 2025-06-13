@@ -5,10 +5,11 @@ from django.utils.html import escape
 import random
 import math
 from world.utilities.utilities import logger
-from world.combat.attacks import Attack, ActionResult
+from world.combat.attacks import Attack, ActionResult, AttackToQueue, AttackDuringAction
 from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint
 from world.combat.normals import NORMALS
 from world.arts.models import Arts
+from world.utilities.utilities import find_attacker_from_key
 
 
 class ArtBaseline:
@@ -58,7 +59,22 @@ def assign_attack_instance_id(target):
     return new_id
 
 
-def damage_calc(attack_dmg, attacker_stat, base_stat, defender):
+def damage_calc(queued_attack, defender):
+    incoming_attack = queued_attack.attack
+    attack_dmg = incoming_attack.dmg
+    base_stat = incoming_attack.stat
+    attacker = find_attacker_from_key(queued_attack.attacker_key)
+    attacker_stat = find_attacker_stat(attacker, base_stat)
+    default_dmg = 160
+
+    # Check for the Strain effect on the attack to modify attack_dmg before determining multiplier.
+    if queued_attack.has_strain:
+        attack_dmg = strain_check(attack_dmg, attacker)
+
+    # base damage will be scaled by the attack's dmg property, with 6 being the baseline 1.0x
+    multiplier = 1.0 - ((6 - attack_dmg) * 0.1)
+
+    # stats will affect damage via a flat modifier that depends on a piecewise function
     def_stat = 0
     if base_stat == "Power":
         def_stat = defender.db.parry
@@ -80,32 +96,32 @@ def damage_calc(attack_dmg, attacker_stat, base_stat, defender):
             def_stat += 10
         if defender.db.debuffs_standard["Muddle"] > 0:
             def_stat -= 10
-    # Now magnify or mitigate the stat multiplier depending on how different they are.
-    # This works OK, but is a placeholder for a more complex curve that I want to implement eventually.
-    defender_advantage = def_stat - attacker_stat
-    stat_mitigation = def_stat * (-0.00188 * defender_advantage + 1.05)
-    damage = 1.85 * attack_dmg - stat_mitigation
-    if damage < 0:
-        damage = 0
-    return damage
 
+    # Check for Vigor buff (attack.has_vigor).
+    attacker_stat = vigor_check(queued_attack, attacker_stat)
 
-def modify_accuracy(action, character):
-    accuracy = action.acc
-    # First, check if this is the attacker's final action, and if so, apply a final action penalty.
-    if hasattr(character.db, "final_action"):
-        if character.db.final_action:
-            accuracy -= 30
-    # Then, check if the character has an endure bonus and, if so, apply it.
-    if character.db.endure_bonus:
-        accuracy += character.db.endure_bonus
-    # Check if the character is rushing and, if so, add 7 to accuracy.
-    if "Rush" in action.effects:
-        accuracy += 7
-    # Check if the attack is Long-Range and, if so, subtract 5 from accuracy.
-    if "Long-Range" in action.effects:
-        accuracy -= 5
-    return accuracy
+    # use modified stat to calculate the flat modifier via a piecewise function
+    stat_diff = attacker_stat - def_stat
+    abs_stat_diff = abs(stat_diff)
+    # Accounting for zero stat difference and possible ZeroDivisionError.
+    if abs_stat_diff == 0:
+        sign = 0
+    else:
+        sign = math.floor(stat_diff/abs_stat_diff)
+    if abs_stat_diff <= 25:
+        flat_mod = stat_diff
+    elif abs_stat_diff <= 50:
+        flat_mod = (sign*25) + (sign*(abs_stat_diff-25)*0.7)
+    elif abs_stat_diff <= 75:
+        # (sign*25) + (sign*25*0.7) + remaining_stat*0.4
+        flat_mod = (sign*42.5) + (sign*(abs_stat_diff-50)*0.4)
+    else:
+        # (sign*25) + (sign*25*0.7) + (sign*25*0.4) + remaining_stat*0.1
+        flat_mod = (sign*52.5) + (sign*(abs_stat_diff-75)*0.1)
+
+    final_damage = default_dmg * multiplier + flat_mod
+
+    return final_damage
 
 
 def attack_switch_check(attacker, switches):
@@ -119,45 +135,7 @@ def attack_switch_check(attacker, switches):
     return error_found
 
 
-def modify_damage(action, character):
-    damage = action.dmg
-    # Modify attack damage based on base stat.
-    if action.stat.lower() == "power":
-        base_stat = character.db.power
-        # Check for Bird or Frog transformations.
-        if character.db.debuffs_transform["Bird"] > 0 or character.db.debuffs_transform["Frog"] > 0:
-            base_stat = math.ceil(base_stat * 0.5)
-        # Check for Injure.
-        if character.db.debuffs_standard["Injure"] > 0:
-            base_stat -= 10
-        # Check for Berserk.
-        if character.db.debuffs_standard["Berserk"] > 0:
-            base_stat += 10
-    if action.stat.lower() == "knowledge":
-        base_stat = character.db.knowledge
-        # Check for Pig or Pumpkin transformations.
-        if character.db.debuffs_transform["Pig"] > 0 or character.db.debuffs_transform["Pumpkin"] > 0:
-            base_stat = math.ceil(base_stat * 0.5)
-        # Check for Muddle.
-        if character.db.debuffs_standard["Muddle"] > 0:
-            base_stat -= 10
-        # Check for Berserk.
-        if character.db.debuffs_standard["Berserk"] > 0:
-            base_stat += 10
-    # Check for Vigor buff.
-    base_stat = vigor_check(character, base_stat)
-
-    damage_multiplier = (0.00583 * damage) + 0.708
-    total_damage = (damage + base_stat) * damage_multiplier
-    # Check for the Strain effect on the attack and modify total_damage accordingly.
-    if "Strain" in action.effects:
-        total_damage = strain_check(total_damage, action, character)
-    return total_damage
-
-
 def modify_speed(speed, defender):
-    # A function to nest within the reaction functions to soften the effects of low and high Speed.
-    speed_multiplier = speed * -0.00221 + 1.25
     # Check for relevant buffs and debuffs.
     if defender.db.buffs["Acuity"] > 0:
         speed += 5
@@ -186,127 +164,222 @@ def modify_speed(speed, defender):
             speed -= 11
         else:
             speed -= 12
-    effective_speed = speed * speed_multiplier
-    return effective_speed
+    return speed
 
 
-def dodge_calc(defender, attack_instance):
-    # accuracy = int(int(attack_acc) / (speed/100))
-    speed = defender.db.speed
+# percent chance to hit upon dodge
+def dodge_calc(defender, attack_instance: AttackToQueue):
+    defender_speed = modify_speed(defender.db.speed, defender)
     attack_acc = attack_instance.attack.acc
-    accuracy = 100.0 - (0.475 * (modify_speed(speed, defender) - attack_acc) + 5)
+
+    # base chance to hit %
+    base_chance_to_hit = 40 + attack_acc*5
+
+    # modify base % with speed scaling with respect to a base of 125 via a piecewise function
+    speed_diff = 125 - defender_speed
+    abs_speed_diff = abs(speed_diff)
+    # Accounting for zero stat difference and possible ZeroDivisionError.
+    if abs_speed_diff == 0:
+        sign = 0
+    else:
+        sign = math.floor(speed_diff / abs_speed_diff)
+
+    if abs_speed_diff <= 15:
+        mod = 0.7 * speed_diff
+    elif abs_speed_diff <= 30:
+        # (sign*15*0.7) + remaining_speed_diff*0.4
+        mod = (sign*15*0.7) + (sign*(abs_speed_diff-15)*0.4)
+    else:
+        # (sign*15*0.7) + (sign*15*0.4) + remaining_speed_diff*0.1
+        mod = (sign*16.5) + (sign*(abs_speed_diff-30)*0.1)
+
+    chance_to_hit = round(base_chance_to_hit + mod)
+
     # Checking to see if the attack has sweep and improving accuracy/reducing dodge chance if so.
     if attack_instance.has_sweep:
-        accuracy += 10
+        chance_to_hit += 10
     # Checking to see if the defender is_rushing and improving accuracy if so.
     if defender.db.is_rushing:
-        accuracy += 5
+        chance_to_hit += 5
     # Checking to see if the defender is_weaving and reducing accuracy/improving dodge chance if so.
     if defender.db.is_weaving:
-        accuracy -= 10
+        chance_to_hit -= 10
     # Checking to see if the defender used_ranged and improving accuracy if so.
     if defender.db.used_ranged:
-        accuracy += 5
+        chance_to_hit += 5
     # Checking to see if the defender is Petrified and improving accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
-        accuracy += 12
+        chance_to_hit += 12
     # Checking to see if the defender is Slimy and reducing accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
-        accuracy -= 12
+        chance_to_hit -= 12
+    if attack_instance.is_final_action:
+        chance_to_hit -= 30
+    if attack_instance.has_rush:
+        chance_to_hit += 7
+    if attack_instance.has_ranged:
+        chance_to_hit -= 5
+    chance_to_hit += attack_instance.endure_bonus
     # cap accuracy at 99%
-    if accuracy > 99:
-        accuracy = 99
-    elif accuracy < 1:
-        accuracy = 1
-    return accuracy
+    if chance_to_hit > 99:
+        chance_to_hit = 99
+    elif chance_to_hit < 1:
+        chance_to_hit = 1
+    return chance_to_hit
 
 
-def block_chance_calc(defender, attack_instance):
+# percent chance to hit upon block
+def block_chance_calc(defender, attack_instance: AttackToQueue):
+    defender_speed = modify_speed(defender.db.speed, defender)
+    attack_acc = attack_instance.attack.acc
+
     def_stat = 0
     if attack_instance.attack.stat == "Power":
         def_stat = defender.db.parry
     if attack_instance.attack.stat == "Knowledge":
         def_stat = defender.db.barrier
-    speed = defender.db.speed
-    attack_acc = attack_instance.attack.acc
-    averaged_def = modify_speed(speed, defender) + def_stat*.5
-    # accuracy = int(int(attack_acc) / (averaged_def/100))
-    accuracy = 100.0 - (0.475 * (averaged_def - attack_acc))
-    # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
+
+    # block stat is an average between the effect-modified speed and the defensive stat
+    block_stat = (defender_speed + def_stat)/2
+    base_chance_to_hit = 40 + attack_acc*5
+
+    # modify base % with scaling with respect to a base of 125 via a piecewise function
+    stat_diff = 125 - block_stat
+    abs_stat_diff = abs(stat_diff)
+    # Accounting for zero stat difference and possible ZeroDivisionError.
+    if abs_stat_diff == 0:
+        sign = 0
+    else:
+        sign = math.floor(stat_diff / abs_stat_diff)
+
+    if abs_stat_diff <= 15:
+        mod = 0.7 * stat_diff
+    elif abs_stat_diff <= 30:
+        # (sign*15*0.7) + remaining_speed_diff*0.4
+        mod = (sign * 15 * 0.7) + (sign * (abs_stat_diff - 15) * 0.4)
+    else:
+        # (sign*15*0.7) + (sign*15*0.4) + remaining_speed_diff*0.1
+        mod = (sign * 16.5) + (sign * (abs_stat_diff - 30) * 0.1)
+
+    chance_to_hit = round(base_chance_to_hit + mod)
+
+    # Checking to see if the attack has the Crush Effect and improving accuracy if so.
     if attack_instance.has_crush:
-        accuracy += 10
+        chance_to_hit += 10
+    # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
     if defender.db.is_bracing:
-        accuracy -= 10
+        chance_to_hit -= 10
     # Checking to see if the defender is_rushing and improving accuracy if so.
     if defender.db.is_rushing:
-        accuracy += 5
+        chance_to_hit += 5
     # Checking to see if the defender used_ranged and improving accuracy if so.
     if defender.db.used_ranged:
-        accuracy += 5
+        chance_to_hit += 5
     # Checking to see if the defender is Petrified and reducing accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
-        accuracy -= 12
+        chance_to_hit -= 12
     # Checking to see if the defender is Slimy and improving accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
-        accuracy += 12
-    # Incorporating block penalty.
-    accuracy += defender.db.block_penalty
-    if accuracy > 99:
-        accuracy = 99
-    elif accuracy < 1:
-        accuracy = 1
-    return accuracy
+        chance_to_hit += 12
+    # Incorporating defender's block penalty and attacker's endure bonus.
+    chance_to_hit += defender.db.block_penalty
+    chance_to_hit += attack_instance.endure_bonus
+    # cap block percentage at 99%
+    if chance_to_hit > 99:
+        chance_to_hit = 99
+    elif chance_to_hit < 1:
+        chance_to_hit = 1
+    return chance_to_hit
 
 
 def endure_chance_calc(defender, attack_instance):
-    # Calculate the chance of successfully enduring. Like Block, should be based on both Speed and relevant defense.
+    defender_speed = modify_speed(defender.db.speed, defender)
+    attack_acc = attack_instance.attack.acc
+
     def_stat = 0
     if attack_instance.attack.stat == "Power":
         def_stat = defender.db.parry
     if attack_instance.attack.stat == "Knowledge":
         def_stat = defender.db.barrier
-    speed = defender.db.speed
-    attack_acc = attack_instance.attack.acc
-    averaged_def = modify_speed(speed, defender) + def_stat*.5
-    # accuracy = int(int(attack_acc) / (averaged_def / 100))
-    accuracy = 100.0 - (0.475 * (averaged_def - attack_acc))
-    # Checking to see if the defender is_bracing and reducing accuracy/improving block chance if so.
+
+    # block stat is an average between the effect-modified speed and the defensive stat
+    endure_stat = (defender_speed + def_stat) / 2
+    base_chance_to_hit = 40 + attack_acc * 5
+
+    # modify base % with scaling with respect to a base of 125 via a piecewise function
+    stat_diff = 125 - endure_stat
+    abs_stat_diff = abs(stat_diff)
+    # Accounting for zero stat difference and possible ZeroDivisionError.
+    if abs_stat_diff == 0:
+        sign = 0
+    else:
+        sign = math.floor(stat_diff / abs_stat_diff)
+
+    if abs_stat_diff <= 15:
+        mod = 0.7 * stat_diff
+    elif abs_stat_diff <= 30:
+        # (sign*15*0.7) + remaining_speed_diff*0.4
+        mod = (sign * 15 * 0.7) + (sign * (abs_stat_diff - 15) * 0.4)
+    else:
+        # (sign*15*0.7) + (sign*15*0.4) + remaining_speed_diff*0.1
+        mod = (sign * 16.5) + (sign * (abs_stat_diff - 30) * 0.1)
+
+    chance_to_hit = round(base_chance_to_hit + mod)
+
+    # Checking to see if the defender is_bracing and reducing accuracy/improving endure chance if so.
     if defender.db.is_bracing:
-        accuracy -= 10
+        chance_to_hit -= 10
     # Checking to see if the defender is_rushing and improving accuracy if so.
     if defender.db.is_rushing:
-        accuracy += 5
+        chance_to_hit += 5
     # Checking to see if the defender used_ranged and improving accuracy if so.
     if defender.db.used_ranged:
-        accuracy += 5
+        chance_to_hit += 5
     # Checking to see if the defender is Petrified and reducing accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
-        accuracy -= 12
+        chance_to_hit -= 12
     # Checking to see if the defender is Slimy and reducing accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
-        accuracy -= 12
-    if accuracy > 99:
-        accuracy = 99
-    elif accuracy < 1:
-        accuracy = 1
-    return accuracy
+        chance_to_hit -= 12
+    # Incorporating attacker's endure bonus. Block penalty does not apply to defender's endure chance.
+    chance_to_hit += attack_instance.endure_bonus
+    # cap endure percentage at 99%
+    if chance_to_hit > 99:
+        chance_to_hit = 99
+    elif chance_to_hit < 1:
+        chance_to_hit = 1
+    return chance_to_hit
 
 
 def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interrupt):
-    interrupt_chance = 40 + int(outgoing_interrupt.acc) - int(incoming_attack_instance.attack.acc)
+    accuracy_diff = outgoing_interrupt.acc - incoming_attack_instance.attack.acc
+    interrupt_chance = 40 + (accuracy_diff * 5)
+    # If the interrupter is baiting, interrupt chance increases.
     if interrupter.db.is_baiting:
         interrupt_chance += 10
+    # If the interrupter had rushed, interrupt chance decreases.
     if interrupter.db.is_rushing:
         interrupt_chance -= 5
+    # If the interrupter had used a ranged attack, interrupt chance decreases.
     if interrupter.db.used_ranged:
         interrupt_chance -= 5
+    # If the incoming attack has the Priority effect, interrupt chance greatly decreases.
     if incoming_attack_instance.has_priority:
         interrupt_chance -= 15
+    # If the outgoing interrupt has the Priority effect, interrupt chance greatly increases.
     if "Priority" in outgoing_interrupt.effects:
         interrupt_chance += 15
+    # If the incoming attack is Ranged and the outgoing interrupt is *not* Ranged, interrupt chance greatly decreases.
     if incoming_attack_instance.has_ranged:
         if "Long-Range" not in outgoing_interrupt.effects:
             interrupt_chance -= 15
+    # Incorporating incoming attacks's endure bonus, reducing interrupt chance.
+    interrupt_chance -= incoming_attack_instance.endure_bonus
+    # cap interrupt percentage at 99%
+    if interrupt_chance > 99:
+        interrupt_chance = 99
+    elif interrupt_chance < 1:
+        interrupt_chance = 1
     return interrupt_chance
 
 
@@ -455,42 +528,41 @@ def combat_log_entry(caller, logstring):
 
 def find_attacker_stat(attacker, base_stat):
     # Use the base stat of the attack to pull the attacker's corresponding stat value.
-    attacker_stat = 0
     if base_stat == "Power":
-        attacker_stat += attacker.db.power
-    if base_stat == "Knowledge":
-        attacker_stat += attacker.db.knowledge
-    return attacker_stat
+        return attacker.db.power
+    elif base_stat == "Knowledge":
+        return attacker.db.knowledge
+    else:
+        return 0
 
 
-def heal_check(action, healer, target, switches):
+def heal_check(action, healer, target, switches, regen=False, drain_dmg=None):
     # Check for heal effect. Check has_been_healed: how much the target has already been healed this fight.
     # Come up with a formula for accuracy of heal to affect variance of heal amount (more accurate, more consistent).
     # Come up with a formula to depreciate healing amount based on has_been_healed, and apply that after variance.
     # Then make custom in-room announcement and end turn, to avoid putting any of this code into CmdAttack.
 
-    # Regen_check passes heal_check the string "regen" rather than an Attack instance, so make a substitute action.
-    regen = False
-    if action == "regen":
-        regen = True
-        action = Attack("", 0, 50, 50, "", [])
-        base_stat = 20
     # Set baseline healing amount based on Art Damage and healer's stat. This replaces damage_calc.
-    else:
-        if action.stat.lower() == "power":
-            base_stat = healer.db.power
-        if action.stat.lower() == "knowledge":
-            base_stat = healer.db.knowledge
+    # If the heal_check is called for the Regen buff, the simulated stat is extremely low to minimize healing.
+
+    heal_instance = action.attack
+
+    if not regen:
+        base_stat = find_attacker_stat(healer, heal_instance.stat)
         # Check for Vigor buff on healer.
-        base_stat = vigor_check(healer, base_stat)
+        base_stat = vigor_check(action, base_stat)
+    else:
+        # Regeneration simulates a simple Heal action with a very weak base stat, so little LF is regenerated per turn.
+        base_stat = 20
+
     # Weird corner case: see if someone is trying to heal themselves out of KO state.
-    if "Heal" in action.effects and healer == target and healer.db.final_action:
+    if "Heal" in heal_instance.effects and healer == target and healer.db.final_action:
         return healer.msg("You may not heal or revive yourself as a final action.")
     # See if someone has used a CmdAttack switch to try to Cure a specific debuff that the target does not have.
     cure_match = ""
     # Merging the three debuff dictionaries for this check
     debuffs_all = target.db.debuffs_standard | target.db.debuffs_transform | target.db.debuffs_hexes
-    if "Cure" in action.effects and switches:
+    if "Cure" in heal_instance.effects and switches:
         # For now, just ensure there's only one switch on attempted Cures.
         if len(switches) > 1:
             return healer.msg("Please specify only one debuff to Cure.")
@@ -504,7 +576,7 @@ def heal_check(action, healer, target, switches):
         # After all that, confirm that the switch is an actual existing debuff.
         if not cure_match:
             return healer.msg("You have specified a debuff to Cure that is not recognized.")
-    if "Cure" in action.effects and not switches:
+    if "Cure" in heal_instance.effects and not switches:
         # Select a random active debuff
         debuff_options = []
         for debuff, duration in debuffs_all.items():
@@ -513,20 +585,23 @@ def heal_check(action, healer, target, switches):
         if debuff_options:
             cure_match = random.choice(debuff_options)
         # If there are no debuff_options, just let the heal go through as a normal one. No cure_match.
-    if "Drain" in action.effects:
-        total_healing = action.dmg / 2.5
+    if drain_dmg is not None:
+        # Drain_check will have assigned an integer to drain_dmg.
+        total_healing = math.ceil(drain_dmg / 3)
+        healer.msg("You healed yourself with {action} for {value}.".format(action=heal_instance,
+                                                                           value=total_healing))
     else:
-        healing = 1.55 * action.dmg
+        healing = 15.5 * heal_instance.dmg
         healing_multiplier = (0.00583 * healing) + 0.708
         total_healing = (healing + base_stat) * healing_multiplier
     # logger(healer, "Healing after multiplier: " + str(total_healing))
     # Then, apply variance to healing amount based on Art Accuracy.
     # Currently, there's minimal variance above 80 Accuracy, and then more as you go down.
     # TODO: More complex calculation for slope of increase in variance as accuracy decreases.
-    accuracy = action.acc
-    if action.acc > 80:
+    accuracy = heal_instance.acc * 10
+    if accuracy > 80:
         accuracy = 80
-    base_variance = math.ceil((80 - accuracy) * 3)
+    base_variance = math.ceil((81 - accuracy) * 3)
     variance = random.randrange(base_variance*-1, base_variance)
     total_healing += variance
     # logger(healer, "Healing after variance: " + str(total_healing))
@@ -549,19 +624,19 @@ def heal_check(action, healer, target, switches):
     target.db.lf += total_healing
     target.db.has_been_healed += total_healing
     # Announce healing to room and end the healer's turn as per CmdAttack.
-    if "Heal" in action.effects and healer != target:
-        healer.msg("You healed {target} with {action} for {value}.".format(target=target, action=action,
+    if "Heal" in heal_instance.effects and healer != target:
+        healer.msg("You healed {target} with {action} for {value}.".format(target=target, action=heal_instance,
                                                                            value=total_healing))
-        target.msg("You have been healed by {healer} with {action} for {value}.". format(healer=healer, action=action,
+        target.msg("You have been healed by {healer} with {action} for {value}.". format(healer=healer, action=heal_instance,
                                                                                          value=total_healing))
         combat_string = "|y<COMBAT>|n {attacker} has healed {target} with {action}.".format(
-            attacker=healer.key, target=target, action=action)
+            attacker=healer.key, target=target, action=heal_instance)
         healer.location.msg_contents(combat_string)
-    elif "Heal" in action.effects and healer == target:
-        healer.msg("You healed yourself with {action} for {value}.".format(action=action,
+    elif "Heal" in heal_instance.effects and healer == target:
+        healer.msg("You healed yourself with {action} for {value}.".format(action=heal_instance,
                                                                            value=total_healing))
         combat_string = "|y<COMBAT>|n {attacker} has healed themselves with {action}.".format(
-            attacker=healer.key, action=action)
+            attacker=healer.key, action=heal_instance)
         healer.location.msg_contents(combat_string)
     if regen:
         healer.msg("You have regenerated for {value}.".format(value=total_healing))
@@ -577,16 +652,16 @@ def heal_check(action, healer, target, switches):
         healer.msg(f"You have successfully Cured {target}'s {cure_match.title()} status effect.")
     # Incorporate other Support effects
     else:
-        apply_buff(action, healer, target)
+        apply_buff(heal_instance, healer, target)
 
     # Incorporate revival, i.e., being healed up from 0 LF and out of KO state
     # Corner casing: if someone else has already done a normal heal, leaving the target stunned, a raise will fix that
-    if "Revive" in action.effects and target.db.stunned:
+    if "Revive" in heal_instance.effects and target.db.stunned:
         target.db.stunned = False
         target.msg("You are revived and thus no longer stunned.")
     if target.db.KOed:
         target.db.KOed = False
-        if "Revive" in action.effects:
+        if "Revive" in heal_instance.effects:
             target.msg("You are revived: you may rejoin the fight and act as normal on your next turn.")
         else:
             target.db.stunned = True
@@ -596,7 +671,7 @@ def heal_check(action, healer, target, switches):
         if regen:
             target.msg("You have regenerated sufficiently to continue fighting!")
             target.db.final_action = False
-        elif "Revive" in action.effects:
+        elif "Revive" in heal_instance.effects:
             target.db.revived_during_final_action = True
             target.msg("Your next action will still have a final action penalty, but you will not be KOed.")
         else:
@@ -604,28 +679,29 @@ def heal_check(action, healer, target, switches):
                        "for one turn but not KOed.")
 
 
-def drain_check(action, attacker, target, damage_dealt):
+def drain_check(attack, attacker, target, damage_dealt):
     # Weird corner case: you cannot Drain from yourself.
     if attacker != target:
     # For the purposes of self-healing, treat the power of the attack as relative to the damage it dealt (so less if blocked)
-        action.dmg = damage_dealt
-        heal_check(action, attacker, attacker)
+        heal_check(attack, attacker, attacker, "", False, damage_dealt)
     # But don't "return" here, because the rest of the attack will proceed as normal after self-healing
 
 
 def regen_check(character):
-    # Route the Regen effect through heal_check so that all healing works the same. Use a string, "regen."
-    heal_check("regen", character, character)
+    # Regeneration, in order to call heal_check, simulates a simple action with Heal.
+    temp_action = Attack("", 0, 5, 5, "", "")
+    action = AttackDuringAction(temp_action, character.key, [])
+    heal_check(action, character, character, [], True)
     character.db.buffs["Regen"] -= 1
     if character.db.buffs["Regen"] == 0:
         character.msg("You are no longer gradually regenerating.")
 
 
-def vigor_check(character, base_stat):
-    # Checks if the character has the Vigor buff, and if so, Power/Knowledge is effectively +25.
-    if character.db.buffs["Vigor"] > 0:
-        base_stat += 25
-    return base_stat
+def vigor_check(action, attack_stat):
+    # Checks if the AttackDuringAction has the Vigor buff, and if so, Power/Knowledge is effectively +25.
+    if action.has_vigor:
+        attack_stat += 25
+    return attack_stat
 
 
 def dispel_check(target):
@@ -735,7 +811,7 @@ def protect_and_reflect_check(incoming_damage, defender, attack, interrupt_succe
             incoming_damage = incoming_damage * 0.85
     return incoming_damage
 
-
+#TODO: rename all the accuracy vars to "percentage" or something
 def modify_aim_and_feint(accuracy, reaction, aim_or_feint):
     # Centralizing any modifications to Aim and Feint from buffs, etc. Call this in each reaction. Return mod acc.
     if reaction == "dodge" or "block":
@@ -821,9 +897,9 @@ def wound_check(character, action):
 
 
 def berserk_check(caller, action):
-    # If a character is Berserk, Arts of lower than 50 DMG cost 10 more AP.
+    # If a character is Berserk, Arts of lower than 5 Damage value cost 10 more AP.
     if caller.db.debuffs_standard["Berserk"] > 0:
-        if action.dmg < 50:
+        if action.dmg < 5:
             action.ap -= 10
     return action
 
@@ -845,24 +921,22 @@ def clear_hexes(caller):
             caller.msg(f"You are no longer afflicted by {status_effect}.")
 
 
-def strain_check(damage, action, character):
-    # Currently, for self-damage, Strain uses the same math as Wound.
-    damage_floor = action.ap * -1
-    # Ensure that the minimum damage_floor is 1 in case of, like, EX moves that regain AP or something.
-    if damage_floor < 1:
-        damage_floor = 1
-    damage_ceil = math.ceil(damage_floor * 2.5)
-    strain_damage = random.randint(damage_floor, damage_ceil)
-    character.db.lf -= strain_damage
-    character.msg("You have taken {damage} damage from strain.".format(damage=strain_damage))
-    initial_state = character.db.final_action
-    final_action_check(character)
-    # Check if it's now your final_action BECAUSE of the wound damage specifically.
-    if character.db.final_action and not initial_state:
-        character.db.negative_lf_from_dot = True
-    # Increase damage from Strain attacks proportional to the self-damage inflicted.
-    outgoing_damage = damage + strain_damage
-    return outgoing_damage
+def strain_check(attack_damage, attacker):
+    # Currently, Strain effectively increases the Damage value of an Art by 1.
+    attack_damage = attack_damage + 1
+    # Strain's self-damage calculation is a random integer, multiplied by the same damage scale as in damage_calc.
+    strain_damage = random.randint(20, 40)
+    multiplier = 1.0 - ((6 - attack_damage) * 0.1)
+    strain_damage = int(strain_damage * multiplier)
+    attacker.db.lf -= strain_damage
+    attacker.msg("You have taken {damage} damage from strain.".format(damage=strain_damage))
+    initial_state = attacker.db.final_action
+    final_action_check(attacker)
+    # Check if it's now your final_action BECAUSE of the strain damage specifically.
+    if attacker.db.final_action and not initial_state:
+        attacker.db.negative_lf_from_dot = True
+    # Now that attacker self-damage has been resolved, return the increased Damage value of the Art.
+    return attack_damage
 
 
 def modify_ex_on_hit(damage, defender, attacker):
