@@ -312,8 +312,6 @@ class CmdAttack(default_cmds.MuxCommand):
             heal = AttackDuringAction(action_clean, caller.key, switches)
             heal_check(heal, caller, target_object, switches)
         else:
-            # action_clean.dmg = modify_damage(action_clean, caller)
-
             new_id = assign_attack_instance_id(target_object)
 
             # Confirm here before passing along the attack that the switch is a valid one.
@@ -736,7 +734,6 @@ class CmdInterrupt(default_cmds.MuxCommand):
         # In case of interrupt success
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
-            # modified_int_damage = modify_damage(outgoing_interrupt, caller)
             final_outgoing_damage = damage_calc(interrupt, attacker)
 
             # Check if the interrupt is a critical hit!
@@ -994,7 +991,8 @@ class CmdFeint(default_cmds.MuxCommand):
 class CmdRestore(default_cmds.MuxCommand):
     """
         Sets your LF to 1000, your AP to 50, and your EX to 0,
-        and normalizes your status (e.g., sets block penalty to 0).
+        normalizes your status (e.g., sets block penalty to 0),
+        and empties your queue of incoming attacks.
 
         Usage:
           +restore
@@ -1013,9 +1011,11 @@ class CmdRestore(default_cmds.MuxCommand):
         caller.db.ap = 50
         # Set EX to 0.
         caller.db.ex = 0
+        # Empty queue.
+        caller.db.queue = []
         # Run the normalize_status function.
         normalize_status(caller)
-        caller.msg("Your LF, AP, EX, and status effects have been reset.")
+        caller.msg("Your LF, AP, EX, queue, and status effects have been reset.")
 
 
 class CmdPass(default_cmds.MuxCommand):
