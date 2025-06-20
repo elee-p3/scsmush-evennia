@@ -599,6 +599,8 @@ def heal_check(action, healer, target, switches, regen=False, drain_dmg=None):
     # Currently, there's minimal variance above 80 Accuracy, and then more as you go down.
     # TODO: More complex calculation for slope of increase in variance as accuracy decreases.
     accuracy = heal_instance.acc * 10
+    # Currently, the max accuracy is 80 and the min base_variance is 1 (as in 81 - 80) * 3, or 3.
+    # random.randrange won't work with 0, so I had to make sure it's passed a number greater than that.
     if accuracy > 80:
         accuracy = 80
     base_variance = math.ceil((81 - accuracy) * 3)

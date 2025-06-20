@@ -54,7 +54,7 @@ def populate_table(table, actions, base_arts, interrupted_action=None, caller=No
                           action.acc,
                           stat_string,
                           effects_abbrev,
-                          modified_acc)
+                          int(modified_acc))
         else:
             table.add_row(action.name,
                           ap_string,
