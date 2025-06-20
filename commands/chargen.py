@@ -71,6 +71,9 @@ class CmdSetArt(default_cmds.MuxCommand):
         except ValueError:
             return caller.msg("Error: your damage value must be an integer. Make sure that your format is: name, damage"
                               " value, base stat, and effects (if any).")
+        # Setting a lower bound on damage.
+        if damage_int < 1:
+            return caller.msg("Error: your damage value must be at least 1.")
         # Base accuracy for Arts will be 12 - damage_int, increased by 2 for EX moves after effects are checked.
         accuracy = 12 - damage_int
         base_stat = art_list[2].lower()
