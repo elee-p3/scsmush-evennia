@@ -50,7 +50,8 @@ INSTALLED_APPS += [
     "world.character",
     "world.minions",
     "world.msgs",
-    "world.scenes"
+    "world.scenes",
+    "world.aspects"
 ]
 
 # This is an attempt to in-place modify the default evennia TEMPLATE config without copy-pasta
