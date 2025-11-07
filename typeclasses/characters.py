@@ -57,6 +57,10 @@ class Character(DefaultCharacter):
         self.db.speed = 100
         self.db.pose_time = 0.0
         self.db.obs_mode = False
+        self.db.cp = 100
+        self.db.maxcp = 100
+        self.db.aspects = []
+        self.db.equipped_aspects = []
 
     def at_post_puppet(self, **kwargs):
         """
