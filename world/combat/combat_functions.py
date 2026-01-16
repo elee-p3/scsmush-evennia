@@ -64,7 +64,7 @@ def damage_calc(queued_attack, defender):
     attack_dmg = incoming_attack.dmg
     base_stat = incoming_attack.stat
     attacker = find_attacker_from_key(queued_attack.attacker_key)
-    attacker_stat = find_attacker_stat(attacker, base_stat)
+    attacker_stat = find_attacker_stat(queued_attack, base_stat)
     default_dmg = 160
 
     # Check for the Strain effect on the attack to modify attack_dmg before determining multiplier.
@@ -526,12 +526,12 @@ def combat_log_entry(caller, logstring):
         scene.addLogEntry(LogEntry.EntryType.COMBAT, escape(logstring), caller)
 
 
-def find_attacker_stat(attacker, base_stat):
+def find_attacker_stat(action, base_stat):
     # Use the base stat of the attack to pull the attacker's corresponding stat value.
     if base_stat == "Power":
-        return attacker.db.power
+        return action.attacker_stats["Power"]
     elif base_stat == "Knowledge":
-        return attacker.db.knowledge
+        return action.attacker_stats["Knowledge"]
     else:
         return 0
 
@@ -548,7 +548,7 @@ def heal_check(action, healer, target, switches, regen=False, drain_dmg=None):
     heal_instance = action.attack
 
     if not regen:
-        base_stat = find_attacker_stat(healer, heal_instance.stat)
+        base_stat = find_attacker_stat(action, heal_instance.stat)
         # Check for Vigor buff on healer.
         base_stat = vigor_check(action, base_stat)
     else:

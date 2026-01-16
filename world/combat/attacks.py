@@ -32,6 +32,7 @@ class AttackDuringAction:
         self.attack = attack
         self.attacker_key = attacker_key
         attacker = find_attacker_from_key(attacker_key)
+        self.attacker_stats = {"Power": attacker.db.power, "Knowledge": attacker.db.knowledge}
         self.modifier = ""
         self.switches_string = "".join(switches)
         self.has_acuity = False
@@ -75,7 +76,7 @@ class AttackDuringAction:
             split_effects = attack.effects.split()
             for effect in split_effects:
                 if effect == "Strain":
-                    self.has_strain = True
+                    self
 
 
 class AttackToQueue(AttackDuringAction):
