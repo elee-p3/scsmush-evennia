@@ -212,3 +212,11 @@ class CmdChargen(default_cmds.MuxCommand):
         caller.db.barrier = int(split_args[3])
         caller.db.speed = int(split_args[4])
         caller.msg("Your stats have been set. Confirm them with +sheet.")
+
+
+class CmdGetAspect(default_cmds.MuxCommand):
+    """
+        A character generation command to acquire a new Aspect from all available.
+        Acquired Aspects are by default unequipped. (yield check equip if CP remaining?)
+    """
+    pass

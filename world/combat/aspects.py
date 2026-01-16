@@ -8,6 +8,12 @@ class Aspect:
     def __eq__(self, other):
         return self.name.lower() == other.lower()
 
+# TODO: CmdEquipAspect
+
+# TODO: CmdUnequipAspect
+
+# TODO: CmdListAspects
+
 # TODO: Character db capacity and max capacity and aspects list. Aspect/Get chargen with Extra Art check code.
 # TODO: Aspect/Set equip and unequip. Aspect/list display equipped; aspect/all display equipped and unequipped details.
 # TODO: Implement aspect combat functionality. Might be best to do the combat rebalance first before fine-tuning.

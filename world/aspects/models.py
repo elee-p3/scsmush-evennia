@@ -7,7 +7,8 @@ class Aspect(models.Model):
     # characters who have this Aspect
     characters = models.ManyToManyField(
         "objects.ObjectDB",
-        related_name="aspects")
+        related_name="aspects",
+        blank=True)
 
     name = models.TextField(
         'Aspect name',
@@ -25,5 +26,6 @@ class Aspect(models.Model):
         related_name="aspects",
         default=None,
         blank=True,
+        null=True,
         on_delete=models.CASCADE
     )
