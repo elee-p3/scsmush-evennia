@@ -69,7 +69,7 @@ def damage_calc(queued_attack, defender):
 
     # Check for the Strain effect on the attack to modify attack_dmg before determining multiplier.
     if queued_attack.has_strain:
-        attack_dmg = strain_check(attack_dmg, attacker)
+        attack_dmg += 1
 
     # base damage will be scaled by the attack's dmg property, with 6 being the baseline 1.0x
     multiplier = 1.0 - ((6 - attack_dmg) * 0.1)
@@ -457,7 +457,8 @@ def apply_attack_effects_to_attacker(attacker, attack):
     attacker.db.used_ranged = False
     # Now, apply the new attack effects.
     if attack.effects:
-        for effect in attack.effects:
+        split_effects = attack.effects.split()
+        for effect in split_effects:
             if effect == "Rush":
                 attacker.db.is_rushing = True
             if effect == "Weave":
@@ -468,6 +469,8 @@ def apply_attack_effects_to_attacker(attacker, attack):
                 attacker.db.is_baiting = True
             if effect == "Long-Range":
                 attacker.db.used_ranged = True
+            if effect == "Strain":
+                strain_check(attacker, attack)
     return attacker
 
 
@@ -923,22 +926,20 @@ def clear_hexes(caller):
             caller.msg(f"You are no longer afflicted by {status_effect}.")
 
 
-def strain_check(attack_damage, attacker):
-    # Currently, Strain effectively increases the Damage value of an Art by 1.
-    attack_damage = attack_damage + 1
+def strain_check(attacker, attack):
+    """Calculates self-damage of Strain Effect. Note that ongoing damage increase is now calculated in damage_calc()."""
     # Strain's self-damage calculation is a random integer, multiplied by the same damage scale as in damage_calc.
     strain_damage = random.randint(20, 40)
-    multiplier = 1.0 - ((6 - attack_damage) * 0.1)
+    multiplier = 1.0 - ((6 - attack.dmg) * 0.1)
     strain_damage = int(strain_damage * multiplier)
     attacker.db.lf -= strain_damage
     attacker.msg("You have taken {damage} damage from strain.".format(damage=strain_damage))
+    # NOTE: This sequence is now replicated in Poison, Wound, and Strain, so could be worth refactoring into helper.
     initial_state = attacker.db.final_action
     final_action_check(attacker)
     # Check if it's now your final_action BECAUSE of the strain damage specifically.
     if attacker.db.final_action and not initial_state:
         attacker.db.negative_lf_from_dot = True
-    # Now that attacker self-damage has been resolved, return the increased Damage value of the Art.
-    return attack_damage
 
 
 def modify_ex_on_hit(damage, defender, attacker):

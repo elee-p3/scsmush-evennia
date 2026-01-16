@@ -76,7 +76,7 @@ class AttackDuringAction:
             split_effects = attack.effects.split()
             for effect in split_effects:
                 if effect == "Strain":
-                    self
+                    self.has_strain = True
 
 
 class AttackToQueue(AttackDuringAction):
