@@ -316,7 +316,7 @@ class CmdAttack(default_cmds.MuxCommand):
 
             # Confirm here before passing along the attack that the switch is a valid one.
             if switches:
-                error_found = attack_switch_check(caller, switches)
+                error_found = attack_switch_check(switches)
                 if error_found:
                     return caller.msg("Error: a switch on your attack was not recognized. See 'help attack'.")
 
@@ -422,7 +422,7 @@ class CmdDodge(default_cmds.MuxCommand):
             caller.db.ex, attacker.db.ex = modify_ex_on_hit(final_damage, caller, attacker)
 
             # Effect check
-            apply_debuff(attack, attacker, caller)
+            apply_debuff(attack, caller)
             if "Drain" in attack.effects:
                 drain_check(action, attacker, caller, final_damage)
             if "Dispel" in attack.effects:
@@ -504,7 +504,7 @@ class CmdBlock(default_cmds.MuxCommand):
             new_block_penalty = accrue_block_penalty(caller, damage, block_bool, action)
             caller.db.block_penalty = new_block_penalty
             # Apply debuffs only on failed blocks
-            apply_debuff(attack, attacker, caller)
+            apply_debuff(attack, caller)
             if "Drain" in attack.effects:
                 drain_check(action, attacker, caller, damage)
             if "Dispel" in attack.effects:
@@ -604,7 +604,7 @@ class CmdEndure(default_cmds.MuxCommand):
         caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker)
 
         # Apply debuffs regardless of if endure succeeds or fails
-        apply_debuff(attack, attacker, caller)
+        apply_debuff(attack, caller)
         if "Drain" in attack.effects:
             drain_check(action, attacker, caller, damage)
         if "Dispel" in attack.effects:
@@ -722,7 +722,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             caller.db.ex, attacker.db.ex = modify_ex_on_hit(final_damage, caller, attacker)
 
             # Apply debuffs only if interrupt fails
-            apply_debuff(incoming_atk, attacker, caller)
+            apply_debuff(incoming_atk, caller)
             if "Drain" in incoming_atk.effects:
                 drain_check(incoming_atk_in_queue, attacker, caller, final_damage)
             if "Dispel" in incoming_atk.effects:
@@ -769,7 +769,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
                 drain_check(incoming_atk_in_queue, attacker, caller, mitigated_damage)
 
             # Apply debuffs to interrupted attacker
-            apply_debuff(outgoing_interrupt, caller, attacker)
+            apply_debuff(outgoing_interrupt, attacker)
             if "Drain" in outgoing_interrupt.effects:
                 drain_check(interrupt, caller, attacker, final_outgoing_damage)
             if "Dispel" in outgoing_interrupt.effects:

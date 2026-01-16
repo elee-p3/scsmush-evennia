@@ -63,7 +63,6 @@ def damage_calc(queued_attack, defender):
     incoming_attack = queued_attack.attack
     attack_dmg = incoming_attack.dmg
     base_stat = incoming_attack.stat
-    attacker = find_attacker_from_key(queued_attack.attacker_key)
     attacker_stat = find_attacker_stat(queued_attack, base_stat)
     default_dmg = 160
 
@@ -124,7 +123,7 @@ def damage_calc(queued_attack, defender):
     return final_damage
 
 
-def attack_switch_check(attacker, switches):
+def attack_switch_check(switches):
     # Checking for switches on CmdAttack other than heal/cure switches, which go to heal_check.
     # Right now, there is just attack/wild, which lowers accuracy here and increases crit threshold in critical_hits.
     valid_switches = ["wild"]
@@ -530,7 +529,7 @@ def combat_log_entry(caller, logstring):
 
 
 def find_attacker_stat(action, base_stat):
-    # Use the base stat of the attack to pull the attacker's corresponding stat value.
+    # Use the base stat of the attack to pull the attacker's corresponding stat value, stored in AttackDuringAction.
     if base_stat == "Power":
         return action.attacker_stats["Power"]
     elif base_stat == "Knowledge":
@@ -1306,7 +1305,7 @@ def apply_buff(action, healer, target):
             target.db.buffs[buff] = 3
 
 
-def apply_debuff(action, debuffer, target):
+def apply_debuff(action, target):
     # Debuffs have a chance to be resisted. This can be increased by buffs, and some debuffs increase the afflicted's
     # resistance to being afflicted again in the same fight (to disincentivize spamming them).
     base_debuff_resist = 30
