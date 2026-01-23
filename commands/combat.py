@@ -111,61 +111,69 @@ class CmdSheet(default_cmds.MuxCommand):
 
         left_spacing = " " * ((floor(client_width / 2.0) - floor(len(header) / 2.0)) - 2)  # -2 for the \/
         right_spacing = " " * ((floor(client_width / 2.0) - ceil(len(header) / 2.0)) - 2)  # -2 for the \/
-        nameBorder = "\\/" + left_spacing + header + right_spacing + "\\/"
-        sheetMsg += nameBorder + "\n"
+        name_border = "\\/" + left_spacing + header + right_spacing + "\\/"
+        sheetMsg += name_border + "\n"
 
-        charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
+        char_info_table = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
                                         border_bottom_char=" ", width=client_width, border="table")
-        charInfoTable.add_column()
-        charInfoTable.add_column()
-        charInfoTable.add_column()
-        charInfoTable.add_column()
-        charInfoTable.reformat_column(0, align='l')  # resource label
-        charInfoTable.reformat_column(1, align='r')  # resource value
-        charInfoTable.reformat_column(2, align='l')  # stat label
-        charInfoTable.reformat_column(3, align='l')  # stat value
-        charInfoTable.add_row("LF",
+        char_info_table.add_column()
+        char_info_table.add_column()
+        char_info_table.add_column()
+        char_info_table.add_column()
+        char_info_table.reformat_column(0, align='l')  # resource label
+        char_info_table.reformat_column(1, align='r')  # resource value
+        char_info_table.reformat_column(2, align='l')  # stat label
+        char_info_table.reformat_column(3, align='l')  # stat value
+        char_info_table.add_row("LF",
                               "{0}/{1}  ".format(int(char["lf"]), int(char["maxlf"])),
                               "  Power",
                               "  {0}".format(char["power"]))
-        charInfoTable.add_row(self.get_colored_meter(caller.db.lf, caller.db.maxlf, client_width),
+        char_info_table.add_row(self.get_colored_meter(caller.db.lf, caller.db.maxlf, client_width),
                               "",
                               "  Knowledge",
                               "  {0}".format(char["knowledge"]))
-        charInfoTable.add_row("AP",
+        char_info_table.add_row("AP",
                               "{0}/{1}  ".format(int(char["ap"]), int(char["maxap"])),
                               "  Parry",
                               "  {0}".format(char["parry"]))
-        charInfoTable.add_row(self.get_colored_meter(caller.db.ap, caller.db.maxap, client_width),
+        char_info_table.add_row(self.get_colored_meter(caller.db.ap, caller.db.maxap, client_width),
                               "",
                               "  Barrier",
                               "  {0}".format(char["barrier"]))
-        charInfoTable.add_row("EX",
+        char_info_table.add_row("EX",
                               "{0}%/{1}%  ".format(int(char["ex"]), int(char["maxex"])),
                               "  Speed",
                               "  {0}".format(char["speed"]))
-        charInfoTable.add_row(self.get_colored_meter(caller.db.ex, caller.db.maxex, client_width),
+        char_info_table.add_row(self.get_colored_meter(caller.db.ex, caller.db.maxex, client_width),
                               "",
-                              "",
-                              "")
+                              "  Capacity",
+                              "  0/0")
 
-        charInfoString = charInfoTable.__str__()
-        sheetMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
+        char_info_string = char_info_table.__str__()
+        sheetMsg += char_info_string[:char_info_string.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
 
         # print Arts table, attached to the bottom of the character sheet
-        left_spacing = floor(client_width / 2.0) - 3  # -2 for the borders
-        right_spacing = ceil(client_width / 2.0) - 3  # -2 for the borders
-        sheetMsg += "|" + "=" * left_spacing + "ARTS" + "=" * right_spacing + "|"
+        sheetMsg += self.generate_header(client_width, "ARTS")
 
         arts_table = setup_table(client_width, is_sheet=True)
         populate_table(arts_table, arts, base_arts)
         arts_string = arts_table.__str__()
         sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
 
+        # print Aspects table, attached below the Arts table
+        sheetMsg += self.generate_header(client_width, "ASPECTS")
+
         sheetMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
         sheetMsg += "\\/" + (client_width - 4) * " " + "\\/" + "\n"
 
         self.caller.msg(sheetMsg)
+
+    def generate_header(self, client_width, header_title):
+        left_arts_spacing = floor(client_width / 2.0) - floor(len(header_title)/2.0) - 1  # -1 for the border
+        right_arts_spacing = ceil(client_width / 2.0) - ceil(len(header_title)/2.0) - 1
+        header = "|" + "=" * left_arts_spacing + header_title + "=" * right_arts_spacing + "|"
+        return header
+
 
     # return a colored bar for various meters (e.g. LF, AP, EX)
     def get_colored_meter(self, current_val, max_val, client_width):
