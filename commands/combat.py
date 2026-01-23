@@ -511,7 +511,7 @@ class CmdBlock(default_cmds.MuxCommand):
                 dispel_check(caller)
             record_combat(caller, action, "block", False, damage)
         else:
-            damage = block_damage_calc(damage, caller.db.block_penalty)
+            damage = block_damage_calc(damage, caller)
             msg = damage_message_strings(ActionResult.BLOCK_SUCCESS, caller, attack, damage)
             caller.db.lf -= damage
 

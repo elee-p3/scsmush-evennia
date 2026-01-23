@@ -402,11 +402,18 @@ def endure_bonus_calc(damage_taken):
     return accuracy_bonus
 
 
-def block_damage_calc(base_damage, block_penalty):
+def block_damage_calc(base_damage, defender):
     mitigated_damage = base_damage / 2
+    if "Deflect" in defender.db.equipped_aspects:
+        # Deflect reduces incoming damage by Speed minus 125 (the baseline) divided by 4.
+        deflect_mitigation = math.ceil((defender.db.speed - 125) / 4)
+        if deflect_mitigation < 0:
+            deflect_mitigation = 0
+        mitigated_damage -= deflect_mitigation
     # Modify the base mitigated damage by the block penalty.
     # Currently, a doubled percentage increase: e.g., if someone successfully blocks with a 20 block penalty,
     # first halve the damage, then multiply that by x1.4.
+    block_penalty = defender.db.block_penalty
     if block_penalty > 0:
         mitigated_damage *= ((block_penalty * 2) / 100 + 1)
     # Make sure that this can't somehow do more damage than a failed block.
