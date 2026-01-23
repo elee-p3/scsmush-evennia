@@ -162,6 +162,7 @@ class CmdSheet(default_cmds.MuxCommand):
 
         # print Aspects table, attached below the Arts table
         sheetMsg += self.generate_header(client_width, "ASPECTS")
+        sheetMsg += "\n"
 
         sheetMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
         sheetMsg += "\\/" + (client_width - 4) * " " + "\\/" + "\n"
@@ -169,8 +170,8 @@ class CmdSheet(default_cmds.MuxCommand):
         self.caller.msg(sheetMsg)
 
     def generate_header(self, client_width, header_title):
-        left_arts_spacing = floor(client_width / 2.0) - floor(len(header_title)/2.0) - 1  # -1 for the border
-        right_arts_spacing = ceil(client_width / 2.0) - ceil(len(header_title)/2.0) - 1
+        left_arts_spacing = floor(client_width/2.0 - len(header_title)/2.0) - 1  # -1 for the border
+        right_arts_spacing = ceil(client_width/2.0 - len(header_title)/2.0) - 1
         header = "|" + "=" * left_arts_spacing + header_title + "=" * right_arts_spacing + "|"
         return header
 
