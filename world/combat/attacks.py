@@ -1,4 +1,4 @@
-from world.combat.effects import AimOrFeint
+from world.combat.effects import AimOrFeint, DEBUFFS
 from world.utilities.utilities import find_attacker_from_key
 from enum import Enum
 
@@ -33,6 +33,7 @@ class AttackDuringAction:
         self.attacker_key = attacker_key
         attacker = find_attacker_from_key(attacker_key)
         self.attacker_stats = {"Power": attacker.db.power, "Knowledge": attacker.db.knowledge}
+        self.attacker_aspects = attacker.db.equipped_aspects
         self.modifier = ""
         self.switches_string = "".join(switches)
         self.has_acuity = False
@@ -46,6 +47,7 @@ class AttackDuringAction:
         self.has_muddle = False
         self.has_strain = False
         self.is_wild = False
+        self.expertise = []
         if attacker.db.buffs["Acuity"] > 0:
             self.has_acuity = True
         if attacker.db.buffs["Vigor"] > 0:

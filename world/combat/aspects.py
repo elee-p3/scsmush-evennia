@@ -36,6 +36,7 @@ class CmdUnequipAspect(default_cmds.MuxCommand):
 
     def func(self):
         pass
+        # TODO: make an unequip/all switch not just for convenience, but to run it on all the characters?
 
 
 # TODO: CmdListAspects
