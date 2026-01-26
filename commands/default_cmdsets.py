@@ -91,6 +91,8 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdConvertNumbers)
         self.add(CmdCharSelect)
         self.add(CmdGetAspect)
+        self.add(CmdEquipAspect)
+        self.add(CmdUnequipAspect)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):

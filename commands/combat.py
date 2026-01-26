@@ -1060,3 +1060,89 @@ class CmdPass(default_cmds.MuxCommand):
         if caller.db.final_action:
             final_action_taken(caller)
 
+
+class CmdEquipAspect(default_cmds.MuxCommand):
+    """
+    Equip an Aspect in your Aspects list, if you have sufficient CP for its Cost.
+    To acquire an Aspect, use +getaspect.
+
+    Syntax:
+    +equip <aspect name>
+    """
+    key = "+equip"
+    aliases = ["equip", "equipaspect", "+equipaspect", "setaspect", "+setaspect"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        aspect_str = self.args.lower()
+        aspect_obj = None
+
+        # Confirm that Aspect is present in list of aspects.
+        for aspect in caller.db.aspects:
+            if aspect_str == aspect:
+                aspect_obj = aspect
+
+        if not aspect_obj:
+            return caller.msg("Aspect not found among those available to you. Use +getaspect to get new Aspects.")
+
+        # Confirm that Aspect is not already equipped.
+        if aspect_obj in caller.db.equipped_aspects:
+            return caller.msg("This Aspect is already equipped. Use +unequip to unequip it.")
+
+        # Confirm that sufficient CP is available.
+        if caller.db.cp < aspect_obj.cost:
+            return caller.msg("Not enough CP available to equip this Aspect.")
+
+        # Add Aspect to equipped_aspects and reduce available CP.
+        caller.db.equipped_aspects.append(aspect_obj)
+        caller.db.cp -= aspect_obj.cost
+        caller.msg(f"{aspect_obj.name} equipped.")
+
+
+class CmdUnequipAspect(default_cmds.MuxCommand):
+    """
+    Unequip an Aspect that you already have equipped, regaining CP expended on it.
+    To see what Aspects you have equipped, use +sheet or +aspects.
+
+    Syntax:
+    +unequip <aspect name>
+    """
+    key = "+unequip"
+    aliases = ["unequip", "unequipaspect", "+unequipaspect"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        aspect_str = self.args.lower()
+        aspect_obj = None
+        index_to_remove = None
+
+        # Confirm that Aspect is present in list of equipped_aspects.
+        for i, aspect in enumerate(caller.db.equipped_aspects):
+            if aspect_str == aspect:
+                aspect_obj = aspect
+                index_to_remove = i
+                aspect_str = aspect.name  # for success msg
+        if not aspect_obj:
+            return caller.msg("Aspect not found among those equipped.")
+
+        # Remove Aspect from equipped_aspect and restore CP. Corner case for exceeding max CP, no index (bugs).
+        if (caller.db.cp + aspect_obj.cost) > caller.db.maxcp:
+            return caller.msg("Error: unequipping this Aspect would raise CP above max. Contact admin to resolve.")
+        elif index_to_remove is None:
+            return caller.msg("Error: no index to remove. Contact admin to resolve.")
+
+        caller.db.cp += aspect_obj.cost
+        caller.db.equipped_aspects.pop(index_to_remove)
+        caller.msg(f"{aspect_str} unequipped.")
+
+
+# TODO: CmdListAspects
+class CmdListAspects(default_cmds.MuxCommand):
+    key = "+aspects"
+    aliases = ["aspects", "listaspects", "+listaspects"]
+    locks = "cmd:all()"
+
+    def func(self):
+        pass

@@ -18,48 +18,15 @@ class LinkedAspect(Aspect):
         self.linked_art = linked_art
 
 
-# TODO: CmdEquipAspect
-class CmdEquipAspect(default_cmds.MuxCommand):
-    key = "+equip"
-    aliases = ["equip", "equipaspect", "+equipaspect"]
-    locks = "cmd:all()"
-
-    def func(self):
-        pass
-
-
-# TODO: CmdUnequipAspect
-class CmdUnequipAspect(default_cmds.MuxCommand):
-    key = "+unequip"
-    aliases = ["unequip", "unequipaspect", "+unequipaspect"]
-    locks = "cmd:all()"
-
-    def func(self):
-        pass
-        # TODO: make an unequip/all switch not just for convenience, but to run it on all the characters?
-
-
-# TODO: CmdListAspects
-class CmdListAspects(default_cmds.MuxCommand):
-    key = "+aspects"
-    aliases = ["aspects", "listaspects", "+listaspects"]
-    locks = "cmd:all()"
-
-    def func(self):
-        pass
-
-
 # TODO: Character db capacity and max capacity and aspects list. Aspect/Get chargen with Extra Art check code.
 # TODO: Aspect/Set equip and unequip. Aspect/list display equipped; aspect/all display equipped and unequipped details.
 # TODO: Implement aspect combat functionality. Might be best to do the combat rebalance first before fine-tuning.
 # TODO: Modify sheet to display capacity count with colors and fun stuff.
 # TODO: Just make all the aspects and test them out one by one!
 
-# VERY LOW COST ASPECTS: 1 Capacity. Expertise and Resistance for specific Hexes.
-# TODO: dynamic debuff check: if the requested Aspect on chargen contains "Expertise" or "Resistance", see if it exists, and then
-# on apply_debuff() and/or attack obj init, check for relevant Aspects containing "Expertise" or "Resistance"
-
-# LOW COST ASPECTS: 5 Capacity. Expertise and Resistance for standard Debuffs.
+# VERY LOW COST ASPECTS: 1 Capacity. Expertise and Resistance for specific Hexes, and
+# LOW COST ASPECTS: 5 Capacity. Expertise and Resistance for standard Debuffs,
+# are not stored in the ASPECTS list but instead string-matched to DEBUFFS in +getaspect and apply_debuff().
 
 # MEDIUM COST ASPECTS: 10 Capacity. Style Aspects like Deflect, etc. ~75 stat Extra Arts. (like a healing potion)
 # TODO: redo Aspects model as LinkedAspects to distinguish the table from the rest
