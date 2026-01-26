@@ -90,6 +90,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdTeach)
         self.add(CmdConvertNumbers)
         self.add(CmdCharSelect)
+        self.add(CmdGetAspect)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):

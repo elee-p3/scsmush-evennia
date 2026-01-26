@@ -1,7 +1,7 @@
 from evennia import default_cmds
 from world.arts.models import Arts
-from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS
-from world.combat.attacks import Attack
+from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS, DEBUFFS_HEXES
+from world.combat.aspects import Aspect, ASPECTS
 
 
 def accuracy_check(accuracy, ex_move=False):
@@ -217,6 +217,63 @@ class CmdChargen(default_cmds.MuxCommand):
 class CmdGetAspect(default_cmds.MuxCommand):
     """
         A character generation command to acquire a new Aspect from all available.
-        Acquired Aspects are by default unequipped. (yield check equip if CP remaining?)
+        Acquired Aspects must be equipped to affect the character who acquires them.
+        A "custom name" may also be provided that will be displayed in Sheet or ListAspects as:
+        "Custom Name (Aspect)", e.g., "Brooch of Clarity (Charm Resistance)".
+
+        Syntax:
+            +getaspect <aspect>
+            +getaspect <aspect>=<custom name>
     """
-    pass
+
+    key = "+getaspect"
+    aliases = ["getaspect"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        args = self.args
+        aspect_obj = None
+        aspect_name = ""
+        aspect_cost = 0
+        aspect_custom_name = ""
+
+        # Confirm that the Aspect being sought exists in aspects.ASPECTS or as valid Expertise/Resistance.
+        if "=" in args:
+            aspect_to_find, aspect_custom_name = args.split("=")[0].lower(), args.split("=")[1]
+        else:
+            aspect_to_find = args.lower()
+
+        if "expertise" in aspect_to_find or "resistance" in aspect_to_find:
+            debuff_to_find = aspect_to_find.split()[0]
+            if debuff_to_find in DEBUFFS:
+                # Aspect valid. Determine cost: 1 if Hex, 5 otherwise
+                aspect_name = aspect_to_find.title()
+                if debuff_to_find in DEBUFFS_HEXES:
+                    aspect_cost = 1
+                else:
+                    aspect_cost = 5
+                aspect_obj = Aspect(name=aspect_name, cost=aspect_cost, custom_name=aspect_custom_name)
+
+        else:
+            for aspect in ASPECTS:
+                if aspect == aspect_to_find:
+                    # Due to __eq__ magic method, lower() should match valid Aspect name
+                    aspect_obj = Aspect(name=aspect.name, cost=aspect.cost, custom_name=aspect_custom_name)
+
+        if not aspect_obj:
+            return caller.msg("Error: Aspect not found. Please confirm spelling and try again.")
+
+        # Check if the character already has this Aspect.
+        for acquired_aspect in caller.db.aspects:
+            if acquired_aspect.name == aspect_obj.name:
+                # I don't want to allow multiple instances of the same Aspect, but we can overwrite custom_name
+                if acquired_aspect.custom_name != aspect_obj.custom_name:
+                    acquired_aspect.custom_name = aspect_obj.custom_name
+                    return caller.msg(f"Overwriting {acquired_aspect.name} custom name to {aspect_obj.custom_name}.")
+                else:
+                    return caller.msg("Error: you already have this Aspect.")
+
+        # Add the Aspect object with appropriate name and cost. custom_name will be displayed in CmdSheet/CmdListAspects.
+        caller.db.aspects.append(aspect_obj)
+        caller.msg(f"{aspect_obj.name} successfully added to your Aspects. Equip it with +equip.")

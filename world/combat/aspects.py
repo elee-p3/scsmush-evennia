@@ -2,7 +2,7 @@ from evennia import default_cmds
 
 
 class Aspect:
-    def __init__(self, name: str, cost: int, custom_name=None):
+    def __init__(self, name: str, cost: int, custom_name=""):
         self.name = name
         self.cost = cost
         self.custom_name = custom_name

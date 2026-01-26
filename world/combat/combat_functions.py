@@ -1317,13 +1317,10 @@ def apply_debuff(action, target):
     # resistance to being afflicted again in the same fight (to disincentivize spamming them).
     attack = action.attack
     base_debuff_resist = 35
-    target.msg(f"Current resistance: {base_debuff_resist}")
     if target.db.buffs["Bless"] > 0:
         base_debuff_resist += 30
-        target.msg(f"Bless detected. Current resistance: {base_debuff_resist}")
     if target.db.debuffs_standard["Curse"] > 0:
         base_debuff_resist -= 30
-        target.msg(f"Curse detected. Current resistance: {base_debuff_resist}")
     application_string = ""
     extension_string = ""
     debuff_effects = []
@@ -1365,17 +1362,14 @@ def apply_debuff(action, target):
         # Check for relevant attacker Expertise Aspect on the action
         if f"{debuff.title()} Expertise" in action.attacker_aspects:
             base_debuff_resist -= 30
-            target.msg(f"Expertise detected. resistance: {base_debuff_resist}")
         # Check for relevant defender Resistance Aspect
         if f"{debuff.title()} Resistance" in target.db.equipped_aspects:
             base_debuff_resist += 30
-            target.msg(f"Resistance aspect detected. resistance: {base_debuff_resist}")
         # Find resistance in target.db.resistances
         debuff_resist = base_debuff_resist + target.db.resistances[debuff]
         # Make minimum resistance 1, since it can now potentially go negative
         if debuff_resist < 1:
             debuff_resist = 1
-        target.msg(f"Final debuff_resist is {debuff_resist}")
         if debuff == "Poison":
             application_string = "You are poisoned, gradually losing health."
             extension_string = "The duration of your poisoning has been extended."
@@ -1462,7 +1456,6 @@ def apply_debuff(action, target):
             extension_string = "The duration of your aged state has been extended."
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
-        target.msg(f"Debuff_check_roll was {debuff_check_roll}")
         # I hope I'm not being too cute here: if Purity is active and debuff is transform/hex, set roll to -1 to fail.
         if target.db.buffs["Purity"] > 0:
             if debuff not in target.db.debuffs_standard.keys():
