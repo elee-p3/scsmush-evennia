@@ -11,7 +11,7 @@ from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
 from world.combat.normals import NORMALS
 from world.utilities.utilities import *
-from world.utilities.tables import setup_table, populate_table
+from world.utilities.tables import setup_arts_table, setup_aspects_table, populate_arts_table, populate_aspects_table
 
 
 
@@ -147,7 +147,7 @@ class CmdSheet(default_cmds.MuxCommand):
         char_info_table.add_row(self.get_colored_meter(caller.db.ex, caller.db.maxex, client_width),
                               "",
                               "  Capacity",
-                              "  0/0")
+                              "  {0}/{1}".format(caller.db.cp, caller.db.maxcp))
 
         char_info_string = char_info_table.__str__()
         sheetMsg += char_info_string[:char_info_string.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
@@ -155,14 +155,17 @@ class CmdSheet(default_cmds.MuxCommand):
         # print Arts table, attached to the bottom of the character sheet
         sheetMsg += self.generate_header(client_width, "ARTS")
 
-        arts_table = setup_table(client_width, is_sheet=True)
-        populate_table(arts_table, arts, base_arts)
+        arts_table = setup_arts_table(client_width, is_sheet=True)
+        populate_arts_table(arts_table, arts, base_arts)
         arts_string = arts_table.__str__()
         sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
 
         # print Aspects table, attached below the Arts table
         sheetMsg += self.generate_header(client_width, "ASPECTS")
-        sheetMsg += "\n"
+        aspects_table = setup_aspects_table(client_width)
+        populate_aspects_table(aspects_table, caller.db.equipped_aspects)
+        aspects_string = aspects_table.__str__()
+        sheetMsg += aspects_string[aspects_string.find('\n'):aspects_string.rfind('\n')] + "\n"
 
         sheetMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
         sheetMsg += "\\/" + (client_width - 4) * " " + "\\/" + "\n"
@@ -829,7 +832,7 @@ class CmdArts(default_cmds.MuxCommand):
 
         client_width = self.client_width()
         arts_table = setup_table(client_width)
-        populate_table(arts_table, arts, base_arts)
+        populate_arts_table(arts_table, arts, base_arts)
 
         arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
         arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/
@@ -862,8 +865,8 @@ class CmdListAttacks(default_cmds.MuxCommand):
         client_width = self.client_width()
         arts_table = setup_table(client_width)
         normals_table = setup_table(client_width)
-        populate_table(arts_table, arts, base_arts)
-        populate_table(normals_table, modified_normals, NORMALS)
+        populate_arts_table(arts_table, arts, base_arts)
+        populate_arts_table(normals_table, modified_normals, NORMALS)
 
         arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
         arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/
@@ -930,12 +933,12 @@ class CmdCheck(default_cmds.MuxCommand):
             normals_table = setup_table(client_width, is_check=True)
             arts_table = setup_table(client_width, is_check=True)
 
-            populate_table(normals_table, modified_normals, NORMALS, interrupted_action, caller)
+            populate_arts_table(normals_table, modified_normals, NORMALS, interrupted_action, caller)
             caller.msg(normals_header + normals_table.__str__())
 
             # If the character has arts, list them.
             if arts:
-                populate_table(arts_table, arts, base_arts, interrupted_action, caller)
+                populate_arts_table(arts_table, arts, base_arts, interrupted_action, caller)
                 caller.msg(arts_header + arts_table.__str__())
 
 

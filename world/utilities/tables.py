@@ -1,10 +1,12 @@
 from evennia.utils import evtable
+
+from world.aspects.models import Aspect
 from world.combat.effects import EFFECTS
 from world.combat.combat_functions import interrupt_chance_calc
 
 
 # creates the approriate evtable object given the contextual bools
-def setup_table(client_width, is_sheet=False, is_check=False):
+def setup_arts_table(client_width, is_sheet=False, is_check=False):
     if is_sheet:
         table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
                                      border_left_char="|", border_right_char="|", border_top_char="",
@@ -23,6 +25,13 @@ def setup_table(client_width, is_sheet=False, is_check=False):
         table.reformat_column(6, width=7)
     return table
 
+def setup_aspects_table(client_width):
+    table = evtable.EvTable("Name", "Cost",
+                                 border_left_char="|", border_right_char="|", border_top_char="",
+                                 border_bottom_char="-", width=client_width)
+    table.reformat_column(1, width=12)
+    return table
+
 
 def get_abbreviations(action):
     effects_list = action.effects.split()
@@ -35,7 +44,7 @@ def get_abbreviations(action):
 
 # in-place modification of the evtable that populates it with attacks or arts. Note that CmdCheck duplicates this code
 # because there wasn't an overdesigned way to have this function take care of that edge case too
-def populate_table(table, actions, base_arts, interrupted_action=None, caller=None):
+def populate_arts_table(table, actions, base_arts, interrupted_action=None, caller=None):
     for action in actions:
         stat_string = action.stat
         if stat_string == "Power":
@@ -62,6 +71,14 @@ def populate_table(table, actions, base_arts, interrupted_action=None, caller=No
                           action.acc,
                           stat_string,
                           effects_abbrev)
+    return table
+
+
+# in-place modification of the evtable that populates it with aspects
+def populate_aspects_table(table: evtable.EvTable, aspects: list[Aspect]):
+    for aspect in aspects:
+        table.add_row(aspect.name,
+                      aspect.cost)
     return table
 
 
