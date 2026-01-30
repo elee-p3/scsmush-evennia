@@ -93,6 +93,7 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdGetAspect)
         self.add(CmdEquipAspect)
         self.add(CmdUnequipAspect)
+        self.add(CmdListAspects)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):

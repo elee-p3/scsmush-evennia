@@ -1,18 +1,14 @@
-import copy
 import csv
-import random
 from math import floor, ceil
 
 from evennia import default_cmds
 from evennia.utils import evtable
-from world.arts.models import Arts
-from world.combat.attacks import AttackToQueue, AttackDuringAction, ActionResult
+
 from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
 from world.combat.normals import NORMALS
+from world.utilities.tables import *
 from world.utilities.utilities import *
-from world.utilities.tables import setup_arts_table, setup_aspects_table, populate_arts_table, populate_aspects_table
-
 
 
 def record_combat(defender, attack_instance, reaction_name, is_success, dmg):
@@ -153,7 +149,7 @@ class CmdSheet(default_cmds.MuxCommand):
         sheetMsg += char_info_string[:char_info_string.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
 
         # print Arts table, attached to the bottom of the character sheet
-        sheetMsg += self.generate_header(client_width, "ARTS")
+        sheetMsg += generate_header(client_width, "ARTS")
 
         arts_table = setup_arts_table(client_width, is_sheet=True)
         populate_arts_table(arts_table, arts, base_arts)
@@ -161,8 +157,8 @@ class CmdSheet(default_cmds.MuxCommand):
         sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
 
         # print Aspects table, attached below the Arts table
-        sheetMsg += self.generate_header(client_width, "ASPECTS")
-        aspects_table = setup_aspects_table(client_width)
+        sheetMsg += generate_header(client_width, "ASPECTS")
+        aspects_table = setup_aspects_table(client_width, True)
         populate_aspects_table(aspects_table, caller.db.equipped_aspects)
         aspects_string = aspects_table.__str__()
         sheetMsg += aspects_string[aspects_string.find('\n'):aspects_string.rfind('\n')] + "\n"
@@ -171,12 +167,6 @@ class CmdSheet(default_cmds.MuxCommand):
         sheetMsg += "\\/" + (client_width - 4) * " " + "\\/" + "\n"
 
         self.caller.msg(sheetMsg)
-
-    def generate_header(self, client_width, header_title):
-        left_arts_spacing = floor(client_width/2.0 - len(header_title)/2.0) - 1  # -1 for the border
-        right_arts_spacing = ceil(client_width/2.0 - len(header_title)/2.0) - 1
-        header = "|" + "=" * left_arts_spacing + header_title + "=" * right_arts_spacing + "|"
-        return header
 
 
     # return a colored bar for various meters (e.g. LF, AP, EX)
@@ -863,8 +853,8 @@ class CmdListAttacks(default_cmds.MuxCommand):
             return caller.msg("The command +attacks should be input without arguments.")
 
         client_width = self.client_width()
-        arts_table = setup_table(client_width)
-        normals_table = setup_table(client_width)
+        arts_table = setup_arts_table(client_width)
+        normals_table = setup_arts_table(client_width)
         populate_arts_table(arts_table, arts, base_arts)
         populate_arts_table(normals_table, modified_normals, NORMALS)
 
@@ -1141,11 +1131,26 @@ class CmdUnequipAspect(default_cmds.MuxCommand):
         caller.msg(f"{aspect_str} unequipped.")
 
 
-# TODO: CmdListAspects
 class CmdListAspects(default_cmds.MuxCommand):
     key = "+aspects"
     aliases = ["aspects", "listaspects", "+listaspects"]
     locks = "cmd:all()"
 
     def func(self):
-        pass
+        caller = self.caller
+        args = self.args
+        aspects = caller.db.aspects
+        equipped_aspects = caller.db.equipped_aspects
+        if args:
+            return caller.msg("The command +aspects should be input without arguments.")
+
+        client_width = self.client_width()
+        aspects_table = setup_aspects_table(client_width)
+        populate_aspects_table(aspects_table, aspects, equipped_aspects)
+
+        aspects_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Aspects") / 2.0)) - 2)  # -2 for the \/
+        aspects_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Aspects") / 2.0)) - 2)  # -2 for the \/
+        header_top = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
+        aspects_header = header_top + "\\/" + aspects_left_spacing + "Aspects" + aspects_right_spacing + "\\/" + "\n"
+
+        caller.msg(aspects_header + aspects_table.__str__())

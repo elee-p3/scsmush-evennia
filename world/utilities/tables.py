@@ -1,9 +1,16 @@
 from evennia.utils import evtable
+from math import floor, ceil
 
 from world.aspects.models import Aspect
 from world.combat.effects import EFFECTS
 from world.combat.combat_functions import interrupt_chance_calc
 
+
+def generate_header(client_width, header_title):
+    left_arts_spacing = floor(client_width / 2.0 - len(header_title) / 2.0) - 1  # -1 for the border
+    right_arts_spacing = ceil(client_width / 2.0 - len(header_title) / 2.0) - 1
+    header = "|" + "=" * left_arts_spacing + header_title + "=" * right_arts_spacing + "|"
+    return header
 
 # creates the approriate evtable object given the contextual bools
 def setup_arts_table(client_width, is_sheet=False, is_check=False):
@@ -25,10 +32,15 @@ def setup_arts_table(client_width, is_sheet=False, is_check=False):
         table.reformat_column(6, width=7)
     return table
 
-def setup_aspects_table(client_width):
-    table = evtable.EvTable("Name", "Cost",
-                                 border_left_char="|", border_right_char="|", border_top_char="",
-                                 border_bottom_char="-", width=client_width)
+def setup_aspects_table(client_width, is_sheet=False):
+    if is_sheet:
+        table = evtable.EvTable("Name", "Cost",
+                                     border_left_char="|", border_right_char="|", border_top_char="",
+                                     border_bottom_char="-", width=client_width)
+    else:
+        table = evtable.EvTable("Name", "Cost",
+                                border_left_char="|", border_right_char="|", border_top_char="-",
+                                border_bottom_char="-", width=client_width)
     table.reformat_column(1, width=12)
     return table
 
@@ -75,10 +87,17 @@ def populate_arts_table(table, actions, base_arts, interrupted_action=None, call
 
 
 # in-place modification of the evtable that populates it with aspects
-def populate_aspects_table(table: evtable.EvTable, aspects: list[Aspect]):
+def populate_aspects_table(table: evtable.EvTable, aspects: list[Aspect], equipped_aspects=None):
+    if equipped_aspects is None:
+        equipped_aspects = []
+        
     for aspect in aspects:
-        table.add_row(aspect.name,
-                      aspect.cost)
+        if aspect in equipped_aspects:
+            table.add_row(aspect.name + " |r(e)|n",
+                          aspect.cost)
+        else:
+            table.add_row(aspect.name,
+                          aspect.cost)
     return table
 
 
