@@ -415,7 +415,7 @@ class CmdDodge(default_cmds.MuxCommand):
             final_damage = damage_calc(action, caller)
             is_critical_hit, final_damage = critical_hits(final_damage, action)
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
-            is_glancing_blow = glancing_blow_calc(random100, chance_to_be_hit, action.has_sweep)
+            is_glancing_blow = glancing_blow_calc(random100, chance_to_be_hit, caller, action)
             if is_critical_hit:
                 msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, final_damage)
             elif is_glancing_blow:

@@ -438,15 +438,25 @@ def ex_gain_on_defense(damage_taken, current_ex, max_ex):
     return new_ex
 
 
-def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
+def glancing_blow_calc(dice_roll, accuracy, target, action):
     # If a dodge attempt fails, check if the result was a "glancing blow" instead.
     # For now, a flat value only modified by having "sweep" on an attack. Returns a Boolean.
     diff_between_roll_and_acc = accuracy - dice_roll
     # 10% of glancing blow.
     chance_of_glance = 10
-    if sweep_boolean:
+    if action.has_sweep:
         # The Sweep effect increases the chance of a glancing blow to 20%.
         chance_of_glance += 10
+    if "Iron Skin" in target.db.equipped_aspects:
+        # The greater the relevant defense stat, the greater the chance of a glancing blow.
+        attack_stat_str = action.attack.stat
+        if attack_stat_str.lower() == "power":
+            def_stat = target.db.parry
+        elif attack_stat_str.lower() == "knowledge":
+            def_stat = target.db.barrier
+        if (def_stat - 125) > 0:
+            def_bonus = math.ceil((def_stat - 125) / 25)
+            chance_of_glance += (def_bonus * 5)
     if chance_of_glance >= diff_between_roll_and_acc:
         return True
     return False
