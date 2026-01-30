@@ -605,8 +605,8 @@ class CmdEndure(default_cmds.MuxCommand):
 
             # Now calculate endure bonus. Currently, let's set it so if you endure multiple attacks in a round,
             # you get to keep whatever endure bonus is higher. But endure bonus is not cumulative. (That's OP.)
-            if endure_bonus_calc(damage) > caller.db.endure_bonus:
-                caller.db.endure_bonus = endure_bonus_calc(damage)
+            if endure_bonus_calc(caller, damage) > caller.db.endure_bonus:
+                caller.db.endure_bonus = endure_bonus_calc(caller, damage)
             record_combat(caller, action, "endure", True, damage)
 
         # An enduring defender takes full damage regardless of success or failure.

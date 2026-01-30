@@ -42,6 +42,7 @@ deflect = Aspect(name="Deflect", cost=10)
 iron_skin = Aspect(name="Iron Skin", cost=10)
 # Tumble: Endure accuracy bonus improves based on Speed. The more evasive you are, the more you benefit from choosing
 # to endure an attack.
+tumble = Aspect(name="Tumble", cost=10)
 # Breakthrough: Higher-damage attacks are somewhat harder to interrupt than they would otherwise be. This effect is not
 # hidden to the interrupter.
 # Saboteur: All standard debuff (i.e., neither transformations nor hexes) chances improve and debuff AP costs slightly
@@ -57,6 +58,7 @@ iron_skin = Aspect(name="Iron Skin", cost=10)
 # Spirited: When you suffer a critical hit, gain a temporary boost to accuracy and speed.
 
 # HIGH COST ASPECTS: 20 Capacity. Self-buffs and crit reacts. ~125 stat Extra Arts. (like a magic wand)
+# TODO: have apply_buff() check for redundant aspect and note that only a Speed buff will be applied?
 # Counterstrike (Protect)
 # Counterspell (Reflect)
 # Ferocity (Acuity)
@@ -86,5 +88,6 @@ iron_skin = Aspect(name="Iron Skin", cost=10)
 # List of all Aspects
 ASPECTS = [
     deflect,
-    iron_skin
+    iron_skin,
+    tumble
 ]

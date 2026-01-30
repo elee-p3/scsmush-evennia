@@ -394,11 +394,17 @@ def interrupt_mitigation_calc(unmitigated_incoming_damage, outgoing_damage):
     return mitigated_damage
 
 
-def endure_bonus_calc(damage_taken):
+def endure_bonus_calc(target, damage_taken):
     # Calculate the accuracy bonus to your next attack from enduring. Should be capped at around 10 to 15.
     accuracy_bonus = int(damage_taken) / 15
-    if accuracy_bonus > 12:
-        accuracy_bonus = 12
+    endure_bonus_cap = 15
+    if accuracy_bonus > endure_bonus_cap:
+        accuracy_bonus = endure_bonus_cap
+    # Apply accuracy bonus from Tumble aspect here, potentially exceeding cap (by at most a few points, but still).
+    if "Tumble" in target.db.equipped_aspects:
+        if (target.db.speed - 125) > 0:
+            def_bonus = math.ceil((target.db.speed - 125) / 25)
+            accuracy_bonus += def_bonus
     return accuracy_bonus
 
 
