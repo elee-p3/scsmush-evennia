@@ -70,6 +70,15 @@ def damage_calc(queued_attack, defender):
     if queued_attack.has_strain:
         attack_dmg += 1
 
+    # Check for Aspects relevant to inflicting damage.
+    if "Sniper" in queued_attack.attacker_aspects:
+        if queued_attack.aim_or_feint == AimOrFeint.AIM or queued_attack.aim_or_feint == AimOrFeint.HASTED_AIM:
+            attack_dmg += 1
+
+    if "Duelist" in queued_attack.attacker_aspects:
+        if queued_attack.aim_or_feint == AimOrFeint.FEINT or queued_attack.aim_or_feint == AimOrFeint.BLINKED_FEINT:
+            attack_dmg += 1
+
     # base damage will be scaled by the attack's dmg property, with 6 being the baseline 1.0x
     multiplier = 1.0 - ((6 - attack_dmg) * 0.1)
 

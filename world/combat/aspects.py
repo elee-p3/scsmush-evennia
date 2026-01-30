@@ -79,8 +79,10 @@ tumble = Aspect(name="Tumble", cost=10)
 # VERY HIGH COST ASPECTS: 30 Capacity. Aim/Feint/Surge buffs. ~175 stat Extra Arts. (powerful relic)
 # TODO: add CmdSurge and make Aim/Feint cost no AP to encourage using mechanics
 # Sniper: Aimed attacks inflict more damage.
+sniper = Aspect(name="Sniper", cost=30)
 # Duelist: Feinted attacks inflict more damage.
-# ~~~: Using Surge greatly improves your Acc for your next Attack or Interrupt (diminishing returns til proc?)
+duelist = Aspect(name="Duelist", cost=30)
+# Moment of Truth: Using Surge greatly improves your Acc for your next Attack or Interrupt
 # Nerves of Steel: Using Surge greatly improves your Speed for your next Reaction (same as above?)
 
 # EXTREME COST ASPECTS: 40 Capacity. ~225 stat Extra Arts. Admin approval only. (unique artifact)
@@ -89,5 +91,7 @@ tumble = Aspect(name="Tumble", cost=10)
 ASPECTS = [
     deflect,
     iron_skin,
-    tumble
+    tumble,
+    sniper,
+    duelist
 ]
