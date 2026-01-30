@@ -244,6 +244,13 @@ class CmdGetAspect(default_cmds.MuxCommand):
         else:
             aspect_to_find = args.lower()
 
+        # Corner case for custom names that might resemble actual Aspects so, e.g., CmdEquip can safely use custom_name.
+        if aspect_custom_name in ASPECTS:
+            return caller.msg("Error: requested custom name is an existing Aspect name.")
+
+        if "expertise" in aspect_custom_name.lower() or "resistance" in aspect_custom_name.lower():
+            return caller.msg("Error: please refrain from using keywords 'Expertise' or 'Resistance' in custom names.")
+
         if "expertise" in aspect_to_find or "resistance" in aspect_to_find:
             debuff_to_find = aspect_to_find.split()[0]
             if debuff_to_find in DEBUFFS:

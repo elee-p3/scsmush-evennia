@@ -1073,7 +1073,7 @@ class CmdEquipAspect(default_cmds.MuxCommand):
 
         # Confirm that Aspect is present in list of aspects.
         for aspect in caller.db.aspects:
-            if aspect_str == aspect:
+            if aspect_str == aspect or aspect_str == aspect.custom_name.lower():
                 aspect_obj = aspect
 
         if not aspect_obj:
@@ -1113,7 +1113,7 @@ class CmdUnequipAspect(default_cmds.MuxCommand):
 
         # Confirm that Aspect is present in list of equipped_aspects.
         for i, aspect in enumerate(caller.db.equipped_aspects):
-            if aspect_str == aspect:
+            if aspect_str == aspect or aspect_str == aspect.custom_name.lower():
                 aspect_obj = aspect
                 index_to_remove = i
                 aspect_str = aspect.name  # for success msg
@@ -1151,6 +1151,6 @@ class CmdListAspects(default_cmds.MuxCommand):
         aspects_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Aspects") / 2.0)) - 2)  # -2 for the \/
         aspects_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Aspects") / 2.0)) - 2)  # -2 for the \/
         header_top = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
-        aspects_header = header_top + "\\/" + aspects_left_spacing + "Aspects" + aspects_right_spacing + "\\/" + "\n"
+        aspects_header = header_top + "\\/" + aspects_left_spacing + "ASPECTS" + aspects_right_spacing + "\\/" + "\n"
 
         caller.msg(aspects_header + aspects_table.__str__())

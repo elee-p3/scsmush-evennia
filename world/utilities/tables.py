@@ -92,11 +92,14 @@ def populate_aspects_table(table: evtable.EvTable, aspects: list[Aspect], equipp
         equipped_aspects = []
         
     for aspect in aspects:
+        aspect_str = aspect.name
+        if aspect.custom_name:
+            aspect_str = aspect.custom_name + " (" + aspect.name + ")"
         if aspect in equipped_aspects:
-            table.add_row(aspect.name + " |r(e)|n",
+            table.add_row(aspect_str + " |r(e)|n",
                           aspect.cost)
         else:
-            table.add_row(aspect.name,
+            table.add_row(aspect_str,
                           aspect.cost)
     return table
 
