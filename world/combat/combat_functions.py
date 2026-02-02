@@ -764,7 +764,7 @@ def critical_hits(damage, action):
     critical_check = random.randint(1, 100)
     critical_threshold = 5
     # Checking for Acuity buff on the attack. (Not the attacker, since their buff might have expired.)
-    if action.has_acuity:
+    if action.has_acuity or "Ferocity" in action.attacker_aspects:
         critical_threshold *= 3
     # Attack/wild makes attacks less accurate but adds a flat crit chance bonus, for fun.
     if action.is_wild:
@@ -841,11 +841,17 @@ def damage_message_strings(action_result, caller, attack, damage, interrupt=None
 
 def protect_and_reflect_check(incoming_damage, defender, attack, interrupt_success):
     # Protect and Reflect mitigate damage specifically for an interrupter when interrupting.
-    if (defender.db.buffs["Protect"] > 0 and attack.stat.lower() == "power") or (defender.db.buffs["Reflect"] > 0 and attack.stat.lower() == "knowledge"):
-        if interrupt_success:
-            incoming_damage = incoming_damage * 0.75
-        else:
-            incoming_damage = incoming_damage * 0.85
+    mitigation = False
+    if attack.stat.lower() == "power":
+        if defender.db.buffs["Protect"] > 0 or "Counterstrike" in defender.db.equipped_aspects:
+            mitigation = True
+    if attack.stat.lower() == "knowledge":
+        if defender.db.buffs["Reflect"] > 0 or "Counterspell" in defender.db.equipped_aspects:
+            mitigation = True
+    if interrupt_success and mitigation:
+        incoming_damage = incoming_damage * 0.75
+    elif mitigation and not interrupt_success:
+        incoming_damage = incoming_damage * 0.85
     return incoming_damage
 
 #TODO: rename all the accuracy vars to "percentage" or something
@@ -1088,6 +1094,7 @@ def normalize_status(character):
     character.db.has_been_healed = 0
 
 
+# TODO: check strings for Aspect self-buffs, interactions between Aspects and buffs
 def display_status_effects(caller):
     # Called by the check command to display status effects.
     duration_string = ""
@@ -1346,7 +1353,7 @@ def apply_debuff(action, target):
     # resistance to being afflicted again in the same fight (to disincentivize spamming them).
     attack = action.attack
     base_debuff_resist = 35
-    if target.db.buffs["Bless"] > 0:
+    if target.db.buffs["Bless"] > 0 or "Resilience" in target.db.equipped_aspects:
         base_debuff_resist += 30
     if target.db.debuffs_standard["Curse"] > 0:
         base_debuff_resist -= 30
@@ -1486,7 +1493,7 @@ def apply_debuff(action, target):
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
         # I hope I'm not being too cute here: if Purity is active and debuff is transform/hex, set roll to -1 to fail.
-        if target.db.buffs["Purity"] > 0:
+        if target.db.buffs["Purity"] > 0 or "Self-Mastery" in target.db.equipped_aspects:
             if debuff not in target.db.debuffs_standard.keys():
                 debuff_check_roll = -1
                 # If the debuff isn't in debuffs_standard, it must be in debuffs_transform or debuffs_hexes.

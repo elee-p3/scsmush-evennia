@@ -235,12 +235,12 @@ class CmdAttack(default_cmds.MuxCommand):
 
         aim_or_feint = AimOrFeint.NEUTRAL
         if caller.db.is_aiming:
-            if caller.db.buffs["Haste"] > 0:
+            if caller.db.buffs["Haste"] > 0 or "Eagle Eye" in caller.db.equipped_aspects:
                 aim_or_feint = AimOrFeint.HASTED_AIM
             else:
                 aim_or_feint = AimOrFeint.AIM
         if caller.db.is_feinting:
-            if caller.db.buffs["Blink"] > 0:
+            if caller.db.buffs["Blink"] > 0 or "Sleight of Hand" in caller.db.equipped_aspects:
                 aim_or_feint = AimOrFeint.BLINKED_FEINT
             else:
                 aim_or_feint = AimOrFeint.FEINT
