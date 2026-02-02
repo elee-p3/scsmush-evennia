@@ -60,14 +60,25 @@ tumble = Aspect(name="Tumble", cost=10)
 # HIGH COST ASPECTS: 20 Capacity. Self-buffs and crit reacts. ~125 stat Extra Arts. (like a magic wand)
 # TODO: have apply_buff() check for redundant aspect and note that only a Speed buff will be applied?
 # Counterstrike (Protect)
+counterstrike = Aspect(name="Counterstrike", cost=20)
 # Counterspell (Reflect)
+counterspell = Aspect(name="Counterspell", cost=20)
 # Ferocity (Acuity)
+ferocity = Aspect(name="Ferocity", cost=20)
 # Eagle Eye (Haste)
+eagle_eye = Aspect(name="Eagle Eye", cost=20)
 # Sleight of Hand (Blink)
+sleight_of_hand = Aspect(name="Sleight of Hand", cost=20)
 # Self-Mastery (Purity)
+self_mastery = Aspect(name="Self-Mastery", cost=20)
 # Resilience (Bless)
+resilience = Aspect(name="Resilience", cost=20)
 # Battle Rage (Berserk+): permanent Berserk state with reduced AP penalty; immune to Berserk
-# [may do the same for Slime and Petrify as I do for Berserk here?]
+battle_rage = Aspect(name="Battle Rage", cost=20)
+# Rock Solid (Petrify+): permanent Petrify state with mitigated dodge penalty; immune to Petrify
+rock_solid = Aspect(name="Rock Solid", cost=20)
+# Slippery (Slime+): permanent Slime state with mitigated block penalty; immune to Slime
+slippery = Aspect(name="Slippery", cost=20)
 # Perfect Dodge: similar to MotM's Parry, slightly improve Dodge chances and make crit dodges possible that make
 # your next Art more accurate and have no AP cost
 # Perfect Guard: similar to MotM's JD, slightly improve Block chances and make crit blocks possible that negate all
@@ -92,6 +103,32 @@ ASPECTS = [
     deflect,
     iron_skin,
     tumble,
+    counterstrike,
+    counterspell,
+    ferocity,
+    eagle_eye,
+    sleight_of_hand,
+    self_mastery,
+    resilience,
+    battle_rage,
+    rock_solid,
+    slippery,
     sniper,
     duelist
 ]
+
+# BUFF_EQ dict stores equivalencies between always-on (when-equipped) self-buffing Aspects and the associated buff.
+# Buff name string is key and Aspect object is value. This will help to avoid effectively stacking the same buff.
+# Includes debuffs with upsides: Berserk, Petrify, and Slime.
+BUFF_EQ = {
+    "Protect": counterstrike,
+    "Reflect": counterspell,
+    "Acuity": ferocity,
+    "Haste": eagle_eye,
+    "Blink": sleight_of_hand,
+    "Purity": self_mastery,
+    "Bless": resilience,
+    "Berserk": battle_rage,
+    "Petrify": rock_solid,
+    "Slime": slippery
+}

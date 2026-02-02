@@ -10,6 +10,7 @@ from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES
 from world.combat.normals import NORMALS
 from world.arts.models import Arts
 from world.utilities.utilities import find_attacker_from_key
+from world.combat.aspects import BUFF_EQ
 
 
 class ArtBaseline:
@@ -1330,6 +1331,9 @@ def apply_buff(action, healer, target):
             target.msg(application_string)
         else:
             target.msg(extension_string)
+        healer.msg(f"You have applied {buff} to {target}.")
+        if buff in BUFF_EQ:
+            healer.msg(f"Note that the effect of {buff} is reduced due to {target} equipping {BUFF_EQ[buff].name}.")
         if healer == target:
             # A combat tick is going to happen after this, so the duration will be 3 regardless.
             target.db.buffs[buff] = 4
