@@ -34,7 +34,7 @@ class Character(DefaultCharacter):
     """
 
     def at_object_creation(self):
-        "This is called when object is first created, only."
+        """This is called when object is first created, only."""
         self.db.sex = "Unknown"
         self.db.race = "Unknown"
         self.db.occupation = "Unknown"
@@ -61,6 +61,7 @@ class Character(DefaultCharacter):
         self.db.maxcp = 100
         self.db.aspects = []
         self.db.equipped_aspects = []
+        self.db.has_surge = True
 
     def at_post_puppet(self, **kwargs):
         """

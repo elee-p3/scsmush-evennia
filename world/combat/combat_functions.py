@@ -1092,6 +1092,7 @@ def normalize_status(character):
     character.db.revived_during_final_action = False
     character.db.endure_bonus = 0
     character.db.has_been_healed = 0
+    character.db.has_surge = True
 
 
 # TODO: check strings for Aspect self-buffs, interactions between Aspects and buffs
@@ -1278,6 +1279,12 @@ def display_status_effects(caller):
         else:
             # Hex_count is exactly 1
             caller.msg("Your hex slightly reduces your effective Speed. 'Pass' or Cure clears hexes.")
+
+    # Not a status effect, but check if the caller still has surge available
+    if caller.db.has_surge:
+        caller.msg("Surge is available. You are brimming with a hidden energy.")
+    else:
+        caller.msg("Surge is unavailable. You have exhausted your energy reserves.")
 
 
 

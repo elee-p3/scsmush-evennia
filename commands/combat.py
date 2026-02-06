@@ -821,7 +821,7 @@ class CmdArts(default_cmds.MuxCommand):
             return caller.msg("Your character has no Arts. Use +setart to create some.")
 
         client_width = self.client_width()
-        arts_table = setup_table(client_width)
+        arts_table = setup_arts_table(client_width)
         populate_arts_table(arts_table, arts, base_arts)
 
         arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
@@ -920,8 +920,8 @@ class CmdCheck(default_cmds.MuxCommand):
             normals_header = header_top + "\\/" + normals_left_spacing + "Normals" + normals_right_spacing + "\\/" + "\n"
             arts_header = header_top + "\\/" + arts_left_spacing + "Arts" + arts_right_spacing + "\\/" + "\n"
 
-            normals_table = setup_table(client_width, is_check=True)
-            arts_table = setup_table(client_width, is_check=True)
+            normals_table = setup_arts_table(client_width, is_check=True)
+            arts_table = setup_arts_table(client_width, is_check=True)
 
             populate_arts_table(normals_table, modified_normals, NORMALS, interrupted_action, caller)
             caller.msg(normals_header + normals_table.__str__())
@@ -1154,3 +1154,18 @@ class CmdListAspects(default_cmds.MuxCommand):
         aspects_header = header_top + "\\/" + aspects_left_spacing + "ASPECTS" + aspects_right_spacing + "\\/" + "\n"
 
         caller.msg(aspects_header + aspects_table.__str__())
+
+
+class CmdSurge(default_cmds.MuxCommand):
+    key = "+surge"
+    aliases = ["surge"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        if not caller.db.has_surge:
+            caller.msg("You have spent your energy reserves and can no longer surge.")
+            return
+        caller.db.ap = min(caller.db.ap + 30, caller.db.maxap)
+        caller.db.ex = min(caller.db.ex + 30, caller.db.maxex)
+        caller.location.msg_contents("|y<COMBAT>|n {0} surges with power!".format(caller.name))
