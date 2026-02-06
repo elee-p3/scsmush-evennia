@@ -1164,8 +1164,9 @@ class CmdSurge(default_cmds.MuxCommand):
     def func(self):
         caller = self.caller
         if not caller.db.has_surge:
-            caller.msg("You have spent your energy reserves and can no longer surge.")
+            caller.msg("You have already spent your energy reserves and can no longer surge.")
             return
         caller.db.ap = min(caller.db.ap + 30, caller.db.maxap)
         caller.db.ex = min(caller.db.ex + 30, caller.db.maxex)
         caller.location.msg_contents("|y<COMBAT>|n {0} surges with power!".format(caller.name))
+        caller.db.has_surge = False
