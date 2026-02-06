@@ -1,7 +1,7 @@
 from evennia.utils import evtable
 from math import floor, ceil
 
-from world.aspects.models import Aspect
+from world.aspects.models import LinkedAspect
 from world.combat.effects import EFFECTS
 from world.combat.combat_functions import interrupt_chance_calc
 
@@ -87,7 +87,7 @@ def populate_arts_table(table, actions, base_arts, interrupted_action=None, call
 
 
 # in-place modification of the evtable that populates it with aspects
-def populate_aspects_table(table: evtable.EvTable, aspects: list[Aspect], equipped_aspects=None):
+def populate_aspects_table(table: evtable.EvTable, aspects: list[LinkedAspect], equipped_aspects=None):
     if equipped_aspects is None:
         equipped_aspects = []
         

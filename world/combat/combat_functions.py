@@ -8,7 +8,7 @@ from world.utilities.utilities import logger
 from world.combat.attacks import Attack, ActionResult, AttackToQueue, AttackDuringAction
 from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint
 from world.combat.normals import NORMALS
-from world.arts.models import Arts
+from world.arts.models import Art
 from world.utilities.utilities import find_attacker_from_key
 from world.combat.aspects import BUFF_EQ
 
@@ -30,7 +30,7 @@ def filter_and_modify_arts(caller):
     # modifying them based on the character's status effect. This way, e.g., if a Berserk character's AP costs for
     # attacks of damage less than 50 are increased by 10, this is reflected in both CmdAttack and CmdSheet.
     # This function will be used in CmdAttack, CmdInterrupt, CmdArts, CmdListAttacks, CmdCheck, and CmdSheet.
-    arts = Arts.objects.filter(characters=caller)
+    arts = Art.objects.filter(characters=caller)
     base_arts = []
     modified_arts = []
     modified_normals = []

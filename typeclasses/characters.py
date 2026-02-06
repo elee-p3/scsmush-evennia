@@ -10,7 +10,7 @@ creation commands.
 from evennia import DefaultCharacter
 from evennia.utils import logger
 from django.utils.translation import gettext as _
-from world.arts.models import Arts
+from world.arts.models import Art
 
 class Character(DefaultCharacter):
     """
@@ -306,7 +306,7 @@ class Character(DefaultCharacter):
             char_arts.get(pk=art_to_delete.pk)
             self.msg("{0} removed from your Arts.".format(art_to_delete.name))
             self.arts.remove(art_to_delete)
-        except Arts.DoesNotExist:
+        except Art.DoesNotExist:
             self.msg("{0} not found in your Arts list.".format(art_to_delete.name))
 
     pass

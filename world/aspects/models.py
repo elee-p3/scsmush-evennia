@@ -1,13 +1,13 @@
 from django.db import models
-from world.arts.models import Arts
+from world.arts.models import Art
 
 
 # Create your models here.
-class Aspect(models.Model):
+class LinkedAspect(models.Model):
     # characters who have this Aspect
     characters = models.ManyToManyField(
         "objects.ObjectDB",
-        related_name="aspects",
+        related_name="LinkedAspect",
         blank=True)
 
     name = models.TextField(
@@ -22,8 +22,8 @@ class Aspect(models.Model):
     )
 
     linked_art = models.ForeignKey(
-        Arts,
-        related_name="aspects",
+        Art,
+        related_name="LinkedAspect",
         default=None,
         blank=True,
         null=True,

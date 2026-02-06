@@ -1,5 +1,5 @@
 from evennia import default_cmds
-from world.arts.models import Arts
+from world.arts.models import Art
 from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS, DEBUFFS_HEXES
 from world.combat.aspects import Aspect, ASPECTS
 
@@ -43,7 +43,7 @@ class CmdSetArt(default_cmds.MuxCommand):
         # TODO: Check if a art of the same name already exists and, if so, modify it instead of creating a new one.
         caller = self.caller
         args = self.args
-        arts = Arts.objects.filter(characters=caller)
+        arts = Art.objects.filter(characters=caller)
         # Create a list of Arts if the character does not yet have one.
         # Name = string, damage = int, base stat = string, effects = string(s).
         if "del" in self.switches:
@@ -134,7 +134,7 @@ class CmdSetArt(default_cmds.MuxCommand):
             accuracy, error_string = accuracy_check(accuracy, ex_move)
             if error_string:
                 return caller.msg(error_string)
-            Arts.objects.create(
+            Art.objects.create(
                 name=name,
                 ap=true_ap_change,
                 dmg=damage_int,
@@ -146,7 +146,7 @@ class CmdSetArt(default_cmds.MuxCommand):
             accuracy, error_string = accuracy_check(accuracy)
             if error_string:
                 return caller.msg(error_string)
-            Arts.objects.create(
+            Art.objects.create(
                 name=name,
                 ap=true_ap_change,
                 dmg=damage_int,
@@ -154,7 +154,7 @@ class CmdSetArt(default_cmds.MuxCommand):
                 stat=base_stat,
                 effects=""
             )
-        caller.arts.add(Arts.objects.latest("pk"))
+        caller.arts.add(Art.objects.latest("pk"))
         # Change the message to the player depending on if the Art was added or edited.
         if not art_modified:
             caller.msg("{0} has been added to your list of Arts.".format(name))
