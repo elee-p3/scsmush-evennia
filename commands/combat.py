@@ -292,7 +292,6 @@ class CmdAttack(default_cmds.MuxCommand):
         if caller.db.is_aiming or caller.db.is_feinting:
             if "Heal" in action_clean.effects:
                 return caller.msg("You cannot Aim or Feint a healing Art.")
-            total_ap_change -= 10
         if caller.db.ap + total_ap_change < 0:
             return caller.msg("You do not have enough AP to do that.")
         if "EX" in action_clean.effects:
