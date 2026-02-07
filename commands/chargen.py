@@ -154,7 +154,7 @@ class CmdSetArt(default_cmds.MuxCommand):
                 stat=base_stat,
                 effects=""
             )
-        caller.arts.add(Art.objects.latest("pk"))
+        caller.art.add(Art.objects.latest("pk"))
         # Change the message to the player depending on if the Art was added or edited.
         if not art_modified:
             caller.msg("{0} has been added to your list of Arts.".format(name))

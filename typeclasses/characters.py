@@ -300,12 +300,12 @@ class Character(DefaultCharacter):
         return True
 
     def delete_art(self, art_to_delete):
-        char_arts = self.arts.all()
+        char_arts = self.art.all()
         try:
             # TODO: Why isn't this error getting caught? Instead we're throwing the default message: "Art not found. No Art has been deleted."
             char_arts.get(pk=art_to_delete.pk)
             self.msg("{0} removed from your Arts.".format(art_to_delete.name))
-            self.arts.remove(art_to_delete)
+            self.art.remove(art_to_delete)
         except Art.DoesNotExist:
             self.msg("{0} not found in your Arts list.".format(art_to_delete.name))
 

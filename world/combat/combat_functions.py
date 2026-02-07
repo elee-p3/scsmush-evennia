@@ -28,7 +28,7 @@ class ArtBaseline:
 def filter_and_modify_arts(caller):
     # Centralizes the function of sorting through the Arts table, finding those linked to a character, and then
     # modifying them based on the character's status effect. This way, e.g., if a Berserk character's AP costs for
-    # attacks of damage less than 50 are increased by 10, this is reflected in both CmdAttack and CmdSheet.
+    # attacks of damage less than 5 are increased by 10, this is reflected in both CmdAttack and CmdSheet.
     # This function will be used in CmdAttack, CmdInterrupt, CmdArts, CmdListAttacks, CmdCheck, and CmdSheet.
     arts = Art.objects.filter(characters=caller)
     base_arts = []
@@ -78,6 +78,10 @@ def damage_calc(queued_attack, defender):
 
     if "Duelist" in queued_attack.attacker_aspects:
         if queued_attack.aim_or_feint == AimOrFeint.FEINT or queued_attack.aim_or_feint == AimOrFeint.BLINKED_FEINT:
+            attack_dmg += 1
+
+    if queued_attack.has_berserk or "Battle Rage" in queued_attack.attacker_aspects:
+        if incoming_attack.dmg >= 5: # checking original value
             attack_dmg += 1
 
     # base damage will be scaled by the attack's dmg property, with 6 being the baseline 1.0x
@@ -156,7 +160,7 @@ def modify_speed(speed, defender):
         speed -= 5
     if defender.db.debuffs_standard["Muddle"] > 0:
         speed -= 5
-    if defender.db.debuffs_standard["Berserk"] > 0:
+    if defender.db.debuffs_standard["Berserk"] > 0 or "Battle Rage" in defender.db.equipped_aspects:
         speed += 5
     if defender.db.debuffs_standard["Petrify"] > 0:
         speed -= 10
@@ -944,6 +948,10 @@ def berserk_check(caller, action):
     if caller.db.debuffs_standard["Berserk"] > 0:
         if action.dmg < 5:
             action.ap -= 10
+    # Battle Range will make the equipper immune to Berserk, so both conditions cannot be true.
+    elif "Battle Rage" in caller.db.equipped_aspects:
+        if action.dmg < 5:
+            action.ap -= 5
     return action
 
 
@@ -1181,10 +1189,10 @@ def display_status_effects(caller):
             duration_string = "You are afflicted by a miasma that halves the effects of healing upon you for {duration} rounds."
             single_string = "You are afflicted by a miasma that halves the effects of healing upon you for 1 more round."
         elif status_effect == "Berserk" and duration > 0:
-            duration_string = "You are berserk, increasing your effective Power, Knowledge, and Speed, but also the AP " \
-                              "cost of Arts and Normals with a DMG of less than 50, for {duration} rounds."
-            single_string = "You are berserk, increasing your effective Power, Knowledge, and Speed, but also the AP " \
-                            "cost of Arts and Normals with a DMG of less than 50, for 1 round."
+            duration_string = "You are berserk, increasing your effective Speed and Power or Knowledge for attacks with " \
+                              "a DMG of more than 5, but also the AP cost of attacks with a DMG of less than 5, for {duration} rounds."
+            single_string = "You are berserk, increasing your effective Speed and Power or Knowledge for attacks with " \
+                              "a DMG of more than 5, but also the AP cost of attacks with a DMG of less than 5, for 1 round."
         elif status_effect == "Petrify" and duration > 0:
             duration_string = "You are petrified, reducing your Speed and especially your Dodge chances but somewhat " \
                               "increasing your Block and Endure chances for {duration} rounds."
@@ -1432,8 +1440,8 @@ def apply_debuff(action, target):
             application_string = "You are afflicted by a miasma, halving the effectiveness of healing upon you."
             extension_string = "The duration of the miasma afflicting you has been extended."
         elif debuff == "Berserk":
-            application_string = "You have gone berserk, increasing your effective Power, Knowledge, and Speed but " \
-                                 "increasing the cost of using less damaging, more accurate attacks."
+            application_string = "You have gone berserk, increasing your effective Speed and Power or Knowledge for " \
+                                 "higher DMG attacks but increasing the AP cost of lower DMG attacks."
             extension_string = "The duration of your berserk fury has been extended."
         elif debuff == "Petrify":
             application_string = "You are petrified, reducing your Speed and especially your Dodge chances but " \
@@ -1504,6 +1512,9 @@ def apply_debuff(action, target):
             if debuff not in target.db.debuffs_standard.keys():
                 debuff_check_roll = -1
                 # If the debuff isn't in debuffs_standard, it must be in debuffs_transform or debuffs_hexes.
+        # Similarly check for paired self-debuff/debuff equivalencies
+        if debuff in BUFF_EQ and BUFF_EQ[debuff] in target.db.equipped_aspects:
+            debuff_check_roll = -1
         if debuff_check_roll > debuff_resist:
             # If debuff succeeds, apply using consistent logic. Check what dict the debuff is stored in
             if debuff in target.db.debuffs_standard.keys():
