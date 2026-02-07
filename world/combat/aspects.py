@@ -22,18 +22,15 @@ class LinkedAspect(Aspect):
         self.linked_art = linked_art
 
 
-# TODO: Character db capacity and max capacity and aspects list. Aspect/Get chargen with Extra Art check code.
-# TODO: Aspect/Set equip and unequip. Aspect/list display equipped; aspect/all display equipped and unequipped details.
-# TODO: Implement aspect combat functionality. Might be best to do the combat rebalance first before fine-tuning.
-# TODO: Modify sheet to display capacity count with colors and fun stuff.
 # TODO: Just make all the aspects and test them out one by one!
+# TODO: add "Spirited", "Savage", "Moment of Truth", "Nerves of Steel" to status_effects
+# Just_perfect_dodged/just_perfect_guarded bools on character
 
 # VERY LOW COST ASPECTS: 1 Capacity. Expertise and Resistance for specific Hexes, and
 # LOW COST ASPECTS: 5 Capacity. Expertise and Resistance for standard Debuffs,
 # are not stored in the ASPECTS list but instead string-matched to DEBUFFS in +getaspect and apply_debuff().
 
 # MEDIUM COST ASPECTS: 10 Capacity. Style Aspects like Deflect, etc. ~75 stat Extra Arts. (like a healing potion)
-# TODO: redo Aspects model as LinkedAspects to distinguish the table from the rest
 # Deflect: Blocking mitigation improves based on Speed. The more evasive you are, the less damage you take when
 # successfully blocking.
 deflect = Aspect(name="Deflect", cost=10)
@@ -58,7 +55,6 @@ tumble = Aspect(name="Tumble", cost=10)
 # Spirited: When you suffer a critical hit, gain a temporary boost to accuracy and speed.
 
 # HIGH COST ASPECTS: 20 Capacity. Self-buffs and crit reacts. ~125 stat Extra Arts. (like a magic wand)
-# TODO: have apply_buff() check for redundant aspect and note that only a Speed buff will be applied?
 # Counterstrike (Protect)
 counterstrike = Aspect(name="Counterstrike", cost=20)
 # Counterspell (Reflect)
@@ -81,20 +77,26 @@ rock_solid = Aspect(name="Rock Solid", cost=20)
 slippery = Aspect(name="Slippery", cost=20)
 # Perfect Dodge: similar to MotM's Parry, slightly improve Dodge chances and make crit dodges possible that make
 # your next Art more accurate and have no AP cost
+perfect_dodge = Aspect(name="Perfect Dodge", cost=20)
 # Perfect Guard: similar to MotM's JD, slightly improve Block chances and make crit blocks possible that negate all
-# damage and give an immediate AP boost
+# damage and give an immediate flat AP boost
+perfect_guard = Aspect(name="Perfect Guard", cost=20)
 # Perfect Grit: similar to MotM's Toughness, slightly improve Endure chances and make crit endures possible that negate
 # most damage, improve your endure bonus for your next Art, and make your next Art more damaging
-# May do the same for interrupt? Perfect Break?
+perfect_grit = Aspect(name="Perfect Grit", cost=20)
+# Perfect Break: when it procs, greatly improve damage mitigation on successful interrupt
+perfect_break = Aspect(name="Perfect Break", cost=20)
 
 # VERY HIGH COST ASPECTS: 30 Capacity. Aim/Feint/Surge buffs. ~175 stat Extra Arts. (powerful relic)
-# TODO: add CmdSurge and make Aim/Feint cost no AP to encourage using mechanics
 # Sniper: Aimed attacks inflict more damage.
 sniper = Aspect(name="Sniper", cost=30)
 # Duelist: Feinted attacks inflict more damage.
 duelist = Aspect(name="Duelist", cost=30)
 # Moment of Truth: Using Surge greatly improves your Acc for your next Attack or Interrupt
+# Improvement I can add by making it a status effect: sticks around but worse for 2nd turn, used up when succeeds
+moment_of_truth = Aspect(name="Moment of Truth", cost=30)
 # Nerves of Steel: Using Surge greatly improves your Speed for your next Reaction (same as above?)
+nerves_of_steel = Aspect(name="Nerves of Steel", cost=30)
 
 # EXTREME COST ASPECTS: 40 Capacity. ~225 stat Extra Arts. Admin approval only. (unique artifact)
 

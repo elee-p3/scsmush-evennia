@@ -1094,8 +1094,10 @@ def normalize_status(character):
     character.db.is_baiting = False
     character.db.used_ranged = False
     character.db.ranged_knockback = [False, []]
+    character.db.just_perfect_dodged = False
+    character.db.just_perfect_guarded = False
     character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
-                          "Bless": 0, "Purity": 0}
+                          "Bless": 0, "Purity": 0, "Spirited": 0, "Savage": 0, "Moment of Truth": 0, "Nerves of Steel": 0}
     character.db.debuffs_standard = {"Poison": 0, "Wound": 0, "Curse": 0, "Injure": 0, "Muddle": 0, "Miasma": 0,
                                      "Berserk": 0, "Petrify": 0, "Slime": 0}
     character.db.debuffs_transform = {"Bird": 0, "Frog": 0, "Pig": 0, "Pumpkin": 0}
