@@ -223,9 +223,14 @@ def dodge_calc(defender, attack_instance: AttackToQueue):
     # Checking to see if the defender is Petrified and improving accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
         chance_to_hit += 12
+    # Equippable debuffs will be half as effective/deleterious.
+    if "Rock Solid" in defender.db.equipped_aspects:
+        chance_to_hit += 6
     # Checking to see if the defender is Slimy and reducing accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
         chance_to_hit -= 12
+    if "Slippery" in defender.db.equipped_aspects:
+        chance_to_hit -= 6
     if attack_instance.is_final_action:
         chance_to_hit -= 30
     if attack_instance.has_rush:
@@ -291,9 +296,13 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
     # Checking to see if the defender is Petrified and reducing accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
         chance_to_hit -= 12
+    if "Rock Solid" in defender.db.equipped_aspects:
+        chance_to_hit -= 6
     # Checking to see if the defender is Slimy and improving accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
         chance_to_hit += 12
+    if "Slippery" in defender.db.equipped_aspects:
+        chance_to_hit += 6
     # Incorporating defender's block penalty and attacker's endure bonus.
     chance_to_hit += defender.db.block_penalty
     chance_to_hit += attack_instance.endure_bonus
@@ -351,9 +360,13 @@ def endure_chance_calc(defender, attack_instance):
     # Checking to see if the defender is Petrified and reducing accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
         chance_to_hit -= 12
+    if "Rock Solid" in defender.db.equipped_aspects:
+        chance_to_hit -= 6
     # Checking to see if the defender is Slimy and reducing accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
         chance_to_hit -= 12
+    if "Slippery" in defender.db.equipped_aspects:
+        chance_to_hit -= 6
     # Incorporating attacker's endure bonus. Block penalty does not apply to defender's endure chance.
     chance_to_hit += attack_instance.endure_bonus
     # cap endure percentage at 99%
@@ -1514,6 +1527,7 @@ def apply_debuff(action, target):
                 # If the debuff isn't in debuffs_standard, it must be in debuffs_transform or debuffs_hexes.
         # Similarly check for paired self-debuff/debuff equivalencies
         if debuff in BUFF_EQ and BUFF_EQ[debuff] in target.db.equipped_aspects:
+            target.msg(f"equivalent to {debuff} found: {BUFF_EQ[debuff].name}")
             debuff_check_roll = -1
         if debuff_check_roll > debuff_resist:
             # If debuff succeeds, apply using consistent logic. Check what dict the debuff is stored in
