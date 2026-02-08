@@ -52,7 +52,9 @@ tumble = Aspect(name="Tumble", cost=10)
 # Vengeful: Your base critical hit chance is lower, but increases as your health decreases.
 # Reckless: Your base critical hit chance is higher, but you are also more likely to suffer critical hits.
 # Savage: When you inflict a critical hit, gain a temporary boost to accuracy and speed.
+savage = Aspect(name="Savage", cost=10)
 # Spirited: When you suffer a critical hit, gain a temporary boost to accuracy and speed.
+spirited = Aspect(name="Spirited", cost=10)
 
 # HIGH COST ASPECTS: 20 Capacity. Self-buffs and crit reacts. ~125 stat Extra Arts. (like a magic wand)
 # Counterstrike (Protect)
@@ -105,6 +107,8 @@ ASPECTS = [
     deflect,
     iron_skin,
     tumble,
+    savage,
+    spirited,
     counterstrike,
     counterspell,
     ferocity,
@@ -115,8 +119,14 @@ ASPECTS = [
     battle_rage,
     rock_solid,
     slippery,
+    perfect_dodge,
+    perfect_guard,
+    perfect_grit,
+    perfect_break,
     sniper,
-    duelist
+    duelist,
+    moment_of_truth,
+    nerves_of_steel
 ]
 
 # BUFF_EQ dict stores equivalencies between always-on (when-equipped) self-buffing Aspects and the associated buff.

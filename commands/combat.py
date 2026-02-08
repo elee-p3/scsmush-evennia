@@ -405,7 +405,7 @@ class CmdDodge(default_cmds.MuxCommand):
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
             final_damage = damage_calc(action, caller)
-            is_critical_hit, final_damage = critical_hits(final_damage, action)
+            is_critical_hit, final_damage = critical_hits(final_damage, action, caller)
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
             is_glancing_blow = glancing_blow_calc(random100, chance_to_be_hit, caller, action)
             if is_critical_hit:
@@ -490,7 +490,7 @@ class CmdBlock(default_cmds.MuxCommand):
 
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
-            is_critical_hit, damage = critical_hits(damage, action)
+            is_critical_hit, damage = critical_hits(damage, action, caller)
             if is_critical_hit:
                 msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, damage)
             else:
@@ -583,7 +583,7 @@ class CmdEndure(default_cmds.MuxCommand):
         damage = damage_calc(action, caller)
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
-            is_critical_hit, damage = critical_hits(damage, action)
+            is_critical_hit, damage = critical_hits(damage, action, caller)
             if is_critical_hit:
                 msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, damage)
             else:
@@ -696,7 +696,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         # Spawn an InterruptInstance here to begin modifying its accuracy, etc. Will need this for critical_hits
         interrupt = AttackDuringAction(outgoing_interrupt, caller.key, switches)
 
-        interrupt.attack.acc = interrupt_chance_calc(caller, incoming_atk_in_queue, outgoing_interrupt)
+        interrupt.attack.acc = interrupt_chance_calc(caller, incoming_atk_in_queue, interrupt)
 
         # effects of aim and feint on incoming attack checked here
         interrupt.attack.acc = modify_aim_and_feint(interrupt.attack.acc, "interrupt", aim_or_feint)
@@ -710,7 +710,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             final_damage = protect_and_reflect_check(final_damage, caller, incoming_atk, False)
 
             # Since the incoming attack has hit, check for critical hit.
-            is_critical_hit, final_damage = critical_hits(final_damage, incoming_atk_in_queue)
+            is_critical_hit, final_damage = critical_hits(final_damage, incoming_atk_in_queue, caller)
             if is_critical_hit:
                 msg = damage_message_strings(ActionResult.INTERRUPT_CRIT_FAIL, caller, incoming_atk, final_damage)
             else:
@@ -738,7 +738,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             final_outgoing_damage = damage_calc(interrupt, attacker)
 
             # Check if the interrupt is a critical hit!
-            is_critical_hit, final_outgoing_damage = critical_hits(final_outgoing_damage, interrupt)
+            is_critical_hit, final_outgoing_damage = critical_hits(final_outgoing_damage, interrupt, attacker)
 
             # Determine how much damage the incoming attack would do if unmitigated.
             unmitigated_incoming_damage = damage_calc(incoming_atk_in_queue, caller)
@@ -1169,3 +1169,10 @@ class CmdSurge(default_cmds.MuxCommand):
         caller.db.ex = min(caller.db.ex + 30, caller.db.maxex)
         caller.location.msg_contents("|y<COMBAT>|n {0} surges with power!".format(caller.name))
         caller.db.has_surge = False
+        # Check for Surge-relevant Aspects on caller.
+        if "Moment of Truth" in caller.db.equipped_aspects:
+            caller.db.buffs["Moment of Truth"] = 2
+            caller.msg("You feel that the moment of truth has arrived for you!")
+        if "Nerves of Steel" in caller.db.equipped_aspects:
+            caller.db.buffs["Nerves of Steel"] = 2
+            caller.msg("You steel your nerves against all adversity.")

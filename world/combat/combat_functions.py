@@ -156,12 +156,16 @@ def modify_speed(speed, defender):
         speed += 5
     if defender.db.buffs["Blink"] > 0:
         speed += 5
+    if defender.db.buffs["Spirited"] > 0:
+        speed += 5
+    if defender.db.buffs["Savage"] > 0:
+        speed += 5
+    if defender.db.debuffs_standard["Berserk"] > 0 or "Battle Rage" in defender.db.equipped_aspects:
+        speed += 5
     if defender.db.debuffs_standard["Injure"] > 0:
         speed -= 5
     if defender.db.debuffs_standard["Muddle"] > 0:
         speed -= 5
-    if defender.db.debuffs_standard["Berserk"] > 0 or "Battle Rage" in defender.db.equipped_aspects:
-        speed += 5
     if defender.db.debuffs_standard["Petrify"] > 0:
         speed -= 10
     if defender.db.debuffs_standard["Slime"] > 0:
@@ -238,6 +242,7 @@ def dodge_calc(defender, attack_instance: AttackToQueue):
     if attack_instance.has_ranged:
         chance_to_hit -= 5
     chance_to_hit += attack_instance.endure_bonus
+    chance_to_hit += flat_acc_buff_check(attack_instance, defender)
     # cap accuracy at 99%
     if chance_to_hit > 99:
         chance_to_hit = 99
@@ -306,6 +311,7 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
     # Incorporating defender's block penalty and attacker's endure bonus.
     chance_to_hit += defender.db.block_penalty
     chance_to_hit += attack_instance.endure_bonus
+    chance_to_hit += flat_acc_buff_check(attack_instance, defender)
     # cap block percentage at 99%
     if chance_to_hit > 99:
         chance_to_hit = 99
@@ -369,6 +375,7 @@ def endure_chance_calc(defender, attack_instance):
         chance_to_hit -= 6
     # Incorporating attacker's endure bonus. Block penalty does not apply to defender's endure chance.
     chance_to_hit += attack_instance.endure_bonus
+    chance_to_hit += flat_acc_buff_check(attack_instance, defender)
     # cap endure percentage at 99%
     if chance_to_hit > 99:
         chance_to_hit = 99
@@ -378,7 +385,7 @@ def endure_chance_calc(defender, attack_instance):
 
 
 def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interrupt):
-    accuracy_diff = outgoing_interrupt.acc - incoming_attack_instance.attack.acc
+    accuracy_diff = outgoing_interrupt.attack.acc - incoming_attack_instance.attack.acc
     interrupt_chance = 40 + (accuracy_diff * 5)
     # If the interrupter is baiting, interrupt chance increases.
     if interrupter.db.is_baiting:
@@ -393,14 +400,18 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
     if incoming_attack_instance.has_priority:
         interrupt_chance -= 15
     # If the outgoing interrupt has the Priority effect, interrupt chance greatly increases.
-    if "Priority" in outgoing_interrupt.effects:
+    if "Priority" in outgoing_interrupt.attack.effects:
         interrupt_chance += 15
     # If the incoming attack is Ranged and the outgoing interrupt is *not* Ranged, interrupt chance greatly decreases.
     if incoming_attack_instance.has_ranged:
-        if "Long-Range" not in outgoing_interrupt.effects:
+        if "Long-Range" not in outgoing_interrupt.attack.effects:
             interrupt_chance -= 15
     # Incorporating incoming attacks's endure bonus, reducing interrupt chance.
     interrupt_chance -= incoming_attack_instance.endure_bonus
+    # Incorporating the flat acc buffs on the incoming attack, potentially benefiting the target of the interrupt.
+    interrupt_chance -= flat_acc_buff_check(incoming_attack_instance, interrupter, is_interrupt=True)
+    # Incorporating the flat acc buffs on the outgoing interrupt, potentially benefiting the interrupter.
+    interrupt_chance += flat_acc_buff_check(outgoing_interrupt, incoming_attack_instance.attacker, is_interrupt=True)
     # cap interrupt percentage at 99%
     if interrupt_chance > 99:
         interrupt_chance = 99
@@ -774,7 +785,7 @@ def dispel_check(target):
         return modified_buffs
 
 
-def critical_hits(damage, action):
+def critical_hits(damage, action, target):
     # Default 5% chance to inflict 1.25x damage. There will be ways to modify that, so put them all here.
     # Take the current damage as an input and return a bool and possibly modified damage.
     is_critical = False
@@ -789,6 +800,14 @@ def critical_hits(damage, action):
     if critical_check <= critical_threshold:
         is_critical = True
         damage *= 1.25
+    # On successful critical hit, apply Spirited to target/sufferer or Savage to inflicter (attacker for CmdAttack,
+    # interrupter for CmdInterrupt).
+    if is_critical:
+        if "Spirited" in target.db.equipped_aspects:
+            target.db.buffs["Spirited"] = 2
+        if "Savage" in action.attacker_aspects:
+            # Give the attacker (actual character object, found from key on action init) Savage buff on proc.
+            action.attacker["Savage"] = 2
     return is_critical, damage
 
 
@@ -1180,6 +1199,20 @@ def display_status_effects(caller):
             elif status_effect == "Purity":
                 duration_string = "You are purified, rendering you immune to transformation and hexes for {duration} rounds."
                 single_string = "You are purified, rendering you immune to transformation and hexes for 1 more round."
+            elif status_effect == "Spirited":
+                duration_string = "You are high-spirited, improving your Speed and accuracy for {duration} rounds."
+                single_string = "You are high-spirited, improving your Speed and accuracy for 1 more round."
+            elif status_effect == "Savage":
+                duration_string = "You are in a savage fury, improving your Speed and accuracy for {duration} rounds."
+                single_string = "You are in a savage fury, improving your Speed and accuracy for 1 more round."
+            elif status_effect == "Moment of Truth":
+                duration_string = "Your moment of truth is upon you, greatly improving your accuracy for {duration} " \
+                                  "rounds or until your next attack or interrupt succeeds."
+                single_string = "Your moment of truth is upon you, moderately improving your accuracy for 1 more round."
+            elif status_effect == "Nerves of Steel":
+                duration_string = "Your nerves are steeled, greatly improving your reaction chances for {duration}" \
+                                  "rounds or until your next Dodge, Block, or Endure succeeds."
+                single_string = "Your nerves are steeled, moderately improving your reaction chances for 1 more round."
         if caller.db.buffs[status_effect] > 1:
             caller.msg(duration_string.format(duration=duration))
         elif caller.db.buffs[status_effect] == 1:
@@ -1376,6 +1409,39 @@ def apply_buff(action, healer, target):
             target.db.buffs[buff] = 4
         else:
             target.db.buffs[buff] = 3
+
+
+def flat_acc_buff_check(action, target, is_interrupt=False):
+    # A limited subset of buffs can, like endure bonus, directly affect chance_to_hit. Called in reactions.
+    chance_to_hit_adjustment = 0
+    if action.has_spirited:
+        chance_to_hit_adjustment += 5
+    if action.has_savage:
+        chance_to_hit_adjustment += 5
+    if action.moment_of_truth_value:
+        # +20 if it was attacker's first action (2 turns remaining), +10 if second action (last turn remaining)
+        chance_to_hit_adjustment += (action.moment_of_truth_value * 10)
+    if target.db.buffs["Nerves of Steel"] > 0 and not is_interrupt:
+        # Same as above, inversely. Interrupts are contests between accuracy, so Nerves of Steel should not apply
+        chance_to_hit_adjustment -= (target.db.buffs["Nerves of Steel"] * 10)
+    return chance_to_hit_adjustment
+
+
+def surge_buff_reset_check(action_result, action, target):
+    # Check if Surge Aspect buff should abruptly end. Messages here, since Moment of Truth may end on defender turn.
+    # TODO: when AoEs are added, will need to consider how to handle a Moment of Truth AoE attack. just end? split?
+    # On a failed reaction or successful interrupt, if attacker/interrupter has Moment of Truth, set to 0.
+    reset_mot_lst = [ActionResult.REACT_FAIL, ActionResult.REACT_CRIT_FAIL, ActionResult.INTERRUPT_SUCCESS,
+                     ActionResult.INTERRUPT_CRIT_SUCCESS]
+    if action_result in reset_mot_lst and action.moment_of_truth_value > 0:
+        # NOTE: reaching in to affect the attacker character obj directly in this special case.
+        action.attacker.db.buffs["Moment of Truth"] = 0
+        action.attacker.msg("The accuracy boost from your moment of truth has faded.")
+    # On a successful reaction, if defender has Nerves of Steel, set to 0. Glancing blow doesn't count.
+    reset_nos_lst = [ActionResult.DODGE_SUCCESS, ActionResult.BLOCK_SUCCESS, ActionResult.ENDURE_SUCCESS]
+    if action_result in reset_nos_lst and target.db.buffs["Nerves of Steel"] > 0:
+        target.db.buffs["Nerves of Steel"] = 0
+        target.msg("The reaction boost from your nerves of steel has faded.")
 
 
 def apply_debuff(action, target):
@@ -1638,3 +1704,11 @@ def status_effect_end_message(character, status_effect):
         character.msg("You are no longer itchy.")
     elif status_effect == "Old":
         character.msg("You are no longer aged.")
+    elif status_effect == "Spirited":
+        character.msg("You are no longer buoyed by high spirits.")
+    elif status_effect == "Savage":
+        character.msg("You are no longer emboldened by savagery.")
+    elif status_effect == "Moment of Truth":
+        character.msg("The accuracy boost from your moment of truth has faded.")
+    elif status_effect == "Nerves of Steel":
+        character.msg("The reaction boost from your nerves of steel has faded.")

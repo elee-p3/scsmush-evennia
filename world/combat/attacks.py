@@ -46,12 +46,20 @@ class AttackDuringAction:
         self.has_berserk = False
         self.has_muddle = False
         self.has_strain = False
+        self.has_spirited = False
+        self.has_savage = False
+        self.moment_of_truth_value = 0
         self.is_wild = False
-        self.expertise = []
         if attacker.db.buffs["Acuity"] > 0:
             self.has_acuity = True
         if attacker.db.buffs["Vigor"] > 0:
             self.has_vigor = True
+        if attacker.db.buffs["Spirited"] > 0:
+            self.has_spirited = True
+        if attacker.db.buffs["Savage"] > 0:
+            self.has_savage = True
+        if attacker.db.buffs["Moment of Truth"] > 0:
+            self.moment_of_truth_value = attacker.db.buffs["Moment of Truth"]
         if attacker.db.debuffs_transform["Bird"] > 0:
             self.has_bird = True
         if attacker.db.debuffs_transform["Frog"] > 0:
