@@ -10,7 +10,7 @@ from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES
 from world.combat.normals import NORMALS
 from world.arts.models import Art
 from world.utilities.utilities import find_attacker_from_key
-from world.combat.aspects import BUFF_EQ
+from world.combat.aspects import BUFF_EQ, CRIT_REACTIONS
 
 
 class ArtBaseline:
@@ -790,11 +790,11 @@ def dispel_check(target):
         return modified_buffs
 
 
-def critical_hits(damage, action, target):
+def critical_hits(damage, action, target, dice_roll):
     # Default 5% chance to inflict 1.25x damage. There will be ways to modify that, so put them all here.
     # Take the current damage as an input and return a bool and possibly modified damage.
     is_critical = False
-    critical_check = random.randint(1, 100)
+    critical_check = dice_roll # Lower is better, i.e., it was more likely to hit the target
     critical_threshold = 5
     # Checking for Acuity buff on the attack. (Not the attacker, since their buff might have expired.)
     if action.has_acuity or "Ferocity" in action.attacker_aspects:
@@ -814,6 +814,27 @@ def critical_hits(damage, action, target):
             # Give the attacker (actual character object, found from key on action init) Savage buff on proc.
             action.attacker["Savage"] = 2
     return is_critical, damage
+
+
+def crit_react_check(reaction, reactor, dice_roll):
+    # Default 10% chance for crit react success. Threshold improves with Nerves of Steel, or Moment of Truth for ints.
+    is_crit_react = False
+    crit_react_threshold = 10
+    not_interrupts = ["dodge", "block", "endure"]
+    if reaction == "interrupt" and reactor.db.buffs["Moment of Truth"] > 0:
+        crit_react_threshold += (reactor.db.buffs["Moment of Truth"] * 10)
+    if reaction in not_interrupts and reactor.db.buffs["Nerves of Steel"] > 0:
+        crit_react_threshold += (reactor.db.buffs["Nerves of Steel"] * 10)
+    if crit_react_threshold > dice_roll:
+        if reaction == "dodge" and CRIT_REACTIONS[ActionResult.DODGE_CRIT_SUCCESS] in reactor.db.equipped_aspects:
+            is_crit_react = True
+        elif reaction == "block" and CRIT_REACTIONS[ActionResult.BLOCK_CRIT_SUCESSS] in reactor.db.equipped_aspects:
+            is_crit_react = True
+        elif reaction == "endure" and CRIT_REACTIONS[ActionResult.ENDURE_CRIT_SUCCESS] in reactor.db.equipped_aspects:
+            is_crit_react = True
+        elif reaction == "interrupt" and CRIT_REACTIONS[ActionResult.INTERRUPT_REACT_CRIT_SUCCESS] in reactor.db.equipped_aspects:
+            is_crit_react = True
+    return is_crit_react
 
 
 def damage_message_strings(action_result, caller, attack, damage, interrupt=None, interrupt_damage=None,
@@ -1407,7 +1428,7 @@ def apply_buff(action, healer, target):
         else:
             target.msg(extension_string)
         healer.msg(f"You have applied {buff} to {target}.")
-        if buff in BUFF_EQ:
+        if buff in BUFF_EQ and BUFF_EQ[buff].name in target.db.equipped_aspects:
             healer.msg(f"Note that the effect of {buff} is reduced due to {target} equipping {BUFF_EQ[buff].name}.")
         if healer == target:
             # A combat tick is going to happen after this, so the duration will be 3 regardless.

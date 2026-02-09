@@ -1,4 +1,5 @@
 from evennia import default_cmds
+from world.combat.attacks import ActionResult
 
 
 class Aspect:
@@ -143,4 +144,13 @@ BUFF_EQ = {
     "Berserk": battle_rage,
     "Petrify": rock_solid,
     "Slime": slippery
+}
+
+# Critically succeeding at reactions will have their own threshold of success that a dice roll can meet.
+# On successful reactions, call crit_react_check() and use this to see if the caller has the corresponding Aspect.
+CRIT_REACTIONS = {
+    ActionResult.DODGE_CRIT_SUCCESS: perfect_dodge,
+    ActionResult.BLOCK_CRIT_SUCESSS: perfect_guard,
+    ActionResult.ENDURE_CRIT_SUCCESS: perfect_grit,
+    ActionResult.INTERRUPT_REACT_CRIT_SUCCESS: perfect_break
 }

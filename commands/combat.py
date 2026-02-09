@@ -406,7 +406,7 @@ class CmdDodge(default_cmds.MuxCommand):
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
             final_damage = damage_calc(action, caller)
-            is_critical_hit, final_damage = critical_hits(final_damage, action, caller)
+            is_critical_hit, final_damage = critical_hits(final_damage, action, caller, random100)
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
             is_glancing_blow = glancing_blow_calc(random100, chance_to_be_hit, caller, action)
             if is_critical_hit:
@@ -435,7 +435,11 @@ class CmdDodge(default_cmds.MuxCommand):
                 ranged_knockback(caller, attacker)
             record_combat(caller, action, "dodge", False, final_damage)
         else:
-            action_result = ActionResult.DODGE_SUCCESS
+            is_crit_react = crit_react_check("dodge", caller, random100)
+            if is_crit_react:
+                ActionResult.DODGE_CRIT_SUCESSS
+            else:
+                action_result = ActionResult.DODGE_SUCCESS
             caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
             msg = "|y<COMBAT>|n {target} has dodged {attacker}'s {modifier}{attack}."
             record_combat(caller, action, "dodge", True, 0)
@@ -496,7 +500,7 @@ class CmdBlock(default_cmds.MuxCommand):
 
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
-            is_critical_hit, damage = critical_hits(damage, action, caller)
+            is_critical_hit, damage = critical_hits(damage, action, caller, random100)
             if is_critical_hit:
                 action_result = ActionResult.REACT_CRIT_FAIL
             else:
@@ -518,7 +522,11 @@ class CmdBlock(default_cmds.MuxCommand):
                 dispel_check(caller)
             record_combat(caller, action, "block", False, damage)
         else:
-            action_result = ActionResult.BLOCK_SUCCESS
+            is_crit_react = crit_react_check("block", caller, random100)
+            if is_crit_react:
+                ActionResult.BLOCK_CRIT_SUCESSS
+            else:
+                action_result = ActionResult.BLOCK_SUCCESS
             damage = block_damage_calc(damage, caller)
             caller.db.lf -= damage
 
@@ -593,14 +601,18 @@ class CmdEndure(default_cmds.MuxCommand):
         damage = damage_calc(action, caller)
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
-            is_critical_hit, damage = critical_hits(damage, action, caller)
+            is_critical_hit, damage = critical_hits(damage, action, caller, random100)
             if is_critical_hit:
                 action_result = ActionResult.REACT_CRIT_FAIL
             else:
                 action_result = ActionResult.REACT_FAIL
             record_combat(caller, action, "endure", False, damage)
         else:
-            action_result = ActionResult.ENDURE_SUCCESS
+            is_crit_react = crit_react_check("endure", caller, random100)
+            if is_crit_react:
+                ActionResult.ENDURE_CRIT_SUCESSS
+            else:
+                action_result = ActionResult.ENDURE_SUCCESS
 
             # Now calculate endure bonus. Currently, let's set it so if you endure multiple attacks in a round,
             # you get to keep whatever endure bonus is higher. But endure bonus is not cumulative. (That's OP.)
@@ -717,7 +729,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         action_result_for_interrupter = None
         action_result_for_target = None
         outgoing_damage = 0
-        # In case of interrupt failure
+        # In case of interrupt failure (the higher the accuracy, the less likely to fail, thus, high number = failure)
         if interrupt.attack.acc < random100:
             incoming_damage = damage_calc(incoming_atk_in_queue, caller)
 
@@ -725,7 +737,10 @@ class CmdInterrupt(default_cmds.MuxCommand):
             incoming_damage = protect_and_reflect_check(incoming_damage, caller, incoming_atk, False)
 
             # Since the incoming attack has hit, check for critical hit.
-            is_critical_hit, incoming_damage = critical_hits(incoming_damage, incoming_atk_in_queue, caller)
+            # "Invert" roll for attacker crit check: a high (bad) roll for defender becomes a low (good) roll for attacker.
+            # Otherwise, attackers would never crit, since high rolls (int fails) are surely above the crit threshold.
+            attacker_crit_check = 100 - random100
+            is_critical_hit, incoming_damage = critical_hits(incoming_damage, incoming_atk_in_queue, caller, attacker_crit_check)
             if is_critical_hit:
                 action_result_for_interrupter = ActionResult.INTERRUPT_CRIT_FAIL
                 action_result_for_target = ActionResult.REACT_CRIT_FAIL
@@ -755,7 +770,10 @@ class CmdInterrupt(default_cmds.MuxCommand):
             outgoing_damage = damage_calc(interrupt, attacker)
 
             # Check if the interrupt is a critical hit!
-            is_critical_hit, outgoing_damage = critical_hits(outgoing_damage, interrupt, attacker)
+            is_critical_hit, outgoing_damage = critical_hits(outgoing_damage, interrupt, attacker, random100)
+
+            # Check for Perfect Break.
+            is_crit_react = crit_react_check("interrupt", caller, random100)
 
             # Determine how much damage the incoming attack would do if unmitigated.
             unmitigated_incoming_damage = damage_calc(incoming_atk_in_queue, caller)
@@ -766,9 +784,15 @@ class CmdInterrupt(default_cmds.MuxCommand):
             # Check for Protect/Reflect moderate damage mitigation.
             mitigated_damage = protect_and_reflect_check(mitigated_damage, caller, incoming_atk, True)
 
-            if is_critical_hit:
+            if is_critical_hit and is_crit_react:
+                action_result_for_interrupter = ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT
+                action_result_for_target = ActionResult.WAS_CRIT_INTERRUPTED
+            elif is_critical_hit:
                 action_result_for_interrupter = ActionResult.INTERRUPT_CRIT_SUCCESS
                 action_result_for_target = ActionResult.WAS_CRIT_INTERRUPTED
+            elif is_crit_react:
+                action_result_for_interrupter = ActionResult.INTERRUPT_REACT_CRIT_SUCCESS
+                action_result_for_target = ActionResult.WAS_INTERRUPTED
             else:
                 action_result_for_interrupter = ActionResult.INTERRUPT_SUCCESS
                 action_result_for_target = ActionResult.WAS_INTERRUPTED
