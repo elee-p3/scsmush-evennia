@@ -68,7 +68,7 @@ def populate_arts_table(table, actions, base_arts, interrupted_action=None, call
 
         ap_string = modify_ap_string(action, base_arts)
         if caller:
-            modified_acc = interrupt_chance_calc(caller, interrupted_action, action)
+            modified_acc = interrupt_chance_calc(caller, interrupted_action, action, for_check_display=True)
             table.add_row(action.name,
                           ap_string,
                           action.dmg,

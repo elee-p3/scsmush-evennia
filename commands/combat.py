@@ -402,6 +402,7 @@ class CmdDodge(default_cmds.MuxCommand):
 
         msg = ""
         is_glancing_blow = False
+        action_result = None
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
             final_damage = damage_calc(action, caller)
@@ -409,13 +410,15 @@ class CmdDodge(default_cmds.MuxCommand):
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
             is_glancing_blow = glancing_blow_calc(random100, chance_to_be_hit, caller, action)
             if is_critical_hit:
-                msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, final_damage)
+                action_result = ActionResult.REACT_CRIT_FAIL
             elif is_glancing_blow:
                 # For now, halving the damage of glancing blows.
                 final_damage = final_damage / 2
-                msg = damage_message_strings(ActionResult.GLANCING_BLOW, caller, attack, final_damage)
+                action_result = ActionResult.GLANCING_BLOW
             else:
-                msg = damage_message_strings(ActionResult.REACT_FAIL, caller, attack, final_damage)
+                action_result = ActionResult.REACT_FAIL
+
+            msg = damage_message_strings(action_result, caller, attack, final_damage)
 
             caller.db.lf -= final_damage
 
@@ -432,10 +435,12 @@ class CmdDodge(default_cmds.MuxCommand):
                 ranged_knockback(caller, attacker)
             record_combat(caller, action, "dodge", False, final_damage)
         else:
+            action_result = ActionResult.DODGE_SUCCESS
             caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
             msg = "|y<COMBAT>|n {target} has dodged {attacker}'s {modifier}{attack}."
             record_combat(caller, action, "dodge", True, 0)
 
+        surge_buff_reset_check(action_result, action, caller)
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
@@ -487,14 +492,15 @@ class CmdBlock(default_cmds.MuxCommand):
         chance_to_be_hit = modify_aim_and_feint(chance_to_be_hit, "block", aim_or_feint)
 
         msg = ""
+        action_result = None
 
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
             is_critical_hit, damage = critical_hits(damage, action, caller)
             if is_critical_hit:
-                msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, damage)
+                action_result = ActionResult.REACT_CRIT_FAIL
             else:
-                msg = damage_message_strings(ActionResult.REACT_FAIL, caller, attack, damage)
+                action_result = ActionResult.REACT_FAIL
             caller.db.lf -= damage
 
             # Modify EX based on the damage.
@@ -512,8 +518,8 @@ class CmdBlock(default_cmds.MuxCommand):
                 dispel_check(caller)
             record_combat(caller, action, "block", False, damage)
         else:
+            action_result = ActionResult.BLOCK_SUCCESS
             damage = block_damage_calc(damage, caller)
-            msg = damage_message_strings(ActionResult.BLOCK_SUCCESS, caller, attack, damage)
             caller.db.lf -= damage
 
             # Modify EX (based on modified, not final, dmg).
@@ -527,9 +533,12 @@ class CmdBlock(default_cmds.MuxCommand):
                 drain_check(action, attacker, caller, damage)
             record_combat(caller, action, "block", True, damage)
 
+        msg = damage_message_strings(action_result, caller, attack, damage)
         # Applying ranged_knockback here since it applies whether or not you successfully block
         if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
             ranged_knockback(caller, attacker)
+        surge_buff_reset_check(action_result, action, caller)
+
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
@@ -580,17 +589,18 @@ class CmdEndure(default_cmds.MuxCommand):
         chance_to_be_hit = modify_aim_and_feint(chance_to_be_hit, "endure", aim_or_feint)
 
         msg = ""
+        action_result = None
         damage = damage_calc(action, caller)
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
             is_critical_hit, damage = critical_hits(damage, action, caller)
             if is_critical_hit:
-                msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, damage)
+                action_result = ActionResult.REACT_CRIT_FAIL
             else:
-                msg = damage_message_strings(ActionResult.REACT_FAIL, caller, attack, damage)
+                action_result = ActionResult.REACT_FAIL
             record_combat(caller, action, "endure", False, damage)
         else:
-            msg = damage_message_strings(ActionResult.ENDURE_SUCCESS, caller, attack, damage)
+            action_result = ActionResult.ENDURE_SUCCESS
 
             # Now calculate endure bonus. Currently, let's set it so if you endure multiple attacks in a round,
             # you get to keep whatever endure bonus is higher. But endure bonus is not cumulative. (That's OP.)
@@ -613,6 +623,8 @@ class CmdEndure(default_cmds.MuxCommand):
         if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
             ranged_knockback(caller, attacker)
 
+        surge_buff_reset_check(action_result, action, caller)
+        msg = damage_message_strings(action_result, caller, attack, damage)
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
@@ -702,83 +714,95 @@ class CmdInterrupt(default_cmds.MuxCommand):
         interrupt.attack.acc = modify_aim_and_feint(interrupt.attack.acc, "interrupt", aim_or_feint)
 
         msg = ""
+        action_result_for_interrupter = None
+        action_result_for_target = None
+        outgoing_damage = 0
         # In case of interrupt failure
         if interrupt.attack.acc < random100:
-            final_damage = damage_calc(incoming_atk_in_queue, caller)
+            incoming_damage = damage_calc(incoming_atk_in_queue, caller)
 
             # Check for Protect/Reflect moderate damage mitigation.
-            final_damage = protect_and_reflect_check(final_damage, caller, incoming_atk, False)
+            incoming_damage = protect_and_reflect_check(incoming_damage, caller, incoming_atk, False)
 
             # Since the incoming attack has hit, check for critical hit.
-            is_critical_hit, final_damage = critical_hits(final_damage, incoming_atk_in_queue, caller)
+            is_critical_hit, incoming_damage = critical_hits(incoming_damage, incoming_atk_in_queue, caller)
             if is_critical_hit:
-                msg = damage_message_strings(ActionResult.INTERRUPT_CRIT_FAIL, caller, incoming_atk, final_damage)
+                action_result_for_interrupter = ActionResult.INTERRUPT_CRIT_FAIL
+                action_result_for_target = ActionResult.REACT_CRIT_FAIL
             else:
-                msg = damage_message_strings(ActionResult.INTERRUPT_FAIL, caller, incoming_atk, final_damage)
+                action_result_for_interrupter = ActionResult.INTERRUPT_FAIL
+                action_result_for_target = ActionResult.REACT_FAIL
 
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
-            caller.db.lf -= final_damage
+            caller.db.lf -= incoming_damage
 
             # Modify EX based on damage.
-            caller.db.ex, attacker.db.ex = modify_ex_on_hit(final_damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(incoming_damage, caller, attacker)
 
             # Apply debuffs only if interrupt fails
             apply_debuff(incoming_atk_in_queue, caller)
             if "Drain" in incoming_atk.effects:
-                drain_check(incoming_atk_in_queue, attacker, caller, final_damage)
+                drain_check(incoming_atk_in_queue, attacker, caller, incoming_damage)
             if "Dispel" in incoming_atk.effects:
                 dispel_check(caller)
             if "Long-Range" in incoming_atk.effects and attacker.key not in caller.db.ranged_knockback[1]:
                 ranged_knockback(caller, attacker)
-            record_combat(caller, incoming_atk_in_queue, "interrupt", False, final_damage)
+            record_combat(caller, incoming_atk_in_queue, "interrupt", False, incoming_damage)
 
         # In case of interrupt success
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
-            final_outgoing_damage = damage_calc(interrupt, attacker)
+            outgoing_damage = damage_calc(interrupt, attacker)
 
             # Check if the interrupt is a critical hit!
-            is_critical_hit, final_outgoing_damage = critical_hits(final_outgoing_damage, interrupt, attacker)
+            is_critical_hit, outgoing_damage = critical_hits(outgoing_damage, interrupt, attacker)
 
             # Determine how much damage the incoming attack would do if unmitigated.
             unmitigated_incoming_damage = damage_calc(incoming_atk_in_queue, caller)
 
             # Determine how the Damage of the outgoing interrupt mitigates incoming Damage.
-            mitigated_damage = interrupt_mitigation_calc(unmitigated_incoming_damage, final_outgoing_damage)
+            mitigated_damage = interrupt_mitigation_calc(unmitigated_incoming_damage, outgoing_damage)
 
             # Check for Protect/Reflect moderate damage mitigation.
             mitigated_damage = protect_and_reflect_check(mitigated_damage, caller, incoming_atk, True)
 
             if is_critical_hit:
-                msg = damage_message_strings(ActionResult.INTERRUPT_CRIT_SUCCESS, caller, incoming_atk,
-                                             final_outgoing_damage, outgoing_interrupt, mitigated_damage, attacker)
+                action_result_for_interrupter = ActionResult.INTERRUPT_CRIT_SUCCESS
+                action_result_for_target = ActionResult.WAS_CRIT_INTERRUPTED
             else:
-                msg = damage_message_strings(ActionResult.INTERRUPT_SUCCESS, caller, incoming_atk,
-                                             final_outgoing_damage, outgoing_interrupt, mitigated_damage, attacker)
+                action_result_for_interrupter = ActionResult.INTERRUPT_SUCCESS
+                action_result_for_target = ActionResult.WAS_INTERRUPTED
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
-            caller.db.lf -= mitigated_damage
-            attacker.db.lf -= final_outgoing_damage
+            incoming_damage = mitigated_damage
+            caller.db.lf -= incoming_damage
+            attacker.db.lf -= outgoing_damage
 
             # Check if your successful interrupt was your final action.
             final_action_check(attacker)
 
             # Modify EX.
-            caller.db.ex, attacker.db.ex = modify_ex_on_interrupt_success(mitigated_damage, final_outgoing_damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_interrupt_success(incoming_damage, outgoing_damage, caller, attacker)
 
             # Interrupting a Drain attack partially drains you, but if you interrupt Long-Range, you're not knocked back
             if "Drain" in incoming_atk.effects:
-                drain_check(incoming_atk_in_queue, attacker, caller, mitigated_damage)
+                drain_check(incoming_atk_in_queue, attacker, caller, incoming_damage)
 
             # Apply debuffs to interrupted attacker
             apply_debuff(interrupt, attacker)
             if "Drain" in outgoing_interrupt.effects:
-                drain_check(interrupt, caller, attacker, final_outgoing_damage)
+                drain_check(interrupt, caller, attacker, outgoing_damage)
             if "Dispel" in outgoing_interrupt.effects:
                 dispel_check(attacker)
             if "Long-Range" in outgoing_interrupt.effects and caller.key not in attacker.db.ranged_knockback[1]:
                 ranged_knockback(attacker, caller)
-            record_combat(caller, incoming_atk_in_queue, "interrupt", True, mitigated_damage)
+            record_combat(caller, incoming_atk_in_queue, "interrupt", True, incoming_damage)
 
+        # Check if anyone who successfully hit (interrupter on int success, attacker on int fail) had Moment of Truth.
+        surge_buff_reset_check(action_result_for_interrupter, interrupt, caller)
+        surge_buff_reset_check(action_result_for_target, incoming_atk_in_queue, attacker)
+
+        msg = damage_message_strings(action_result_for_interrupter, caller, incoming_atk, incoming_damage, outgoing_interrupt,
+                                     outgoing_damage, attacker)
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier,
                                    attack=incoming_atk.name, interrupt=outgoing_interrupt.name)
         caller.location.msg_contents(combat_string)

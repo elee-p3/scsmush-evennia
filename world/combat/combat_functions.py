@@ -384,7 +384,11 @@ def endure_chance_calc(defender, attack_instance):
     return chance_to_hit
 
 
-def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interrupt):
+def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interrupt, for_check_display=False):
+    if for_check_display:
+        # To incorporate status effects, etc., into CmdCheck, add action metadata to raw attack object.
+        outgoing_interrupt = AttackDuringAction(outgoing_interrupt, interrupter.key, "")
+
     accuracy_diff = outgoing_interrupt.attack.acc - incoming_attack_instance.attack.acc
     interrupt_chance = 40 + (accuracy_diff * 5)
     # If the interrupter is baiting, interrupt chance increases.
@@ -411,7 +415,8 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
     # Incorporating the flat acc buffs on the incoming attack, potentially benefiting the target of the interrupt.
     interrupt_chance -= flat_acc_buff_check(incoming_attack_instance, interrupter, is_interrupt=True)
     # Incorporating the flat acc buffs on the outgoing interrupt, potentially benefiting the interrupter.
-    interrupt_chance += flat_acc_buff_check(outgoing_interrupt, incoming_attack_instance.attacker, is_interrupt=True)
+    attacker = find_attacker_from_key(incoming_attack_instance.attacker_key)
+    interrupt_chance += flat_acc_buff_check(outgoing_interrupt, attacker, is_interrupt=True)
     # cap interrupt percentage at 99%
     if interrupt_chance > 99:
         interrupt_chance = 99
@@ -811,7 +816,7 @@ def critical_hits(damage, action, target):
     return is_critical, damage
 
 
-def damage_message_strings(action_result, caller, attack, damage, interrupt=None, mitigated_damage=None,
+def damage_message_strings(action_result, caller, attack, damage, interrupt=None, interrupt_damage=None,
                            interrupted_char=None):
     # Consolidated all message strings related to damage here, to reduce repetition in the commands themselves.
     msg_to_room = ""
@@ -861,17 +866,17 @@ def damage_message_strings(action_result, caller, attack, damage, interrupt=None
     elif action_result == ActionResult.INTERRUPT_SUCCESS:
         caller.msg("You interrupt {attack} with {interrupt}.".format(attack=attack.name,
                                                                      interrupt=interrupt.name))
-        caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
         msg_to_room = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}."
-        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(interrupt_damage)))
     # 10: Critically succeed at interrupt
     elif action_result == ActionResult.INTERRUPT_CRIT_SUCCESS:
         caller.msg("You critically interrupt {attack} with {interrupt}!".format(attack=attack.name,
                                                                                 interrupt=interrupt.name))
-        caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
         msg_to_room = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}.\n" \
                       "|-|r** CRITICAL HIT! **|n"
-        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(interrupt_damage)))
     return msg_to_room
 
 
@@ -1435,8 +1440,9 @@ def surge_buff_reset_check(action_result, action, target):
                      ActionResult.INTERRUPT_CRIT_SUCCESS]
     if action_result in reset_mot_lst and action.moment_of_truth_value > 0:
         # NOTE: reaching in to affect the attacker character obj directly in this special case.
-        action.attacker.db.buffs["Moment of Truth"] = 0
-        action.attacker.msg("The accuracy boost from your moment of truth has faded.")
+        attacker = find_attacker_from_key(action.attacker_key)
+        attacker.db.buffs["Moment of Truth"] = 0
+        attacker.msg("The accuracy boost from your moment of truth has faded.")
     # On a successful reaction, if defender has Nerves of Steel, set to 0. Glancing blow doesn't count.
     reset_nos_lst = [ActionResult.DODGE_SUCCESS, ActionResult.BLOCK_SUCCESS, ActionResult.ENDURE_SUCCESS]
     if action_result in reset_nos_lst and target.db.buffs["Nerves of Steel"] > 0:
