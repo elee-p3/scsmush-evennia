@@ -235,6 +235,8 @@ def dodge_calc(defender, attack_instance: AttackToQueue):
         chance_to_hit -= 12
     if "Slippery" in defender.db.equipped_aspects:
         chance_to_hit -= 6
+    if "Perfect Dodge" in defender.db.equipped_aspects:
+        chance_to_hit -= 5
     if attack_instance.is_final_action:
         chance_to_hit -= 30
     if attack_instance.has_rush:
@@ -303,6 +305,8 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
         chance_to_hit -= 12
     if "Rock Solid" in defender.db.equipped_aspects:
         chance_to_hit -= 6
+    if "Perfect Guard" in defender.db.equipped_aspects:
+        chance_to_hit -= 5
     # Checking to see if the defender is Slimy and improving accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
         chance_to_hit += 12
@@ -373,6 +377,8 @@ def endure_chance_calc(defender, attack_instance):
         chance_to_hit -= 12
     if "Slippery" in defender.db.equipped_aspects:
         chance_to_hit -= 6
+    if "Perfect Grit" in defender.db.equipped_aspects:
+        chance_to_hit -= 5
     # Incorporating attacker's endure bonus. Block penalty does not apply to defender's endure chance.
     chance_to_hit += attack_instance.endure_bonus
     chance_to_hit += flat_acc_buff_check(attack_instance, defender)
@@ -390,7 +396,7 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
         outgoing_interrupt = AttackDuringAction(outgoing_interrupt, interrupter.key, "")
 
     accuracy_diff = outgoing_interrupt.attack.acc - incoming_attack_instance.attack.acc
-    interrupt_chance = 40 + (accuracy_diff * 5)
+    interrupt_chance = 30 + (accuracy_diff * 5)
     # If the interrupter is baiting, interrupt chance increases.
     if interrupter.db.is_baiting:
         interrupt_chance += 10
@@ -410,6 +416,9 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
     if incoming_attack_instance.has_ranged:
         if "Long-Range" not in outgoing_interrupt.attack.effects:
             interrupt_chance -= 15
+    # Perfect Break improves interrupt chances by 5%, consistent with reaction bonuses from all similar Asepcts.
+    if "Perfect Break" in interrupter.db.equipped_aspects:
+        interrupt_chance += 5
     # Incorporating incoming attacks's endure bonus, reducing interrupt chance.
     interrupt_chance -= incoming_attack_instance.endure_bonus
     # Incorporating the flat acc buffs on the incoming attack, potentially benefiting the target of the interrupt.
@@ -901,19 +910,25 @@ def damage_message_strings(action_result, caller, attack, damage, interrupt=None
     return msg_to_room
 
 
-def protect_and_reflect_check(incoming_damage, defender, attack, interrupt_success):
-    # Protect and Reflect mitigate damage specifically for an interrupter when interrupting.
+def protect_and_reflect_check(incoming_damage, defender, attack, action_result):
+    # Protect and Reflect mitigate damage specifically for an interrupter when interrupting (even on failure).
     mitigation = False
+    successful_interrupt_result_list = [ActionResult.INTERRUPT_SUCCESS, ActionResult.INTERRUPT_CRIT_SUCCESS]
+    crit_react_result_list = [ActionResult.INTERRUPT_REACT_CRIT_SUCCESS, ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT]
     if attack.stat.lower() == "power":
         if defender.db.buffs["Protect"] > 0 or "Counterstrike" in defender.db.equipped_aspects:
             mitigation = True
     if attack.stat.lower() == "knowledge":
         if defender.db.buffs["Reflect"] > 0 or "Counterspell" in defender.db.equipped_aspects:
             mitigation = True
-    if interrupt_success and mitigation:
-        incoming_damage = incoming_damage * 0.75
-    elif mitigation and not interrupt_success:
-        incoming_damage = incoming_damage * 0.85
+    if action_result in crit_react_result_list and mitigation:
+        incoming_damage = 0 # Perfect Break plus Protect/Reflect plus successful interrupt means full mitigation!
+    elif action_result in crit_react_result_list:
+        incoming_damage = incoming_damage * 0.25 # Only Perfect Break means 75% is mitigated
+    elif action_result in successful_interrupt_result_list and mitigation:
+        incoming_damage = incoming_damage * 0.75 # Only Protect/Reflect on successful interrupt mitigates 25%
+    elif mitigation:
+        incoming_damage = incoming_damage * 0.85 # Protect/Reflect on failed interrupt mitigates 15%
     return incoming_damage
 
 #TODO: rename all the accuracy vars to "percentage" or something
@@ -1456,16 +1471,19 @@ def flat_acc_buff_check(action, target, is_interrupt=False):
 def surge_buff_reset_check(action_result, action, target):
     # Check if Surge Aspect buff should abruptly end. Messages here, since Moment of Truth may end on defender turn.
     # TODO: when AoEs are added, will need to consider how to handle a Moment of Truth AoE attack. just end? split?
-    # On a failed reaction or successful interrupt, if attacker/interrupter has Moment of Truth, set to 0.
+    # On a successful hit (failed reaction) or interrupt, if attacker/interrupter has Moment of Truth, set to 0.
+    # Note that this means that if someone uses Moment of Truth and is then interrupted, they don't insta-lose it.
     reset_mot_lst = [ActionResult.REACT_FAIL, ActionResult.REACT_CRIT_FAIL, ActionResult.INTERRUPT_SUCCESS,
-                     ActionResult.INTERRUPT_CRIT_SUCCESS]
+                     ActionResult.INTERRUPT_CRIT_SUCCESS, ActionResult.INTERRUPT_REACT_CRIT_SUCCESS,
+                     ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT]
     if action_result in reset_mot_lst and action.moment_of_truth_value > 0:
         # NOTE: reaching in to affect the attacker character obj directly in this special case.
         attacker = find_attacker_from_key(action.attacker_key)
         attacker.db.buffs["Moment of Truth"] = 0
         attacker.msg("The accuracy boost from your moment of truth has faded.")
     # On a successful reaction, if defender has Nerves of Steel, set to 0. Glancing blow doesn't count.
-    reset_nos_lst = [ActionResult.DODGE_SUCCESS, ActionResult.BLOCK_SUCCESS, ActionResult.ENDURE_SUCCESS]
+    reset_nos_lst = [ActionResult.DODGE_SUCCESS, ActionResult.BLOCK_SUCCESS, ActionResult.ENDURE_SUCCESS,
+                     ActionResult.DODGE_CRIT_SUCCESS, ActionResult.BLOCK_CRIT_SUCESSS, ActionResult.ENDURE_CRIT_SUCCESS]
     if action_result in reset_nos_lst and target.db.buffs["Nerves of Steel"] > 0:
         target.db.buffs["Nerves of Steel"] = 0
         target.msg("The reaction boost from your nerves of steel has faded.")
