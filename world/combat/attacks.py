@@ -48,6 +48,8 @@ class AttackDuringAction:
         self.has_strain = False
         self.has_spirited = False
         self.has_savage = False
+        self.has_perfect_dodge = False
+        self.has_perfect_grit = False
         self.moment_of_truth_value = 0
         self.is_wild = False
         if attacker.db.buffs["Acuity"] > 0:
@@ -58,6 +60,10 @@ class AttackDuringAction:
             self.has_spirited = True
         if attacker.db.buffs["Savage"] > 0:
             self.has_savage = True
+        if attacker.db.buffs["Perfect Dodge"] > 0:
+            self.has_perfect_dodge = True
+        if attacker.db.buffs["Perfect Grit"] > 0:
+            self.has_perfect_grit = True
         if attacker.db.buffs["Moment of Truth"] > 0:
             self.moment_of_truth_value = attacker.db.buffs["Moment of Truth"]
         if attacker.db.debuffs_transform["Bird"] > 0:

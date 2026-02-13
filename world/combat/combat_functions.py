@@ -41,11 +41,13 @@ def filter_and_modify_arts(caller):
         base_arts.append(base_art)
         # Modify the copy of the art
         modified_art = berserk_check(caller, modified_art)
+        modified_art = perfect_dodge_ap_mod_check(caller, modified_art)
         modified_arts.append(modified_art)
     # Now search through the generic normals list and apply the same checks. No need to create a baseline
     for normal in NORMALS:
         modified_normal = copy.copy(normal)
         modified_normal = berserk_check(caller, modified_normal)
+        modified_normal = perfect_dodge_ap_mod_check(caller, modified_normal)
         modified_normals.append(modified_normal)
     return modified_arts, base_arts, modified_normals
 
@@ -69,6 +71,10 @@ def damage_calc(queued_attack, defender):
 
     # Check for the Strain effect on the attack to modify attack_dmg before determining multiplier.
     if queued_attack.has_strain:
+        attack_dmg += 1
+
+    # Crit success endures also boost damage.
+    if queued_attack.has_perfect_grit:
         attack_dmg += 1
 
     # Check for Aspects relevant to inflicting damage.
@@ -846,6 +852,19 @@ def crit_react_check(reaction, reactor, dice_roll):
     return is_crit_react
 
 
+def apply_crit_react_buff(caller, action_result):
+    # Apply benefits for Perfect Dodge, Perfect Guard, or Perfect Grit. Perfect Break is checked with Protect/Reflect.
+    if action_result == ActionResult.DODGE_CRIT_SUCCESS:
+        caller.db.buffs["Perfect Dodge"] = 1
+    elif action_result == ActionResult.BLOCK_CRIT_SUCESSS:
+        new_ap = caller.db.ap + 30
+        if new_ap > caller.db.maxap:
+            new_ap = caller.db.maxap
+        caller.db.ap = new_ap
+    elif action_result == ActionResult.ENDURE_CRIT_SUCCESS:
+        caller.db.buffs["Perfect Grit"] = 1
+
+
 def damage_message_strings(action_result, caller, attack, damage, interrupt=None, interrupt_damage=None,
                            interrupted_char=None):
     # Consolidated all message strings related to damage here, to reduce repetition in the commands themselves.
@@ -1028,6 +1047,15 @@ def berserk_check(caller, action):
     return action
 
 
+def perfect_dodge_ap_mod_check(caller, action):
+    # If a character has the buff from a Perfect dodge, all Arts that would cost AP cost 0 AP.
+    # Check this last to, e.g., override berserk_check().
+    if caller.db.buffs["Perfect Dodge"] > 0:
+        if action.ap < 0:
+            action.ap = 0
+    return action
+
+
 def hex_counter(caller):
     # Making this a separate mini-function for use in both modify_speed and display_status_effects.
     hex_counter = 0
@@ -1157,7 +1185,8 @@ def normalize_status(character):
     character.db.just_perfect_dodged = False
     character.db.just_perfect_guarded = False
     character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
-                          "Bless": 0, "Purity": 0, "Spirited": 0, "Savage": 0, "Moment of Truth": 0, "Nerves of Steel": 0}
+                          "Bless": 0, "Purity": 0, "Spirited": 0, "Savage": 0, "Moment of Truth": 0,
+                          "Nerves of Steel": 0, "Perfect Dodge": 0, "Perfect Grit": 0}
     character.db.debuffs_standard = {"Poison": 0, "Wound": 0, "Curse": 0, "Injure": 0, "Muddle": 0, "Miasma": 0,
                                      "Berserk": 0, "Petrify": 0, "Slime": 0}
     character.db.debuffs_transform = {"Bird": 0, "Frog": 0, "Pig": 0, "Pumpkin": 0}
@@ -1459,6 +1488,8 @@ def flat_acc_buff_check(action, target, is_interrupt=False):
         chance_to_hit_adjustment += 5
     if action.has_savage:
         chance_to_hit_adjustment += 5
+    if action.has_perfect_dodge:
+        chance_to_hit_adjustment += 10
     if action.moment_of_truth_value:
         # +20 if it was attacker's first action (2 turns remaining), +10 if second action (last turn remaining)
         chance_to_hit_adjustment += (action.moment_of_truth_value * 10)
