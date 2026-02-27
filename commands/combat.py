@@ -746,7 +746,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
                 action_result_for_target = ActionResult.REACT_FAIL
 
             # Check for Protect/Reflect/Perfect Break damage mitigation.
-            incoming_damage = protect_and_reflect_check(incoming_damage, caller, incoming_atk, action_result_for_interrupter)
+            incoming_damage = interrupt_mitigation_calc(incoming_damage, caller, incoming_atk, action_result_for_interrupter)
 
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= incoming_damage
@@ -776,10 +776,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             is_crit_react = crit_react_check("interrupt", caller, random100)
 
             # Determine how much damage the incoming attack would do if unmitigated.
-            unmitigated_incoming_damage = damage_calc(incoming_atk_in_queue, caller)
-
-            # Determine how the Damage of the outgoing interrupt mitigates incoming Damage.
-            incoming_damage = interrupt_mitigation_calc(unmitigated_incoming_damage, outgoing_damage)
+            incoming_damage = damage_calc(incoming_atk_in_queue, caller)
 
             if is_critical_hit and is_crit_react:
                 action_result_for_interrupter = ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT
@@ -794,8 +791,8 @@ class CmdInterrupt(default_cmds.MuxCommand):
                 action_result_for_interrupter = ActionResult.INTERRUPT_SUCCESS
                 action_result_for_target = ActionResult.WAS_INTERRUPTED
 
-            # Check for Protect/Reflect/Perfect Break damage mitigation.
-            incoming_damage = protect_and_reflect_check(incoming_damage, caller, incoming_atk, action_result_for_interrupter)
+            # Check for interrupt/Protect/Reflect/Perfect Break damage mitigation.
+            incoming_damage = interrupt_mitigation_calc(incoming_damage, caller, incoming_atk, action_result_for_interrupter)
 
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= incoming_damage

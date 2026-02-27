@@ -10,7 +10,7 @@ from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES
 from world.combat.normals import NORMALS
 from world.arts.models import Art
 from world.utilities.utilities import find_attacker_from_key
-from world.combat.aspects import BUFF_EQ, CRIT_REACTIONS
+from world.combat.aspects import BUFF_EQ
 
 
 class ArtBaseline:
@@ -440,18 +440,6 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
     return interrupt_chance
 
 
-def interrupt_mitigation_calc(unmitigated_incoming_damage, outgoing_damage):
-    # This function mitigates the damage taken by the interrupter on a successful interrupt relative to the Damage
-    # of the interrupting attack. This discourages super-high-Accuracy super-low-Damage interrupts.
-    mitigated_damage = unmitigated_incoming_damage / 2
-    if unmitigated_incoming_damage > outgoing_damage:
-        mitigated_damage *= (unmitigated_incoming_damage / outgoing_damage)
-    # Check to make sure nothing wacky has happened and the incoming attack isn't doing MORE damage.
-    if mitigated_damage > unmitigated_incoming_damage:
-        mitigated_damage = unmitigated_incoming_damage
-    return mitigated_damage
-
-
 def endure_bonus_calc(target, damage_taken):
     # Calculate the accuracy bonus to your next attack from enduring. Should be capped at around 10 to 15.
     accuracy_bonus = int(damage_taken) / 15
@@ -840,14 +828,14 @@ def crit_react_check(reaction, reactor, dice_roll):
         crit_react_threshold += (reactor.db.buffs["Moment of Truth"] * 10)
     if reaction in not_interrupts and reactor.db.buffs["Nerves of Steel"] > 0:
         crit_react_threshold += (reactor.db.buffs["Nerves of Steel"] * 10)
-    if crit_react_threshold > dice_roll:
-        if reaction == "dodge" and CRIT_REACTIONS[ActionResult.DODGE_CRIT_SUCCESS] in reactor.db.equipped_aspects:
+    if dice_roll <= crit_react_threshold:
+        if reaction == "dodge" and "Perfect Dodge" in reactor.db.equipped_aspects:
             is_crit_react = True
-        elif reaction == "block" and CRIT_REACTIONS[ActionResult.BLOCK_CRIT_SUCESSS] in reactor.db.equipped_aspects:
+        elif reaction == "block" and "Perfect Guard" in reactor.db.equipped_aspects:
             is_crit_react = True
-        elif reaction == "endure" and CRIT_REACTIONS[ActionResult.ENDURE_CRIT_SUCCESS] in reactor.db.equipped_aspects:
+        elif reaction == "endure" and "Perfect Grit" in reactor.db.equipped_aspects:
             is_crit_react = True
-        elif reaction == "interrupt" and CRIT_REACTIONS[ActionResult.INTERRUPT_REACT_CRIT_SUCCESS] in reactor.db.equipped_aspects:
+        elif reaction == "interrupt" and "Perfect Break" in reactor.db.equipped_aspects:
             is_crit_react = True
     return is_crit_react
 
@@ -926,10 +914,41 @@ def damage_message_strings(action_result, caller, attack, damage, interrupt=None
         msg_to_room = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}.\n" \
                       "|-|r** CRITICAL HIT! **|n"
         interrupted_char.msg("You took {dmg} damage.".format(dmg=round(interrupt_damage)))
+    # WAS_INTERRUPTED = 11
+    # WAS_CRIT_INTERRUPTED = 12
+    # DODGE_CRIT_SUCCESS = 13
+    elif action_result == ActionResult.DODGE_CRIT_SUCCESS:
+        caller.msg("You have perfectly dodged {attack}.".format(attack=attack.name))
+        msg_to_room = "|y<COMBAT>|n {target} has |gperfectly|n dodged {attacker}'s {modifier}{attack}!"
+    # BLOCK_CRIT_SUCESSS = 14
+    elif action_result == ActionResult.BLOCK_CRIT_SUCESSS:
+        caller.msg("You have perfectly blocked {attack}.".format(attack=attack.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} has |gperfectly|n blocked {attacker}'s {modifier}{attack}!"
+    # ENDURE_CRIT_SUCCESS = 15
+    elif action_result == ActionResult.ENDURE_CRIT_SUCCESS:
+        caller.msg("You perfectly endure {attack}.".format(attack=attack.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} |gunflinchingly|n endures {attacker}'s {modifier}{attack}!"
+    # INTERRUPT_REACT_CRIT_SUCCESS = 16
+    elif action_result == ActionResult.INTERRUPT_REACT_CRIT_SUCCESS:
+        caller.msg("You break through {attack} with {interrupt}.".format(attack=attack.name,
+                                                                     interrupt=interrupt.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} |gbreaks through|n {attacker}'s {modifier}{attack} with {interrupt}!"
+        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(interrupt_damage)))
+    # INTERRUPT_CRIT_HIT_AND_REACT_CRIT = 17
+    elif action_result == ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT:
+        caller.msg("You critically break through {attack} with {interrupt}!".format(attack=attack.name,
+                                                                     interrupt=interrupt.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} |gbreaks through|n {attacker}'s {modifier}{attack} with {interrupt}!\n" \
+                      "|-|r** CRITICAL HIT! **|n"
+        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(interrupt_damage)))
     return msg_to_room
 
 
-def protect_and_reflect_check(incoming_damage, defender, attack, action_result):
+def interrupt_mitigation_calc(incoming_damage, defender, attack, action_result):
     # Protect and Reflect mitigate damage specifically for an interrupter when interrupting (even on failure).
     mitigation = False
     successful_interrupt_result_list = [ActionResult.INTERRUPT_SUCCESS, ActionResult.INTERRUPT_CRIT_SUCCESS]
@@ -941,11 +960,13 @@ def protect_and_reflect_check(incoming_damage, defender, attack, action_result):
         if defender.db.buffs["Reflect"] > 0 or "Counterspell" in defender.db.equipped_aspects:
             mitigation = True
     if action_result in crit_react_result_list and mitigation:
-        incoming_damage = 0 # Perfect Break plus Protect/Reflect plus successful interrupt means full mitigation!
+        incoming_damage = 0 # Perfect Break plus Protect/Reflect 15% bonus equals total damage mitigation!
     elif action_result in crit_react_result_list:
-        incoming_damage = incoming_damage * 0.25 # Only Perfect Break means 75% is mitigated
+        incoming_damage = incoming_damage * 0.15 # Perfect Break mitigates 85% damage
     elif action_result in successful_interrupt_result_list and mitigation:
-        incoming_damage = incoming_damage * 0.75 # Only Protect/Reflect on successful interrupt mitigates 25%
+        incoming_damage = incoming_damage * 0.35 # 50% mitigation + 15% Protect/Reflect bonus
+    elif action_result in successful_interrupt_result_list:
+        incoming_damage = incoming_damage * 0.5 # Successfully interrupting halves damage
     elif mitigation:
         incoming_damage = incoming_damage * 0.85 # Protect/Reflect on failed interrupt mitigates 15%
     return incoming_damage
