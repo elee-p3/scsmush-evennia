@@ -394,8 +394,6 @@ class CmdDodge(default_cmds.MuxCommand):
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)
-        # DEBUG
-        random100 = 95
 
         chance_to_be_hit = dodge_calc(caller, action)
 
@@ -444,6 +442,8 @@ class CmdDodge(default_cmds.MuxCommand):
             record_combat(caller, action, "dodge", True, damage)
 
         msg = damage_message_strings(action_result, caller, attack, damage)
+        apply_crit_react_buff(caller, action_result)
+
         surge_buff_reset_check(action_result, action, caller)
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
@@ -486,8 +486,6 @@ class CmdBlock(default_cmds.MuxCommand):
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)
-        # DEBUG
-        random100 = 95
 
         chance_to_be_hit = block_chance_calc(caller, action)
 
@@ -543,6 +541,8 @@ class CmdBlock(default_cmds.MuxCommand):
             record_combat(caller, action, "block", True, damage)
 
         msg = damage_message_strings(action_result, caller, attack, damage)
+        apply_crit_react_buff(caller, action_result)
+
         # Applying ranged_knockback here since it applies whether or not you successfully block
         if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
             ranged_knockback(caller, attacker)
@@ -591,8 +591,6 @@ class CmdEndure(default_cmds.MuxCommand):
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)
-        # DEBUG
-        random100 = 95
 
         chance_to_be_hit = endure_chance_calc(caller, action)
 
@@ -646,6 +644,8 @@ class CmdEndure(default_cmds.MuxCommand):
 
         surge_buff_reset_check(action_result, action, caller)
         msg = damage_message_strings(action_result, caller, attack, damage)
+        apply_crit_react_buff(caller, action_result)
+
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)

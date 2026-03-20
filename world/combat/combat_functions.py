@@ -862,15 +862,19 @@ def crit_react_check(reaction, reactor, dice_roll):
 
 def apply_crit_react_buff(caller, action_result):
     # Apply benefits for Perfect Dodge, Perfect Guard, or Perfect Grit. Perfect Break is checked with Protect/Reflect.
+    # Buffs will be applied on reaction and apply only to the next action, so duration is set to 1.
     if action_result == ActionResult.DODGE_CRIT_SUCCESS:
         caller.db.buffs["Perfect Dodge"] = 1
+        caller.msg("Your keen evasion yields an opportunity. Your next attack is more accurate and costs no AP.")
     elif action_result == ActionResult.BLOCK_CRIT_SUCCESS:
         new_ap = caller.db.ap + 30
         if new_ap > caller.db.maxap:
             new_ap = caller.db.maxap
         caller.db.ap = new_ap
+        caller.msg(f"Your skillful defense marshals your reserves, increasing your AP to {caller.db.ap}.")
     elif action_result == ActionResult.ENDURE_CRIT_SUCCESS:
         caller.db.buffs["Perfect Grit"] = 1
+        caller.msg(f"Your implacable grit empowers you. Your next attack will be more damaging.")
 
 
 def damage_message_strings(action_result, caller, attack, damage, interrupt=None, interrupt_damage=None,
