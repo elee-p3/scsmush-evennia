@@ -394,6 +394,8 @@ class CmdDodge(default_cmds.MuxCommand):
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)
+        # DEBUG
+        random100 = 95
 
         chance_to_be_hit = dodge_calc(caller, action)
 
@@ -405,45 +407,43 @@ class CmdDodge(default_cmds.MuxCommand):
         action_result = None
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
-            final_damage = damage_calc(action, caller)
-            is_critical_hit, final_damage = critical_hits(final_damage, action, caller, random100)
+            damage = damage_calc(action, caller)
+            is_critical_hit, damage = critical_hits(damage, action, caller, random100)
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
             is_glancing_blow = glancing_blow_calc(random100, chance_to_be_hit, caller, action)
             if is_critical_hit:
                 action_result = ActionResult.REACT_CRIT_FAIL
             elif is_glancing_blow:
                 # For now, halving the damage of glancing blows.
-                final_damage = final_damage / 2
+                damage = damage / 2
                 action_result = ActionResult.GLANCING_BLOW
             else:
                 action_result = ActionResult.REACT_FAIL
 
-            msg = damage_message_strings(action_result, caller, attack, final_damage)
-
-            caller.db.lf -= final_damage
+            caller.db.lf -= damage
 
             # Modify EX based on damage taken.
-            caller.db.ex, attacker.db.ex = modify_ex_on_hit(final_damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker)
 
             # Effect check
             apply_debuff(action, caller)
             if "Drain" in attack.effects:
-                drain_check(action, attacker, caller, final_damage)
+                drain_check(action, attacker, caller, damage)
             if "Dispel" in attack.effects:
                 dispel_check(caller)
             if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
                 ranged_knockback(caller, attacker)
-            record_combat(caller, action, "dodge", False, final_damage)
+            record_combat(caller, action, "dodge", False, damage)
         else:
+            damage = 0
             is_crit_react = crit_react_check("dodge", caller, random100)
             if is_crit_react:
-                ActionResult.DODGE_CRIT_SUCESSS
+                action_result = ActionResult.DODGE_CRIT_SUCCESS
             else:
                 action_result = ActionResult.DODGE_SUCCESS
-            caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
-            msg = "|y<COMBAT>|n {target} has dodged {attacker}'s {modifier}{attack}."
-            record_combat(caller, action, "dodge", True, 0)
+            record_combat(caller, action, "dodge", True, damage)
 
+        msg = damage_message_strings(action_result, caller, attack, damage)
         surge_buff_reset_check(action_result, action, caller)
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
@@ -486,10 +486,12 @@ class CmdBlock(default_cmds.MuxCommand):
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)
+        # DEBUG
+        random100 = 95
 
         chance_to_be_hit = block_chance_calc(caller, action)
 
-        # Calculate initial damage. Successfully blocking
+        # Calculate initial damage.
         damage = damage_calc(action, caller)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
@@ -511,8 +513,7 @@ class CmdBlock(default_cmds.MuxCommand):
             caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker)
 
             # Modify the defender's block penalty (a little, since the block failed).
-            block_bool = False
-            new_block_penalty = accrue_block_penalty(caller, damage, block_bool, action)
+            new_block_penalty = accrue_block_penalty(caller, damage, action_result, action)
             caller.db.block_penalty = new_block_penalty
             # Apply debuffs only on failed blocks
             apply_debuff(action, caller)
@@ -524,19 +525,19 @@ class CmdBlock(default_cmds.MuxCommand):
         else:
             is_crit_react = crit_react_check("block", caller, random100)
             if is_crit_react:
-                ActionResult.BLOCK_CRIT_SUCESSS
+                action_result = ActionResult.BLOCK_CRIT_SUCCESS
             else:
                 action_result = ActionResult.BLOCK_SUCCESS
-            damage = block_damage_calc(damage, caller)
+            damage = block_damage_calc(damage, caller, action_result)
             caller.db.lf -= damage
 
-            # Modify EX (based on modified, not final, dmg).
+            # Modify EX.
             caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker)
 
-            # Modify the defender's block penalty (a lot, since the block succeeded). Based on modified, not final, dmg.
-            block_bool = True
-            new_block_penalty = accrue_block_penalty(caller, damage, block_bool, action)
+            # Modify the defender's block penalty (a lot, since the block succeeded).
+            new_block_penalty = accrue_block_penalty(caller, damage, action_result, action)
             caller.db.block_penalty = new_block_penalty
+
             if "Drain" in attack.effects:
                 drain_check(action, attacker, caller, damage)
             record_combat(caller, action, "block", True, damage)
@@ -590,6 +591,8 @@ class CmdEndure(default_cmds.MuxCommand):
         aim_or_feint = action.aim_or_feint
         modifier = action.modifier
         random100 = random.randint(1, 100)
+        # DEBUG
+        random100 = 95
 
         chance_to_be_hit = endure_chance_calc(caller, action)
 
@@ -598,7 +601,11 @@ class CmdEndure(default_cmds.MuxCommand):
 
         msg = ""
         action_result = None
-        damage = damage_calc(action, caller)
+        unmitigated_damage = damage_calc(action, caller)
+        # Because an Endure Crit Success can mitigate damage in a special case, but the endure bonus should be
+        # calculated based on unmitigated damage (and not thereby reduced), distinguishing "initial" and "final" damage.
+        damage = unmitigated_damage
+
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
             is_critical_hit, damage = critical_hits(damage, action, caller, random100)
@@ -610,26 +617,28 @@ class CmdEndure(default_cmds.MuxCommand):
         else:
             is_crit_react = crit_react_check("endure", caller, random100)
             if is_crit_react:
-                ActionResult.ENDURE_CRIT_SUCESSS
+                action_result = ActionResult.ENDURE_CRIT_SUCCESS
+                # On Crit Success, damage is reduced to 30%.
+                damage *= .3
             else:
                 action_result = ActionResult.ENDURE_SUCCESS
 
             # Now calculate endure bonus. Currently, let's set it so if you endure multiple attacks in a round,
             # you get to keep whatever endure bonus is higher. But endure bonus is not cumulative. (That's OP.)
-            if endure_bonus_calc(caller, damage) > caller.db.endure_bonus:
-                caller.db.endure_bonus = endure_bonus_calc(caller, damage)
+            if endure_bonus_calc(caller, unmitigated_damage) > caller.db.endure_bonus:
+                caller.db.endure_bonus = endure_bonus_calc(caller, unmitigated_damage)
             record_combat(caller, action, "endure", True, damage)
 
         # An enduring defender takes full damage regardless of success or failure.
         caller.db.lf -= damage
 
-        # Modify EX.
-        caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker)
+        # Modify EX. (Like endure_bonus, not reduced by Crit Endure mitigation.)
+        caller.db.ex, attacker.db.ex = modify_ex_on_hit(unmitigated_damage, caller, attacker)
 
         # Apply debuffs regardless of if endure succeeds or fails
         apply_debuff(action, caller)
         if "Drain" in attack.effects:
-            drain_check(action, attacker, caller, damage)
+            drain_check(action, attacker, caller, damage) # Mitigated by Crit Endure success
         if "Dispel" in attack.effects:
             dispel_check(caller)
         if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
@@ -720,17 +729,19 @@ class CmdInterrupt(default_cmds.MuxCommand):
         # Spawn an InterruptInstance here to begin modifying its accuracy, etc. Will need this for critical_hits
         interrupt = AttackDuringAction(outgoing_interrupt, caller.key, switches)
 
-        interrupt.attack.acc = interrupt_chance_calc(caller, incoming_atk_in_queue, interrupt)
+        # The higher the interrupt accuracy, the less likely to fail, thus, chance to be hit inverts interrupt chance
+        interrupt_chance = interrupt_chance_calc(caller, incoming_atk_in_queue, interrupt)
+        chance_to_be_hit = 100 - interrupt_chance
 
         # effects of aim and feint on incoming attack checked here
-        interrupt.attack.acc = modify_aim_and_feint(interrupt.attack.acc, "interrupt", aim_or_feint)
+        chance_to_be_hit = modify_aim_and_feint(chance_to_be_hit, "interrupt", aim_or_feint)
 
         msg = ""
         action_result_for_interrupter = None
         action_result_for_target = None
         outgoing_damage = 0
-        # In case of interrupt failure (the higher the accuracy, the less likely to fail, thus, high number = failure)
-        if interrupt.attack.acc < random100:
+        # In case of interrupt failure
+        if chance_to_be_hit > random100:
             incoming_damage = damage_calc(incoming_atk_in_queue, caller)
 
             # Since the incoming attack has hit, check for critical hit.
@@ -772,11 +783,11 @@ class CmdInterrupt(default_cmds.MuxCommand):
             # Check if the interrupt is a critical hit!
             is_critical_hit, outgoing_damage = critical_hits(outgoing_damage, interrupt, attacker, random100)
 
-            # Check for Perfect Break.
-            is_crit_react = crit_react_check("interrupt", caller, random100)
-
             # Determine how much damage the incoming attack would do if unmitigated.
             incoming_damage = damage_calc(incoming_atk_in_queue, caller)
+
+            # Check for Perfect Break.
+            is_crit_react = crit_react_check("interrupt", caller, random100)
 
             if is_critical_hit and is_crit_react:
                 action_result_for_interrupter = ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT

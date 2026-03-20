@@ -454,23 +454,38 @@ def endure_bonus_calc(target, damage_taken):
     return accuracy_bonus
 
 
-def block_damage_calc(base_damage, defender):
-    mitigated_damage = base_damage / 2
+def block_damage_calc(base_damage, defender, action_result):
+    mitigated_damage = None
+
+    if action_result == ActionResult.BLOCK_CRIT_SUCCESS:
+        mitigated_damage = base_damage / 4
+
+    elif action_result == ActionResult.BLOCK_SUCCESS:
+        mitigated_damage = base_damage / 2
+
+        # Modify the base mitigated damage by the block penalty (for successes, not crit successes).
+        # Currently, a doubled percentage increase: e.g., if someone successfully blocks with a 20 block penalty,
+        # first halve the damage, then multiply that by x1.4.
+        block_penalty = defender.db.block_penalty
+        if block_penalty > 0:
+            mitigated_damage *= ((block_penalty * 2) / 100 + 1)
+
+    if mitigated_damage is None:
+        raise Exception("Error: action_result not recognized in block_damage_calc.")
+
     if "Deflect" in defender.db.equipped_aspects:
-        # Deflect reduces incoming damage by Speed minus 125 (the baseline) divided by 4.
+        # Deflect further reduces incoming damage by Speed minus 125 (the baseline) divided by 4.
         deflect_mitigation = math.ceil((defender.db.speed - 125) / 4)
         if deflect_mitigation < 0:
             deflect_mitigation = 0
         mitigated_damage -= deflect_mitigation
-    # Modify the base mitigated damage by the block penalty.
-    # Currently, a doubled percentage increase: e.g., if someone successfully blocks with a 20 block penalty,
-    # first halve the damage, then multiply that by x1.4.
-    block_penalty = defender.db.block_penalty
-    if block_penalty > 0:
-        mitigated_damage *= ((block_penalty * 2) / 100 + 1)
-    # Make sure that this can't somehow do more damage than a failed block.
+
+    # Make sure that this can't somehow do more damage than a failed block, or do less than 0 damage.
     if mitigated_damage > base_damage:
         mitigated_damage = base_damage
+    if mitigated_damage < 0:
+        mitigated_damage = 0
+
     return mitigated_damage
 
 
@@ -542,15 +557,18 @@ def apply_attack_effects_to_attacker(attacker, attack):
     return attacker
 
 
-def accrue_block_penalty(defender, pre_block_damage, block_bool, attack_instance):
+def accrue_block_penalty(defender, pre_block_damage, action_result, attack_instance):
     # If the block succeeds, accrue full block penalty. If the block fails, accrue a minor block penalty.
     # Crush makes the block penalty a lot worse if you block and a little worse if you fail to block.
-    if block_bool:
+    if action_result == ActionResult.BLOCK_SUCCESS: # distinguish between crit success, success, fail or crit fail
         if attack_instance.has_crush:
             defender.db.block_penalty += (pre_block_damage / 5)
         else:
             defender.db.block_penalty += (pre_block_damage / 10)
-    else:
+    elif action_result == ActionResult.BLOCK_CRIT_SUCCESS:
+        # Crit block not only negates all block penalty from damage, but reduces existing penalty in half!
+        defender.db.block_penalty = math.ceil(defender.db.block_penalty / 2)
+    else: # Crit failure does not make block penalty any worse than failure (damage is already greater anyway)
         if attack_instance.has_crush:
             defender.db.block_penalty += (pre_block_damage / 15)
         else:
@@ -821,6 +839,8 @@ def critical_hits(damage, action, target, dice_roll):
 
 def crit_react_check(reaction, reactor, dice_roll):
     # Default 10% chance for crit react success. Threshold improves with Nerves of Steel, or Moment of Truth for ints.
+    # Damage defaults to zero because on successful dodges, there's no need to pass damage, as it's 0, crit or not.
+    crit_react_check = 100 - dice_roll # The higher the dice roll was, the better the check to compare to threshold
     is_crit_react = False
     crit_react_threshold = 10
     not_interrupts = ["dodge", "block", "endure"]
@@ -828,7 +848,7 @@ def crit_react_check(reaction, reactor, dice_roll):
         crit_react_threshold += (reactor.db.buffs["Moment of Truth"] * 10)
     if reaction in not_interrupts and reactor.db.buffs["Nerves of Steel"] > 0:
         crit_react_threshold += (reactor.db.buffs["Nerves of Steel"] * 10)
-    if dice_roll <= crit_react_threshold:
+    if crit_react_check <= crit_react_threshold:
         if reaction == "dodge" and "Perfect Dodge" in reactor.db.equipped_aspects:
             is_crit_react = True
         elif reaction == "block" and "Perfect Guard" in reactor.db.equipped_aspects:
@@ -844,7 +864,7 @@ def apply_crit_react_buff(caller, action_result):
     # Apply benefits for Perfect Dodge, Perfect Guard, or Perfect Grit. Perfect Break is checked with Protect/Reflect.
     if action_result == ActionResult.DODGE_CRIT_SUCCESS:
         caller.db.buffs["Perfect Dodge"] = 1
-    elif action_result == ActionResult.BLOCK_CRIT_SUCESSS:
+    elif action_result == ActionResult.BLOCK_CRIT_SUCCESS:
         new_ap = caller.db.ap + 30
         if new_ap > caller.db.maxap:
             new_ap = caller.db.maxap
@@ -921,7 +941,7 @@ def damage_message_strings(action_result, caller, attack, damage, interrupt=None
         caller.msg("You have perfectly dodged {attack}.".format(attack=attack.name))
         msg_to_room = "|y<COMBAT>|n {target} has |gperfectly|n dodged {attacker}'s {modifier}{attack}!"
     # BLOCK_CRIT_SUCESSS = 14
-    elif action_result == ActionResult.BLOCK_CRIT_SUCESSS:
+    elif action_result == ActionResult.BLOCK_CRIT_SUCCESS:
         caller.msg("You have perfectly blocked {attack}.".format(attack=attack.name))
         caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
         msg_to_room = "|y<COMBAT>|n {target} has |gperfectly|n blocked {attacker}'s {modifier}{attack}!"
@@ -971,30 +991,29 @@ def interrupt_mitigation_calc(incoming_damage, defender, attack, action_result):
         incoming_damage = incoming_damage * 0.85 # Protect/Reflect on failed interrupt mitigates 15%
     return incoming_damage
 
-#TODO: rename all the accuracy vars to "percentage" or something
-def modify_aim_and_feint(accuracy, reaction, aim_or_feint):
+def modify_aim_and_feint(chance_to_hit, reaction, aim_or_feint):
     # Centralizing any modifications to Aim and Feint from buffs, etc. Call this in each reaction. Return mod acc.
     if reaction == "dodge" or "block":
         # Aiming is more accurate and feinting is less accurate against dodging and blocking.
         if aim_or_feint == AimOrFeint.AIM:
-            accuracy += 15
+            chance_to_hit += 15
         elif aim_or_feint == AimOrFeint.HASTED_AIM:
-            accuracy += 25
+            chance_to_hit += 25
         elif aim_or_feint == AimOrFeint.FEINT:
-            accuracy -= 15
+            chance_to_hit -= 15
     elif reaction == "endure" or "interrupt":
         # Aiming is less accurate and feinting is more accurate against enduring and interrupting.
         if aim_or_feint == AimOrFeint.AIM:
-            accuracy -= 15
+            chance_to_hit -= 15
         elif aim_or_feint == AimOrFeint.FEINT:
-            accuracy += 15
+            chance_to_hit += 15
         elif aim_or_feint == AimOrFeint.BLINKED_FEINT:
-            accuracy += 25
-    if accuracy > 99:
-        accuracy = 99
-    elif accuracy < 1:
-        accuracy = 1
-    return accuracy
+            chance_to_hit += 25
+    if chance_to_hit > 99:
+        chance_to_hit = 99
+    elif chance_to_hit < 1:
+        chance_to_hit = 1
+    return chance_to_hit
 
 
 def poison_check(target):
@@ -1535,7 +1554,7 @@ def surge_buff_reset_check(action_result, action, target):
         attacker.msg("The accuracy boost from your moment of truth has faded.")
     # On a successful reaction, if defender has Nerves of Steel, set to 0. Glancing blow doesn't count.
     reset_nos_lst = [ActionResult.DODGE_SUCCESS, ActionResult.BLOCK_SUCCESS, ActionResult.ENDURE_SUCCESS,
-                     ActionResult.DODGE_CRIT_SUCCESS, ActionResult.BLOCK_CRIT_SUCESSS, ActionResult.ENDURE_CRIT_SUCCESS]
+                     ActionResult.DODGE_CRIT_SUCCESS, ActionResult.BLOCK_CRIT_SUCCESS, ActionResult.ENDURE_CRIT_SUCCESS]
     if action_result in reset_nos_lst and target.db.buffs["Nerves of Steel"] > 0:
         target.db.buffs["Nerves of Steel"] = 0
         target.msg("The reaction boost from your nerves of steel has faded.")
