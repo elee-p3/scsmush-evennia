@@ -6,7 +6,8 @@ import random
 import math
 from world.utilities.utilities import logger
 from world.combat.attacks import Attack, ActionResult, AttackToQueue, AttackDuringAction
-from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint
+from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint, \
+    REACTION_MODIFIERS, ATTACK_ENHANCERS
 from world.combat.normals import NORMALS
 from world.arts.models import Art
 from world.utilities.utilities import find_attacker_from_key
@@ -40,14 +41,12 @@ def filter_and_modify_arts(caller):
         base_art = ArtBaseline(art.name, art.dmg, art.acc, art.stat, art.ap, art.effects)
         base_arts.append(base_art)
         # Modify the copy of the art
-        modified_art = berserk_check(caller, modified_art)
-        modified_art = perfect_dodge_ap_mod_check(caller, modified_art)
+        modified_art = ap_mod_check(caller, modified_art)
         modified_arts.append(modified_art)
     # Now search through the generic normals list and apply the same checks. No need to create a baseline
     for normal in NORMALS:
         modified_normal = copy.copy(normal)
-        modified_normal = berserk_check(caller, modified_normal)
-        modified_normal = perfect_dodge_ap_mod_check(caller, modified_normal)
+        modified_normal = ap_mod_check(caller, modified_normal)
         modified_normals.append(modified_normal)
     return modified_arts, base_arts, modified_normals
 
@@ -425,6 +424,12 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
     # Perfect Break improves interrupt chances by 5%, consistent with reaction bonuses from all similar Asepcts.
     if "Perfect Break" in interrupter.db.equipped_aspects:
         interrupt_chance += 5
+    # Breakthrough improves interrupt chances by 5% for "higher-Damage attacks," starting at 6.
+    if "Breakthrough" in interrupter.db.equipped_aspects:
+        if outgoing_interrupt.attack.dmg >= 6:
+            interrupt_chance += 5
+            # DEBUG
+            interrupter.msg("Breakthrough detected and attack dmg meets threshold")
     # Incorporating incoming attacks's endure bonus, reducing interrupt chance.
     interrupt_chance -= incoming_attack_instance.endure_bonus
     # Incorporating the flat acc buffs on the incoming attack, potentially benefiting the target of the interrupt.
@@ -489,17 +494,40 @@ def block_damage_calc(base_damage, defender, action_result):
     return mitigated_damage
 
 
-def ex_gain_on_attack(damage_inflicted, current_ex, max_ex):
-    ex_gain = int(damage_inflicted) / 15
-    new_ex = current_ex + ex_gain
+def ex_gain_on_attack(damage_inflicted, attacker, defender, action):
+    ex_gain_denominator = 15
+    # If the defender has Synergist equipped, hitting them gives more EX, reducing denominator.
+    if "Synergist" in defender.db.equipped_aspects:
+        ex_gain_denominator -= 1.5
+        # DEBUG
+        defender.msg("Synergist detected")
+    # If the attacker has Tactician equipped, attacks with Reaction Modifier effects give less EX.
+    if "Tactician" in attacker.db.equipped_aspects and set(action.attack.effects).intersection(REACTION_MODIFIERS):
+        ex_gain_denominator += 1.5
+        # DEBUG
+        attacker.msg('Tactician and attack with Reaction Modifier effect detected')
+    ex_gain = int(damage_inflicted) / ex_gain_denominator
+    # EX gain for attacker
+    current_ex = attacker.db.ex
+    max_ex = attacker.db.maxex
+    new_ex = math.ceil(current_ex + ex_gain)
     if new_ex > max_ex:
         new_ex = max_ex
     return new_ex
 
 
-def ex_gain_on_defense(damage_taken, current_ex, max_ex):
-    ex_gain = int(damage_taken) / 5
-    new_ex = current_ex + ex_gain
+def ex_gain_on_defense(damage_taken, attacker, defender, action):
+    ex_gain_denominator = 5
+    # If the attacker has Saboteur is using a debuffing attack, gain more EX, decreasing denominator.
+    if "Saboteur" in attacker.db.equipped_aspects and set(action.attack.effects).intersection(DEBUFFS):
+        ex_gain_denominator -= 0.5
+        # DEBUG
+        defender.msg("Attacker Saboteur and debuff attempt detected")
+    ex_gain = int(damage_taken) / ex_gain_denominator
+    # EX gain for defender
+    current_ex = defender.db.ex
+    max_ex = defender.db.maxex
+    new_ex = math.ceil(current_ex + ex_gain)
     if new_ex > max_ex:
         new_ex = max_ex
     return new_ex
@@ -1079,25 +1107,26 @@ def wound_check(character, action):
         character.msg("You are no longer wounded.")
 
 
-def berserk_check(caller, action):
+def ap_mod_check(caller, action):
+    # If a character has the buff from a Perfect dodge, all Arts that would cost AP cost 0 AP. Return immediately.
+    if caller.db.buffs["Perfect Dodge"] > 0:
+        if action.ap < 0:
+            action.ap = 0
+            return action
     # If a character is Berserk, Arts of lower than 5 Damage value cost 10 more AP.
     if caller.db.debuffs_standard["Berserk"] > 0:
         if action.dmg < 5:
             action.ap -= 10
-    # Battle Range will make the equipper immune to Berserk, so both conditions cannot be true.
+    # Battle Rage will make the equipper immune to Berserk, so both conditions cannot be true.
     elif "Battle Rage" in caller.db.equipped_aspects:
         if action.dmg < 5:
             action.ap -= 5
+    if "Marauder" in caller.db.equipped_aspects and set(action.attack.effects).intersection(ATTACK_ENHANCERS):
+        action.ap += 5
+        # DEBUG
+        caller.msg("Marauder and attack with Attack Enhancer effect detected")
     return action
 
-
-def perfect_dodge_ap_mod_check(caller, action):
-    # If a character has the buff from a Perfect dodge, all Arts that would cost AP cost 0 AP.
-    # Check this last to, e.g., override berserk_check().
-    if caller.db.buffs["Perfect Dodge"] > 0:
-        if action.ap < 0:
-            action.ap = 0
-    return action
 
 
 def hex_counter(caller):
@@ -1133,27 +1162,27 @@ def strain_check(attacker, attack):
         attacker.db.negative_lf_from_dot = True
 
 
-def modify_ex_on_hit(damage, defender, attacker):
+def modify_ex_on_hit(damage, defender, attacker, action):
     # Called when 1) a defender fails a reaction and is damaged or 2) fails an interrupt action and is damaged.
     # The damaged character gains a fair amount of EX and the damaging character gains some EX, proportional to damage.
     # Modify EX based on damage taken.
     # Modify the character's EX based on the damage inflicted.
-    new_defender_ex = ex_gain_on_defense(damage, defender.db.ex, defender.db.maxex)
+    new_defender_ex = ex_gain_on_defense(damage, defender.db.ex, defender.db.maxex, action)
     # Modify the attacker's EX based on the damage inflicted.
-    new_attacker_ex = ex_gain_on_attack(damage, attacker.db.ex, attacker.db.maxex)
+    new_attacker_ex = ex_gain_on_attack(damage, attacker.db.ex, attacker.db.maxex, action)
     return new_defender_ex, new_attacker_ex
 
 
-def modify_ex_on_interrupt_success(mitigated_damage, interrupt_damage, interrupting_char, interrupted_char):
+def modify_ex_on_interrupt_success(mitigated_damage, interrupt_damage, interrupting_char, interrupted_char, interrupt):
     # Called specifically when a target successfully interrupts. In this case, both characters are damaged by each
     # other's attacks, so EX is gained BY both FOR both damaging and being damaged, proportional to damage.
     # Modify the interrupting character's EX based on the damage dealt AND inflicted.
-    interrupting_char_ex = ex_gain_on_defense(mitigated_damage, interrupting_char.db.ex, interrupting_char.db.maxex)
-    interrupting_char_ex = ex_gain_on_attack(interrupt_damage, interrupting_char_ex, interrupting_char.db.maxex)
+    interrupting_char_ex = ex_gain_on_defense(mitigated_damage, interrupting_char.db.ex, interrupting_char.db.maxex, interrupt)
+    interrupting_char_ex = ex_gain_on_attack(interrupt_damage, interrupting_char_ex, interrupting_char.db.maxex, interrupt)
 
     # Modify the interrupted character's EX based on the damage dealt AND inflicted.
-    interrupted_char_ex = ex_gain_on_attack(mitigated_damage, interrupted_char.db.ex, interrupted_char.db.maxex)
-    interrupted_char_ex = ex_gain_on_defense(interrupt_damage, interrupted_char_ex, interrupted_char.db.maxex)
+    interrupted_char_ex = ex_gain_on_attack(mitigated_damage, interrupted_char.db.ex, interrupted_char.db.maxex, interrupt)
+    interrupted_char_ex = ex_gain_on_defense(interrupt_damage, interrupted_char_ex, interrupted_char.db.maxex, interrupt)
     return interrupting_char_ex, interrupted_char_ex
 
 

@@ -421,7 +421,7 @@ class CmdDodge(default_cmds.MuxCommand):
             caller.db.lf -= damage
 
             # Modify EX based on damage taken.
-            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker, action)
 
             # Effect check
             apply_debuff(action, caller)
@@ -508,7 +508,7 @@ class CmdBlock(default_cmds.MuxCommand):
             caller.db.lf -= damage
 
             # Modify EX based on the damage.
-            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker, action)
 
             # Modify the defender's block penalty (a little, since the block failed).
             new_block_penalty = accrue_block_penalty(caller, damage, action_result, action)
@@ -530,7 +530,7 @@ class CmdBlock(default_cmds.MuxCommand):
             caller.db.lf -= damage
 
             # Modify EX.
-            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker, action)
 
             # Modify the defender's block penalty (a lot, since the block succeeded).
             new_block_penalty = accrue_block_penalty(caller, damage, action_result, action)
@@ -631,7 +631,7 @@ class CmdEndure(default_cmds.MuxCommand):
         caller.db.lf -= damage
 
         # Modify EX. (Like endure_bonus, not reduced by Crit Endure mitigation.)
-        caller.db.ex, attacker.db.ex = modify_ex_on_hit(unmitigated_damage, caller, attacker)
+        caller.db.ex, attacker.db.ex = modify_ex_on_hit(unmitigated_damage, caller, attacker, action)
 
         # Apply debuffs regardless of if endure succeeds or fails
         apply_debuff(action, caller)
@@ -763,7 +763,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             caller.db.lf -= incoming_damage
 
             # Modify EX based on damage.
-            caller.db.ex, attacker.db.ex = modify_ex_on_hit(incoming_damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(incoming_damage, caller, attacker, interrupt)
 
             # Apply debuffs only if interrupt fails
             apply_debuff(incoming_atk_in_queue, caller)
@@ -813,7 +813,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
             final_action_check(attacker)
 
             # Modify EX.
-            caller.db.ex, attacker.db.ex = modify_ex_on_interrupt_success(incoming_damage, outgoing_damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_interrupt_success(incoming_damage, outgoing_damage, caller, attacker, interrupt)
 
             # Interrupting a Drain attack partially drains you, but if you interrupt Long-Range, you're not knocked back
             if "Drain" in incoming_atk.effects:

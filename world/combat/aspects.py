@@ -43,15 +43,23 @@ iron_skin = Aspect(name="Iron Skin", cost=10)
 tumble = Aspect(name="Tumble", cost=10)
 # Breakthrough: Higher-damage attacks are somewhat harder to interrupt than they would otherwise be. This effect is not
 # hidden to the interrupter.
+breakthrough = Aspect(name="Breakthrough", cost=10)
 # Saboteur: All standard debuff (i.e., neither transformations nor hexes) chances improve and debuff AP costs slightly
 # decrease, but all targets gain more EX when hit with attempted debuffs.
+saboteur = Aspect(name="Saboteur", cost=10)
 # Synergist: Buff AP costs decrease, but all attackers gain more EX when they hit you.
+synergist = Aspect(name="Synergist", cost=10)
 # Tactician: Reaction Modifier Effect AP costs decrease (to 0 in many cases), but Arts with Reaction Modifier Effects
 # generate significantly less EX from attacking.
+tactician = Aspect(name="Tactician", cost=10)
 # Marauder: Attack Enhancer Effect AP costs decrease, but Arts with Attack Enhancer Effects are slightly less accurate.
+marauder = Aspect(name="Marauder", cost=10)
 # Bewitching: Hexes and Transformation debuffs specifically are harder to resist and the latter cost less AP.
+bewitching = Aspect(name="Bewitching", cost=10)
 # Vengeful: Your base critical hit chance is lower, but increases as your health decreases.
+vengeful = Aspect(name="Vengeful", cost=10)
 # Reckless: Your base critical hit chance is higher, but you are also more likely to suffer critical hits.
+reckless = Aspect(name="Reckless", cost=10)
 # Savage: When you inflict a critical hit, gain a temporary boost to accuracy and speed.
 savage = Aspect(name="Savage", cost=10)
 # Spirited: When you suffer a critical hit, gain a temporary boost to accuracy and speed.
@@ -108,6 +116,14 @@ ASPECTS = [
     deflect,
     iron_skin,
     tumble,
+    breakthrough,
+    saboteur,
+    synergist,
+    tactician,
+    marauder,
+    bewitching,
+    vengeful,
+    reckless,
     savage,
     spirited,
     counterstrike,

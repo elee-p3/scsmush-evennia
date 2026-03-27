@@ -24,6 +24,10 @@ class Effect:
 # IMPORTANT NOTE: if you add a new Effect, add it to at_pre_puppet in characters.py and normalize_status and combat_tick
 # in combat_functions.py.
 
+
+ex_move = Effect("EX", 5, "EX")
+# An EX attack costs 0 AP but 100% EX.
+
 # Attack Enhancers
 
 crush = Effect("Crush", -10, "CRU")
@@ -32,8 +36,6 @@ sweep = Effect("Sweep", -10, "SWP")
 # 1) Lower opponent's dodge chance. 2) Increase chance of Glancing Blow (partial damage) if dodged.
 priority = Effect("Priority", -15, "PRI")
 # 1) Lower opponent's interrupt chance. 2) Increase interrupt chance if used as an interrupt.
-ex_move = Effect("EX", 5, "EX")
-# An EX attack costs 0 AP but 100% EX.
 rush = Effect("Rush", -5, "RSH")
 # 1) Increase accuracy if not used as interrupt. 2) Decrease all reaction chances until next action.
 # This is a hybrid Attack Enhancer / Reaction Modifier.
@@ -218,6 +220,23 @@ EFFECTS = [crush,
            purity,
            cure,
            strain]
+
+ATTACK_ENHANCERS = [
+    crush,
+    sweep,
+    priority,
+    rush,
+    long_range,
+    drain,
+    dispel,
+    strain
+]
+
+REACTION_MODIFIERS = [
+    weave,
+    brace,
+    bait
+]
 
 # Lists of Support and Debuff Effects, Specifically, for Dispel/Cure/Serendipity/Curse/Etc.
 # SUPPORT are flags that must be accompanied by Heal. BUFFS are options for random selection, e.g., Serendipity, Dispel.
