@@ -434,8 +434,6 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
     if "Breakthrough" in interrupter.db.equipped_aspects:
         if outgoing_interrupt.attack.dmg >= 6:
             interrupt_chance += 5
-            # DEBUG
-            interrupter.msg("Breakthrough detected and attack dmg meets threshold")
     # Incorporating incoming attacks's endure bonus, reducing interrupt chance.
     interrupt_chance -= incoming_attack_instance.endure_bonus
     # Incorporating the flat acc buffs on the incoming attack, potentially benefiting the target of the interrupt.
@@ -505,13 +503,9 @@ def ex_gain_on_attack(damage_inflicted, attacker, defender, action):
     # If the defender has Synergist equipped, hitting them gives more EX, reducing denominator.
     if "Synergist" in defender.db.equipped_aspects:
         ex_gain_denominator -= 1.5
-        # DEBUG
-        defender.msg("Synergist detected")
     # If the attacker has Tactician equipped, attacks with Reaction Modifier effects give less EX.
     if "Tactician" in attacker.db.equipped_aspects and any(e in REACTION_MODIFIERS for e in action.attack.effects.split()):
         ex_gain_denominator += 1.5
-        # DEBUG
-        attacker.msg('Tactician and attack with Reaction Modifier effect detected')
     ex_gain = int(damage_inflicted) / ex_gain_denominator
     # EX gain for attacker
     current_ex = attacker.db.ex
@@ -527,8 +521,6 @@ def ex_gain_on_defense(damage_taken, attacker, defender, action):
     # If the attacker has Saboteur is using a debuffing attack, gain more EX, decreasing denominator.
     if "Saboteur" in attacker.db.equipped_aspects and any(e in DEBUFFS for e in action.attack.effects.split()):
         ex_gain_denominator -= 0.5
-        # DEBUG
-        defender.msg("Attacker Saboteur and debuff attempt detected")
     ex_gain = int(damage_taken) / ex_gain_denominator
     # EX gain for defender
     current_ex = defender.db.ex
@@ -861,8 +853,6 @@ def critical_hits(damage, action, target, dice_roll):
     if "Vengeful" in action.attacker_aspects:
         divisor = action.attacker_stats["MAXLF"] / 20 # Defaults to 50
         critical_threshold += ((action.attacker_stats["MAXLF"] - action.attacker_stats["LF"]) / divisor) - 5
-        # DEBUG
-        target.msg(f"Vengeful was on attacker aspects and modified crit threshold by {((action.attacker_stats['MAXLF'] - action.attacker_stats['LF']) / divisor) - 5}")
     # The Reckless Aspect increases the chance to inflict and to suffer critical hits.
     if "Reckless" in action.attacker_aspects:
         critical_threshold += 5
@@ -1125,8 +1115,6 @@ def wound_check(character, action):
 
 
 def ap_mod_check(caller, action):
-    action_effects_list = action.effects.split()
-    caller.msg(action_effects_list)
     # If a character has the buff from a Perfect dodge, all Arts that would cost AP cost 0 AP. Return immediately.
     if caller.db.buffs["Perfect Dodge"] > 0:
         if action.ap < 0:
@@ -1142,26 +1130,15 @@ def ap_mod_check(caller, action):
             action.ap -= 5
     if "Marauder" in caller.db.equipped_aspects and any(e in ATTACK_ENHANCERS for e in action.effects.split()):
         action.ap += 5
-        # DEBUG
-        caller.msg("Marauder and attack with Attack Enhancer effect detected")
     if "Saboteur" in caller.db.equipped_aspects and any(e in DEBUFFS for e in action.effects.split()):
         action.ap += 5
-        # DEBUG
-        caller.msg("Saboteur and attack with debuff detected")
     if "Synergist" in caller.db.equipped_aspects and any(e in BUFFS for e in action.effects.split()):
         action.ap += 5
-        # DEBUG
-        caller.msg("Synergist and buff action detected")
     if "Tactician" in caller.db.equipped_aspects and any(e in REACTION_MODIFIERS for e in action.effects.split()):
         action.ap += 5
-        # DEBUG
-        caller.msg("Tactician and reaction modifier detected")
     if "Bewitching" in caller.db.equipped_aspects and any(e in DEBUFFS_TRANSFORMATION for e in action.effects.split()):
         action.ap += 10
-        # DEBUG
-        caller.msg("Bewitching and transformation debuff detected")
     return action
-
 
 
 def hex_counter(caller):
@@ -1202,9 +1179,9 @@ def modify_ex_on_hit(damage, defender, attacker, action):
     # The damaged character gains a fair amount of EX and the damaging character gains some EX, proportional to damage.
     # Modify EX based on damage taken.
     # Modify the character's EX based on the damage inflicted.
-    new_defender_ex = ex_gain_on_defense(damage, defender.db.ex, defender.db.maxex, action)
+    new_defender_ex = ex_gain_on_defense(damage, attacker, defender, action)
     # Modify the attacker's EX based on the damage inflicted.
-    new_attacker_ex = ex_gain_on_attack(damage, attacker.db.ex, attacker.db.maxex, action)
+    new_attacker_ex = ex_gain_on_attack(damage, attacker, defender, action)
     return new_defender_ex, new_attacker_ex
 
 
@@ -1592,7 +1569,7 @@ def apply_buff(action, healer, target):
 def apply_flat_acc_modifiers(action, target, is_interrupt=False):
     # A limited subset of buffs/Aspects can, like endure bonus, directly affect chance_to_hit. Called in reactions.
     chance_to_hit_adjustment = 0
-    if "Marauder" in action.attacker_aspects and any(e in ATTACK_ENHANCERS for e in action.effects.split()):
+    if "Marauder" in action.attacker_aspects and any(e in ATTACK_ENHANCERS for e in action.attack.effects.split()):
         chance_to_hit_adjustment -= 3
     if action.has_spirited:
         chance_to_hit_adjustment += 5
@@ -1681,8 +1658,6 @@ def apply_debuff(action, target):
             base_debuff_resist -= 10
         if "Bewitching" in action.attacker_aspects and debuff in DEBUFFS_HEXES + DEBUFFS_TRANSFORMATION:
             base_debuff_resist -= 10
-            # DEBUG
-            target.msg("Bewitching and debuff in hexes or transformation detected")
         # Check for relevant attacker Expertise Aspect on the action
         if f"{debuff.title()} Expertise" in action.attacker_aspects:
             base_debuff_resist -= 30
