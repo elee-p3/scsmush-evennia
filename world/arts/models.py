@@ -1,5 +1,4 @@
 from django.db import models
-from world.combat.attacks import Attack
 
 class Art(models.Model):
     # characters who use this art
@@ -48,18 +47,6 @@ class Art(models.Model):
         default=False,
         blank=True
     )
-
-    @classmethod
-    def addArt(cls, art: Attack, is_normal=False):
-        Art.objects.create(
-            name=art.name,
-            ap=art.ap,
-            dmg=art.dmg,
-            acc=art.acc,
-            stat=art.base_stat,
-            effects=' '.join(art.effects),
-            isNormal=is_normal
-        )
 
     def __str__(self):
         return self.name

@@ -1,4 +1,5 @@
 from world.combat.attacks import Attack
+from world.aspects.models import LinkedAspect as LinkedAspectModel
 
 
 class Aspect:
@@ -21,11 +22,14 @@ def stat_value_from_cost(cost):
 
 # Class for interfacing with the LinkedAspect model
 class LinkedAspect(Aspect):
-    def __init__(self, linked_aspect_id, linked_art: Attack, name, cost, custom_name=""):
+    def __init__(self, linked_aspect_id, name, cost, custom_name=""):
         super().__init__(name, cost, custom_name=custom_name)
         self.linked_aspect_id = linked_aspect_id
-        self.linked_art = linked_art
         self.stat_value = stat_value_from_cost(cost)
+
+    def linked_art(self) -> Attack:
+        linked_aspect: LinkedAspectModel = LinkedAspectModel.objects.filter(id=self.linked_aspect_id).first()
+        return Attack.attack_from_art(linked_aspect.linked_art)
 
 
 # TODO: Just make all the aspects and test them out one by one!

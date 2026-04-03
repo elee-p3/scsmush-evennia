@@ -1,4 +1,5 @@
 from world.combat.effects import AimOrFeint, DEBUFFS
+from world.arts.models import Art
 from world.utilities.utilities import find_attacker_from_key
 from enum import Enum
 
@@ -21,6 +22,10 @@ class Attack:
             return self.name.lower() == other.lower()
         elif isinstance(other, Attack):
             return self.name.lower() == other.name.lower()
+
+    @classmethod
+    def attack_from_art(cls, art: Art):
+        return Attack(art.name, art.ap, art.dmg, art.acc, art.stat, art.effects)
 
 
 class AttackDuringAction:

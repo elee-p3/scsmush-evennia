@@ -16,45 +16,26 @@ from world.utilities.utilities import find_attacker_from_key
 from world.combat.aspects import BUFF_EQ
 
 
-# TODO: https://github.com/elee-p3/scsmush-evennia/issues/39
-class ArtBaseline:
-    # A data container to keep a copy of an art prior to it being modified by, e.g., a character's status effects.
-    # The purpose is for comparison with base values, e.g., did AP cost go up or down overall.
-    def __init__(self, name, base_dmg, base_acc, base_stat, base_ap, base_effects):
-        self.name = name
-        self.dmg = base_dmg
-        self.acc = base_acc
-        self.stat = base_stat
-        self.ap = base_ap
-        self.effects = base_effects
-
-
 def filter_and_modify_arts(caller: Character):
     # Centralizes the function of sorting through the Arts table, finding those linked to a character, and then
     # modifying them based on the character's status effect. This way, e.g., if a Berserk character's AP costs for
     # attacks of damage less than 5 are increased by 10, this is reflected in both CmdAttack and CmdSheet.
     # This function will be used in CmdAttack, CmdInterrupt, CmdArts, CmdListAttacks, CmdCheck, and CmdSheet.
     # TODO: https://github.com/elee-p3/scsmush-evennia/issues/38
-    character_arts = list(Art.objects.filter(characters=caller))
-    aspect_arts = [aspect.linked_art for aspect in caller.db.equipped_aspects if isinstance(aspect, LinkedAspect)]
+    character_arts = [Attack.attack_from_art(art) for art in list(Art.objects.filter(characters=caller))]
+    aspect_arts = [aspect.linked_art() for aspect in caller.db.equipped_aspects if isinstance(aspect, LinkedAspect)]
     all_arts = character_arts + aspect_arts
-    base_arts = []
     modified_arts = []
     modified_normals = []
     for art in all_arts:
-        # Copy.copy is used to ensure we do not modify the attack in the character's list, just this instance of it.
-        modified_art = copy.copy(art)
-        base_art = ArtBaseline(art.name, art.dmg, art.acc, art.stat, art.ap, art.effects)
-        base_arts.append(base_art)
-        # Modify the copy of the art
-        modified_art = ap_mod_check(caller, modified_art)
+        modified_art = ap_mod_check(caller, art)
         modified_arts.append(modified_art)
     # Now search through the generic normals list and apply the same checks. No need to create a baseline
     for normal in NORMALS:
         modified_normal = copy.copy(normal)
         modified_normal = ap_mod_check(caller, modified_normal)
         modified_normals.append(modified_normal)
-    return modified_arts, base_arts, modified_normals
+    return modified_arts, all_arts, modified_normals
 
 
 def assign_attack_instance_id(target):
