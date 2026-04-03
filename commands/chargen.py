@@ -43,6 +43,7 @@ class CmdSetArt(default_cmds.MuxCommand):
         # TODO: Check if a art of the same name already exists and, if so, modify it instead of creating a new one.
         caller = self.caller
         args = self.args
+        # TODO: https://github.com/elee-p3/scsmush-evennia/issues/38
         arts = Art.objects.filter(characters=caller)
         # Create a list of Arts if the character does not yet have one.
         # Name = string, damage = int, base stat = string, effects = string(s).

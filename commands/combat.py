@@ -1,8 +1,6 @@
 import csv
-from math import floor, ceil
 
 from evennia import default_cmds
-from evennia.utils import evtable
 
 from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
@@ -218,7 +216,7 @@ class CmdAttack(default_cmds.MuxCommand):
         caller = self.caller
         location = caller.location
         args = self.args
-        arts, base_arts, modified_normals = filter_and_modify_arts(caller)
+        arts, _, modified_normals = filter_and_modify_arts(caller)
         switches = self.switches
         # For attack/wild and heal/[debuff] (for Cure). Switches is a list of strings split by /. Send to heal_check.
 
@@ -678,7 +676,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         caller = self.caller
         args = self.args
         switches = self.switches
-        arts, base_arts, normals = filter_and_modify_arts(caller)
+        arts, _, normals = filter_and_modify_arts(caller)
         id_list = [attack.id for attack in caller.db.queue]
         # Like +attack, +interrupt requires two arguments: a incoming attack and an outgoing interrupt.
         if "=" not in args:

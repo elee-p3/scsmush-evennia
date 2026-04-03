@@ -1,5 +1,7 @@
 import copy
 
+from typeclasses.characters import Character
+from world.combat.aspects import LinkedAspect
 from world.scenes.models import Scene, LogEntry
 from django.utils.html import escape
 import random
@@ -14,6 +16,7 @@ from world.utilities.utilities import find_attacker_from_key
 from world.combat.aspects import BUFF_EQ
 
 
+# TODO: https://github.com/elee-p3/scsmush-evennia/issues/39
 class ArtBaseline:
     # A data container to keep a copy of an art prior to it being modified by, e.g., a character's status effects.
     # The purpose is for comparison with base values, e.g., did AP cost go up or down overall.
@@ -26,16 +29,19 @@ class ArtBaseline:
         self.effects = base_effects
 
 
-def filter_and_modify_arts(caller):
+def filter_and_modify_arts(caller: Character):
     # Centralizes the function of sorting through the Arts table, finding those linked to a character, and then
     # modifying them based on the character's status effect. This way, e.g., if a Berserk character's AP costs for
     # attacks of damage less than 5 are increased by 10, this is reflected in both CmdAttack and CmdSheet.
     # This function will be used in CmdAttack, CmdInterrupt, CmdArts, CmdListAttacks, CmdCheck, and CmdSheet.
-    arts = Art.objects.filter(characters=caller)
+    # TODO: https://github.com/elee-p3/scsmush-evennia/issues/38
+    character_arts = list(Art.objects.filter(characters=caller))
+    aspect_arts = [aspect.linked_art for aspect in caller.db.equipped_aspects if isinstance(aspect, LinkedAspect)]
+    all_arts = character_arts + aspect_arts
     base_arts = []
     modified_arts = []
     modified_normals = []
-    for art in arts:
+    for art in all_arts:
         # Copy.copy is used to ensure we do not modify the attack in the character's list, just this instance of it.
         modified_art = copy.copy(art)
         base_art = ArtBaseline(art.name, art.dmg, art.acc, art.stat, art.ap, art.effects)

@@ -1,12 +1,11 @@
-from evennia import default_cmds
-from world.combat.attacks import ActionResult
+from world.combat.attacks import Attack
 
 
 class Aspect:
     def __init__(self, name: str, cost: int, custom_name=""):
         self.name = name
         self.cost = cost
-        self.custom_name = custom_name
+        self.custom_name = custom_name if custom_name else name
 
     def __eq__(self, other):
         if isinstance(other, Aspect):
@@ -16,11 +15,17 @@ class Aspect:
             return self.name.lower() == other.lower()
 
 
+def stat_value_from_cost(cost):
+    return 25 + (cost * 5)
+
+
+# Class for interfacing with the LinkedAspect model
 class LinkedAspect(Aspect):
-    def __init__(self, linked_aspect, linked_art, name, cost, custom_name):
-        super(Aspect, self).__init__(name, cost, custom_name)
-        self.linked_aspect = linked_aspect
+    def __init__(self, linked_aspect_id, linked_art: Attack, name, cost, custom_name=""):
+        super().__init__(name, cost, custom_name=custom_name)
+        self.linked_aspect_id = linked_aspect_id
         self.linked_art = linked_art
+        self.stat_value = stat_value_from_cost(cost)
 
 
 # TODO: Just make all the aspects and test them out one by one!
