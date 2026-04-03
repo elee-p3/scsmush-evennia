@@ -508,7 +508,7 @@ def ex_gain_on_attack(damage_inflicted, attacker, defender, action):
         # DEBUG
         defender.msg("Synergist detected")
     # If the attacker has Tactician equipped, attacks with Reaction Modifier effects give less EX.
-    if "Tactician" in attacker.db.equipped_aspects and set(action.attack.effects).intersection(REACTION_MODIFIERS):
+    if "Tactician" in attacker.db.equipped_aspects and any(e in REACTION_MODIFIERS for e in action.attack.effects.split()):
         ex_gain_denominator += 1.5
         # DEBUG
         attacker.msg('Tactician and attack with Reaction Modifier effect detected')
@@ -525,7 +525,7 @@ def ex_gain_on_attack(damage_inflicted, attacker, defender, action):
 def ex_gain_on_defense(damage_taken, attacker, defender, action):
     ex_gain_denominator = 5
     # If the attacker has Saboteur is using a debuffing attack, gain more EX, decreasing denominator.
-    if "Saboteur" in attacker.db.equipped_aspects and set(action.attack.effects).intersection(DEBUFFS):
+    if "Saboteur" in attacker.db.equipped_aspects and any(e in DEBUFFS for e in action.attack.effects.split()):
         ex_gain_denominator -= 0.5
         # DEBUG
         defender.msg("Attacker Saboteur and debuff attempt detected")
@@ -1125,6 +1125,8 @@ def wound_check(character, action):
 
 
 def ap_mod_check(caller, action):
+    action_effects_list = action.effects.split()
+    caller.msg(action_effects_list)
     # If a character has the buff from a Perfect dodge, all Arts that would cost AP cost 0 AP. Return immediately.
     if caller.db.buffs["Perfect Dodge"] > 0:
         if action.ap < 0:
@@ -1138,23 +1140,23 @@ def ap_mod_check(caller, action):
     elif "Battle Rage" in caller.db.equipped_aspects:
         if action.dmg < 5:
             action.ap -= 5
-    if "Marauder" in caller.db.equipped_aspects and set(action.attack.effects).intersection(ATTACK_ENHANCERS):
+    if "Marauder" in caller.db.equipped_aspects and any(e in ATTACK_ENHANCERS for e in action.effects.split()):
         action.ap += 5
         # DEBUG
         caller.msg("Marauder and attack with Attack Enhancer effect detected")
-    if "Saboteur" in caller.db.equipped_aspects and set(action.attack.effects).intersection(DEBUFFS):
+    if "Saboteur" in caller.db.equipped_aspects and any(e in DEBUFFS for e in action.effects.split()):
         action.ap += 5
         # DEBUG
         caller.msg("Saboteur and attack with debuff detected")
-    if "Synergist" in caller.db.equipped_aspects and set(action.attack.effects).intersection(BUFFS):
+    if "Synergist" in caller.db.equipped_aspects and any(e in BUFFS for e in action.effects.split()):
         action.ap += 5
         # DEBUG
         caller.msg("Synergist and buff action detected")
-    if "Tactician" in caller.db.equipped_aspects and set(action.attack.effects).intersection(REACTION_MODIFIERS):
+    if "Tactician" in caller.db.equipped_aspects and any(e in REACTION_MODIFIERS for e in action.effects.split()):
         action.ap += 5
         # DEBUG
         caller.msg("Tactician and reaction modifier detected")
-    if "Bewitching" in caller.db.equipped_aspects and set(action.attack.effects).intersection(DEBUFFS_TRANSFORMATION):
+    if "Bewitching" in caller.db.equipped_aspects and any(e in DEBUFFS_TRANSFORMATION for e in action.effects.split()):
         action.ap += 10
         # DEBUG
         caller.msg("Bewitching and transformation debuff detected")
@@ -1590,7 +1592,7 @@ def apply_buff(action, healer, target):
 def apply_flat_acc_modifiers(action, target, is_interrupt=False):
     # A limited subset of buffs/Aspects can, like endure bonus, directly affect chance_to_hit. Called in reactions.
     chance_to_hit_adjustment = 0
-    if "Marauder" in action.attacker_aspects and set(action.attack.effects).intersection(ATTACK_ENHANCERS):
+    if "Marauder" in action.attacker_aspects and any(e in ATTACK_ENHANCERS for e in action.effects.split()):
         chance_to_hit_adjustment -= 3
     if action.has_spirited:
         chance_to_hit_adjustment += 5
