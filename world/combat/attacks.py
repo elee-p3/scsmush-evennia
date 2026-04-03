@@ -32,7 +32,8 @@ class AttackDuringAction:
         self.attack = attack
         self.attacker_key = attacker_key
         attacker = find_attacker_from_key(attacker_key)
-        self.attacker_stats = {"Power": attacker.db.power, "Knowledge": attacker.db.knowledge}
+        self.attacker_stats = {"Power": attacker.db.power, "Knowledge": attacker.db.knowledge, "LF": attacker.db.lf,
+                               "MAXLF": attacker.db.maxlf}
         self.attacker_aspects = attacker.db.equipped_aspects
         self.modifier = ""
         self.switches_string = "".join(switches)

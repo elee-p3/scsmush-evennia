@@ -249,7 +249,7 @@ def dodge_calc(defender, attack_instance: AttackToQueue):
     if attack_instance.has_ranged:
         chance_to_hit -= 5
     chance_to_hit += attack_instance.endure_bonus
-    chance_to_hit += flat_acc_buff_check(attack_instance, defender)
+    chance_to_hit += apply_flat_acc_modifiers(attack_instance, defender)
     # cap accuracy at 99%
     if chance_to_hit > 99:
         chance_to_hit = 99
@@ -320,7 +320,7 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
     # Incorporating defender's block penalty and attacker's endure bonus.
     chance_to_hit += defender.db.block_penalty
     chance_to_hit += attack_instance.endure_bonus
-    chance_to_hit += flat_acc_buff_check(attack_instance, defender)
+    chance_to_hit += apply_flat_acc_modifiers(attack_instance, defender)
     # cap block percentage at 99%
     if chance_to_hit > 99:
         chance_to_hit = 99
@@ -386,7 +386,7 @@ def endure_chance_calc(defender, attack_instance):
         chance_to_hit -= 5
     # Incorporating attacker's endure bonus. Block penalty does not apply to defender's endure chance.
     chance_to_hit += attack_instance.endure_bonus
-    chance_to_hit += flat_acc_buff_check(attack_instance, defender)
+    chance_to_hit += apply_flat_acc_modifiers(attack_instance, defender)
     # cap endure percentage at 99%
     if chance_to_hit > 99:
         chance_to_hit = 99
@@ -433,10 +433,10 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
     # Incorporating incoming attacks's endure bonus, reducing interrupt chance.
     interrupt_chance -= incoming_attack_instance.endure_bonus
     # Incorporating the flat acc buffs on the incoming attack, potentially benefiting the target of the interrupt.
-    interrupt_chance -= flat_acc_buff_check(incoming_attack_instance, interrupter, is_interrupt=True)
+    interrupt_chance -= apply_flat_acc_modifiers(incoming_attack_instance, interrupter, is_interrupt=True)
     # Incorporating the flat acc buffs on the outgoing interrupt, potentially benefiting the interrupter.
     attacker = find_attacker_from_key(incoming_attack_instance.attacker_key)
-    interrupt_chance += flat_acc_buff_check(outgoing_interrupt, attacker, is_interrupt=True)
+    interrupt_chance += apply_flat_acc_modifiers(outgoing_interrupt, attacker, is_interrupt=True)
     # cap interrupt percentage at 99%
     if interrupt_chance > 99:
         interrupt_chance = 99
@@ -851,6 +851,17 @@ def critical_hits(damage, action, target, dice_roll):
     # Attack/wild makes attacks less accurate but adds a flat crit chance bonus, for fun.
     if action.is_wild:
         critical_threshold += 10
+    # The Vengeful Aspect reduces base Crit chance but increases it as health decreases. Ranges from -5 to +15.
+    if "Vengeful" in action.attacker_aspects:
+        divisor = action.attacker_stats["MAXLF"] / 20 # Defaults to 50
+        critical_threshold += ((action.attacker_stats["MAXLF"] - action.attacker_stats["LF"]) / divisor) - 5
+        # DEBUG
+        target.msg(f"Vengeful was on attacker aspects and modified crit threshold by {((action.attacker_stats['MAXLF'] - action.attacker_stats['LF']) / divisor) - 5}")
+    # The Reckless Aspect increases the chance to inflict and to suffer critical hits.
+    if "Reckless" in action.attacker_aspects:
+        critical_threshold += 5
+    if "Reckless" in target.db.equipped_aspects:
+        critical_threshold += 5
     if critical_check <= critical_threshold:
         is_critical = True
         damage *= 1.25
@@ -1125,6 +1136,22 @@ def ap_mod_check(caller, action):
         action.ap += 5
         # DEBUG
         caller.msg("Marauder and attack with Attack Enhancer effect detected")
+    if "Saboteur" in caller.db.equipped_aspects and set(action.attack.effects).intersection(DEBUFFS):
+        action.ap += 5
+        # DEBUG
+        caller.msg("Saboteur and attack with debuff detected")
+    if "Synergist" in caller.db.equipped_aspects and set(action.attack.effects).intersection(BUFFS):
+        action.ap += 5
+        # DEBUG
+        caller.msg("Synergist and buff action detected")
+    if "Tactician" in caller.db.equipped_aspects and set(action.attack.effects).intersection(REACTION_MODIFIERS):
+        action.ap += 5
+        # DEBUG
+        caller.msg("Tactician and reaction modifier detected")
+    if "Bewitching" in caller.db.equipped_aspects and set(action.attack.effects).intersection(DEBUFFS_TRANSFORMATION):
+        action.ap += 10
+        # DEBUG
+        caller.msg("Bewitching and transformation debuff detected")
     return action
 
 
@@ -1554,9 +1581,11 @@ def apply_buff(action, healer, target):
             target.db.buffs[buff] = 3
 
 
-def flat_acc_buff_check(action, target, is_interrupt=False):
-    # A limited subset of buffs can, like endure bonus, directly affect chance_to_hit. Called in reactions.
+def apply_flat_acc_modifiers(action, target, is_interrupt=False):
+    # A limited subset of buffs/Aspects can, like endure bonus, directly affect chance_to_hit. Called in reactions.
     chance_to_hit_adjustment = 0
+    if "Marauder" in action.attacker_aspects and set(action.attack.effects).intersection(ATTACK_ENHANCERS):
+        chance_to_hit_adjustment -= 3
     if action.has_spirited:
         chance_to_hit_adjustment += 5
     if action.has_savage:
@@ -1640,6 +1669,12 @@ def apply_debuff(action, target):
         debuff_effects.append(random.choice(morph_options))
     # Now prepare debuff strings and roll the check against the appropriate resistance.
     for debuff in debuff_effects:
+        if "Saboteur" in action.attacker_aspects:
+            base_debuff_resist -= 10
+        if "Bewitching" in action.attacker_aspects and debuff in DEBUFFS_HEXES + DEBUFFS_TRANSFORMATION:
+            base_debuff_resist -= 10
+            # DEBUG
+            target.msg("Bewitching and debuff in hexes or transformation detected")
         # Check for relevant attacker Expertise Aspect on the action
         if f"{debuff.title()} Expertise" in action.attacker_aspects:
             base_debuff_resist -= 30
