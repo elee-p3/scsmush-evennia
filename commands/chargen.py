@@ -1,17 +1,8 @@
 from evennia import default_cmds
 from world.arts.models import Art
+from world.arts.utilities import create_or_edit_art
 from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS, DEBUFFS_HEXES
 from world.combat.aspects import Aspect, ASPECTS, LinkedAspect
-
-
-def accuracy_check(accuracy, ex_move=False):
-    string = ""
-    if ex_move:
-        accuracy = accuracy + 2
-    if accuracy <= 0:
-        string = "Error: your damage value must be an integer between 1 and 11 (or 13 for EX moves). Make sure " \
-                 "that your format is: name, damage value, base stat, and effects (if any)."
-    return accuracy, string
 
 
 class CmdSetArt(default_cmds.MuxCommand):
@@ -40,11 +31,11 @@ class CmdSetArt(default_cmds.MuxCommand):
 
 
     def func(self):
-        # TODO: Check if a art of the same name already exists and, if so, modify it instead of creating a new one.
         caller = self.caller
         args = self.args
         # TODO: https://github.com/elee-p3/scsmush-evennia/issues/38
         arts = Art.objects.filter(characters=caller)
+
         # Create a list of Arts if the character does not yet have one.
         # Name = string, damage = int, base stat = string, effects = string(s).
         if "del" in self.switches:
@@ -57,106 +48,34 @@ class CmdSetArt(default_cmds.MuxCommand):
             else:
                 caller.delete_art(art_to_remove)
                 return
+
         # Check that there are args.
         if not args:
             return caller.msg("You must provide a name, damage value, base stat, and effects (if any).")
         # Split the args at the commas.
         art_list = args.split(", ")
+        # Confirm correct number of commas via checking list length. 3 without effects, 4 with effects
+        if len(art_list) < 3 or len(art_list) > 4:
+            return caller.msg("Please comma-separate Art's name, damage value, base stat, and effects (if any).")
+
         name = art_list[0]
-        if not isinstance(name, str):
-            return caller.msg("Error: the name of your Art must be a string. Make sure that your format is: name, damage"
-                              " value, base stat, and effects (if any).")
         damage = art_list[1]
+        base_stat = art_list[2].lower()
+        effects = []
+        if len(art_list) == 4:
+            effects = art_list[3]
         try:
             damage_int = int(damage)
         except ValueError:
             return caller.msg("Error: your damage value must be an integer. Make sure that your format is: name, damage"
                               " value, base stat, and effects (if any).")
-        # Setting a lower bound on damage.
-        if damage_int < 1:
-            return caller.msg("Error: your damage value must be at least 1.")
-        # Base accuracy for Arts will be 12 - damage_int, increased by 2 for EX moves after effects are checked.
-        accuracy = 12 - damage_int
-        base_stat = art_list[2].lower()
-        # Checking that the base stat is either Power or Knowledge.
-        if base_stat == "power":
-            base_stat = "Power"
-        elif base_stat == "knowledge":
-            base_stat = "Knowledge"
-        else:
-            return caller.msg("Error: your Art's base stat must be either Power or Knowledge. Make sure that your format "
-                              "is: name, damage value, base stat, and effects (if any).")
-        # Check if an Art with that name already exists and, if so, remove the existing Art before proceeding.
-        art_to_edit = None
-        art_modified = False
-        for art in arts:
-            if name.lower() == art.name.lower():
-                art_to_edit = art
-        if art_to_edit:
-            caller.delete_art(art_to_edit)
-            art_modified = True
-        # Now check that the character does not already have the maximum number of Arts: 10.
-        if len(arts) == 10:
-            return caller.msg("Your character already has the maximum of 10 Arts. Art not added.")
-        # Set the baseline AP cost for an art at 5.
-        true_ap_change = -5
-        if len(art_list) == 4:
-            effects = art_list[3]
-            # Split up the effects at the space bar.
-            split_effects = effects.split()
-            # Make sure the effects are in title case, except for EX.
-            title_split_effects = []
-            for effect in split_effects:
-                if effect.lower() == "ex":
-                    title_split_effects.append(effect.upper())
-                else:
-                    title_case_effect = effect.title()
-                    title_split_effects.append(title_case_effect)
-            # Now, for each effect in the split_effects list, confirm that it is in EFFECTS.
-            # If so, modify the art's AP cost based on the data in EFFECTS.
-            ex_move = False
-            for art_effect in title_split_effects:
-                effect_ok = False
-                for real_effect in EFFECTS:
-                    if art_effect.lower() == real_effect.name.lower():
-                        effect_ok = True
-                        true_ap_change += int(real_effect.ap)
-                        if real_effect.name == "EX":
-                            ex_move = True
-                if not effect_ok:
-                    return caller.msg("Error: at least one of your Effects is not a valid Effect.")
-            # Confirm that any Support effect is coupled with the Heal effect
-            for effect in title_split_effects:
-                if effect in SUPPORT and "Heal" not in title_split_effects:
-                    return caller.msg(f"Error: {effect} is a Support effect. All Support Arts must have the Heal Effect.")
-                if effect in DEBUFFS and "Heal" in title_split_effects:
-                    return caller.msg(f"Error: {effect} is a Debuff effect and is not compatible with the Heal Effect.")
-            # Confirm that accuracy is above minimum before adding Art object.
-            accuracy, error_string = accuracy_check(accuracy, ex_move)
-            if error_string:
-                return caller.msg(error_string)
-            Art.objects.create(
-                name=name,
-                ap=true_ap_change,
-                dmg=damage_int,
-                acc=accuracy,
-                stat=base_stat,
-                effects=' '.join(title_split_effects),
-                )
-        else:
-            accuracy, error_string = accuracy_check(accuracy)
-            if error_string:
-                return caller.msg(error_string)
-            Art.objects.create(
-                name=name,
-                ap=true_ap_change,
-                dmg=damage_int,
-                acc=accuracy,
-                stat=base_stat,
-                effects=""
-            )
-        caller.art.add(Art.objects.latest("pk"))
-        # Change the message to the player depending on if the Art was added or edited.
+
+        # Now that int type is confirmed, pass relevant information to utility function create_or_edit_art().
+        art, error_msg, art_modified = create_or_edit_art(caller=caller, name=name, damage=damage_int, base_stat=base_stat, effects=effects)
+        if error_msg:
+            return caller.msg(error_msg)
+
+        # Message player on success, content depending on if the Art was added or edited.
         if not art_modified:
             caller.msg("{0} has been added to your list of Arts.".format(name))
         else:
@@ -254,10 +173,10 @@ class CmdGetAspect(default_cmds.MuxCommand):
         if aspect_custom_name in ASPECTS:
             return caller.msg("Error: requested custom name is an existing Aspect name.")
 
-        if "expertise" in aspect_custom_name.lower() or "resistance" in aspect_custom_name.lower():
+        elif "expertise" in aspect_custom_name.lower() or "resistance" in aspect_custom_name.lower():
             return caller.msg("Error: please refrain from using keywords 'Expertise' or 'Resistance' in custom names.")
 
-        if "expertise" in aspect_to_find or "resistance" in aspect_to_find:
+        elif "expertise" in aspect_to_find or "resistance" in aspect_to_find:
             debuff_to_find = aspect_to_find.split()[0]
             if debuff_to_find in DEBUFFS:
                 # Aspect valid. Determine cost: 1 if Hex, 5 otherwise
@@ -271,11 +190,13 @@ class CmdGetAspect(default_cmds.MuxCommand):
         # Extra Art chargen must: 1) specify CP cost and corresponding stat value, 2) call CmdSetArt with Evennia's
         # command handler, and 3) allow CmdSetArt to bypass the Arts cap for Linked Arts specifically, and 4) handle
         # exceptions where CmdSetArt legitimately fails due to syntax issues.
-        if aspect_to_find == "extra art":
+        elif aspect_to_find == "extra art":
             # There must be a custom name because there can be multiple Extra Arts.
             if not aspect_custom_name:
                 caller.msg("Extra Arts, unlike other Aspects, must have a custom name. Please specify with +getaspect "
                            "Extra Art=<custom name>.")
+            # Aspect name will always be "Extra Art"
+            aspect_name = aspect_to_find.title()
             # Prompt the user to specify CP cost and stat value.
             linked_aspect_cost = yield("Please specify the desired CP cost of your 'Extra Art' Aspect. This determines"
                                        "the stat value associated with your Extra Art when the Aspect is equipped. "
@@ -302,7 +223,7 @@ class CmdGetAspect(default_cmds.MuxCommand):
                     # Due to __eq__ magic method, lower() should match valid Aspect name
                     aspect_obj = Aspect(name=aspect.name, cost=aspect.cost, custom_name=aspect_custom_name)
 
-        if not aspect_obj:
+        if aspect_obj is None:
             return caller.msg("Error: Aspect not found. Please confirm spelling and try again.")
 
         # Check if the character already has this Aspect. Exception is LinkedAspects, as there can be multiple Extra Arts.
