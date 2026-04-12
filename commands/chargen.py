@@ -210,11 +210,44 @@ class CmdGetAspect(default_cmds.MuxCommand):
             else:
                 return caller.msg("The specified CP cost for your Linked Aspect was invalid. Please try again and "
                                   "choose 10, 20, 30, or 40.")
-            # Now use execute_cmd() to call CmdSetArt with predefined parameters.
-            setart_string = yield("Please now define your Art in one line with inputs separated by commas: <name of "
-                                  "art>, <damage>, <base stat>, <effect1> <effect2> (and so forth).")
-            # TODO: How to handle exceeding the Arts cap? Can execute_cmd() pass metadata like "this is a Linked Art"?
-            caller.execute_cmd(f"setart {setart_string}")
+
+            # Now create the Linked Art.
+            caller.msg("Please now define your Extra Art.")
+            linked_art_string = yield from concat_art_string()
+
+            # Split the args at the commas.
+            art_list = linked_art_string.split(", ")
+            # Confirm correct number of commas via checking list length. 3 without effects, 4 with effects
+            if len(art_list) < 3 or len(art_list) > 4:
+                return caller.msg("Please comma-separate Art's name, damage value, base stat, and effects (if any).")
+
+            name = art_list[0]
+            damage = art_list[1]
+            base_stat = art_list[2].lower()
+            effects = []
+            if len(art_list) == 4:
+                effects = art_list[3]
+            try:
+                damage_int = int(damage)
+            except ValueError:
+                return caller.msg(
+                    "Error: your damage value must be an integer. Make sure that your format is: name, damage"
+                    " value, base stat, and effects (if any).")
+
+            # TODO: change art_modified logic, as what matters here is that the *Aspect custom name* is the same.
+            # Now that int type is confirmed, pass relevant information to utility function create_or_edit_art().
+            # bypass_cap is set True because this is a Linked Art.
+            art, error_msg, art_modified = create_or_edit_art(caller=caller, name=name, damage=damage_int,
+                                                              base_stat=base_stat, effects=effects, bypass_cap=True)
+            if error_msg:
+                return caller.msg(error_msg)
+
+            # Message player on success, content depending on if the Art was added or edited.
+            if not art_modified:
+                caller.msg("{0} has been added to your list of Arts.".format(name))
+            else:
+                caller.msg("{0} has been modified on your list of Arts.".format(name))
+
             # TODO: How to know if SetArt succeeded or failed? Tracking len(arts)?
             # On success, create Linked Aspect.
             # TODO: Currently LinkedAspect expects an ID. But I shouldn't manually input that!
