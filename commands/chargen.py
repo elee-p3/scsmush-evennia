@@ -1,7 +1,7 @@
 from evennia import default_cmds
 from world.arts.models import Art
 from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS, DEBUFFS_HEXES
-from world.combat.aspects import Aspect, ASPECTS
+from world.combat.aspects import Aspect, ASPECTS, LinkedAspect
 
 
 def accuracy_check(accuracy, ex_move=False):
@@ -222,6 +222,11 @@ class CmdGetAspect(default_cmds.MuxCommand):
         A "custom name" may also be provided that will be displayed in Sheet or ListAspects as:
         "Custom Name (Aspect)", e.g., "Brooch of Clarity (Charm Resistance)".
 
+        If you are generating an Extra Art, specify "Extra Art" as the aspect and you will be
+        prompted separately to define the Art. The Aspect and the Art may have different names:
+        for example, the custom name of an "Extra Art" aspect might be "Wand of Fireballs" while
+        the Art itself could be called "Fireball".
+
         Syntax:
             +getaspect <aspect>
             +getaspect <aspect>=<custom name>
@@ -263,6 +268,34 @@ class CmdGetAspect(default_cmds.MuxCommand):
                     aspect_cost = 5
                 aspect_obj = Aspect(name=aspect_name, cost=aspect_cost, custom_name=aspect_custom_name)
 
+        # Extra Art chargen must: 1) specify CP cost and corresponding stat value, 2) call CmdSetArt with Evennia's
+        # command handler, and 3) allow CmdSetArt to bypass the Arts cap for Linked Arts specifically, and 4) handle
+        # exceptions where CmdSetArt legitimately fails due to syntax issues.
+        if aspect_to_find == "extra art":
+            # There must be a custom name because there can be multiple Extra Arts.
+            if not aspect_custom_name:
+                caller.msg("Extra Arts, unlike other Aspects, must have a custom name. Please specify with +getaspect "
+                           "Extra Art=<custom name>.")
+            # Prompt the user to specify CP cost and stat value.
+            linked_aspect_cost = yield("Please specify the desired CP cost of your 'Extra Art' Aspect. This determines"
+                                       "the stat value associated with your Extra Art when the Aspect is equipped. "
+                                       "Valid inputs are: 10, 20, 30, or 40.")
+            valid_linked_aspect_costs = ["10", "20", "30", "40"]
+            if linked_aspect_cost in valid_linked_aspect_costs:
+                aspect_cost = int(linked_aspect_cost)
+            else:
+                return caller.msg("The specified CP cost for your Linked Aspect was invalid. Please try again and "
+                                  "choose 10, 20, 30, or 40.")
+            # Now use execute_cmd() to call CmdSetArt with predefined parameters.
+            setart_string = yield("Please now define your Art in one line with inputs separated by commas: <name of "
+                                  "art>, <damage>, <base stat>, <effect1> <effect2> (and so forth).")
+            # TODO: How to handle exceeding the Arts cap? Can execute_cmd() pass metadata like "this is a Linked Art"?
+            caller.execute_cmd(f"setart {setart_string}")
+            # TODO: How to know if SetArt succeeded or failed? Tracking len(arts)?
+            # On success, create Linked Aspect.
+            # TODO: Currently LinkedAspect expects an ID. But I shouldn't manually input that!
+            aspect_obj = LinkedAspect(name=aspect_name, cost=aspect_cost, custom_name=aspect_custom_name)
+
         else:
             for aspect in ASPECTS:
                 if aspect == aspect_to_find:
@@ -272,15 +305,16 @@ class CmdGetAspect(default_cmds.MuxCommand):
         if not aspect_obj:
             return caller.msg("Error: Aspect not found. Please confirm spelling and try again.")
 
-        # Check if the character already has this Aspect.
-        for acquired_aspect in caller.db.aspects:
-            if acquired_aspect.name == aspect_obj.name:
-                # I don't want to allow multiple instances of the same Aspect, but we can overwrite custom_name
-                if acquired_aspect.custom_name != aspect_obj.custom_name:
-                    acquired_aspect.custom_name = aspect_obj.custom_name
-                    return caller.msg(f"Overwriting {acquired_aspect.name} custom name to {aspect_obj.custom_name}.")
-                else:
-                    return caller.msg("Error: you already have this Aspect.")
+        # Check if the character already has this Aspect. Exception is LinkedAspects, as there can be multiple Extra Arts.
+        if not isinstance(aspect_obj, LinkedAspect):
+            for acquired_aspect in caller.db.aspects:
+                if acquired_aspect.name == aspect_obj.name:
+                    # I don't want to allow multiple instances of the same Aspect, but we can overwrite custom_name
+                    if acquired_aspect.custom_name != aspect_obj.custom_name:
+                        acquired_aspect.custom_name = aspect_obj.custom_name
+                        return caller.msg(f"Overwriting {acquired_aspect.name} custom name to {aspect_obj.custom_name}.")
+                    else:
+                        return caller.msg("Error: you already have this Aspect.")
 
         # Add the Aspect object with appropriate name and cost. custom_name will be displayed in CmdSheet/CmdListAspects.
         caller.db.aspects.append(aspect_obj)

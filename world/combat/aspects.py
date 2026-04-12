@@ -32,10 +32,6 @@ class LinkedAspect(Aspect):
         return Attack.attack_from_art(linked_aspect.linked_art)
 
 
-# TODO: Just make all the aspects and test them out one by one!
-# TODO: add "Spirited", "Savage", "Moment of Truth", "Nerves of Steel" to status_effects
-# Just_perfect_dodged/just_perfect_guarded bools on character
-
 # VERY LOW COST ASPECTS: 1 Capacity. Expertise and Resistance for specific Hexes, and
 # LOW COST ASPECTS: 5 Capacity. Expertise and Resistance for standard Debuffs,
 # are not stored in the ASPECTS list but instead string-matched to DEBUFFS in +getaspect and apply_debuff().
