@@ -12,6 +12,22 @@ def accuracy_check(accuracy, ex_move=False):
     return accuracy, error_msg
 
 
+def concat_art_string():
+    """Concatenates art string step by step. Called on setart with no args or when creating a Linked Art.
+    Call with 'yield from' within a MuxCommand func(), which is for Evennia a generator."""
+    art_name = yield "What is your Art's name?"
+    damage = yield "What is your Art's damage value? Select a value between 1 and 13."
+    base_stat = yield "What is your Art's base stat: Power or Knowledge?"
+    effects = yield "What are your Art's effects (separated by spaces, leave blank if none)?"
+
+    if effects:
+        art_string = art_name + ", " + damage + ", " + base_stat + ", " + effects
+    else:
+        art_string = art_name + ", " + damage + ", " + base_stat
+
+    return art_string
+
+
 def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=False):
     """Returns either Art, '', art_modified bool on success or None, error_msg, False on failure."""
     arts = Art.objects.filter(characters=caller)

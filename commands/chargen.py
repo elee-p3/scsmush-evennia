@@ -1,6 +1,6 @@
 from evennia import default_cmds
 from world.arts.models import Art
-from world.arts.utilities import create_or_edit_art
+from world.arts.utilities import create_or_edit_art, concat_art_string
 from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS, DEBUFFS_HEXES
 from world.combat.aspects import Aspect, ASPECTS, LinkedAspect
 
@@ -12,14 +12,16 @@ class CmdSetArt(default_cmds.MuxCommand):
         its name, Damage, Base Stat (Power or Knowledge), and Effects.
         Damage must be an integer between 1 and 100.
 
-        Name, Damage, Base Stat, and Effects should be separated by
-        commas. Different Effects should be separated by spaces.
+        If +setart is called by itself, a series of specifying prompts will follow.
+        Otherwise, name, Damage, Base Stat, and Effects should be separated by
+        commas. In either case, different Effects should be separated by spaces.
         See "help effects" for a list of valid Effects.
 
         Characters may currently have a maximum of 10 Arts. To remove
         an Art, add the switch /del.
 
         Usage:
+          +setart
           +setart <name of art>, <damage>, <base stat>, <effect1> <effect2>
           +setart/del <name of art>
 
@@ -49,9 +51,10 @@ class CmdSetArt(default_cmds.MuxCommand):
                 caller.delete_art(art_to_remove)
                 return
 
-        # Check that there are args.
+        # If setart is called without args, prompt caller to concatenate the args one by one.
         if not args:
-            return caller.msg("You must provide a name, damage value, base stat, and effects (if any).")
+            args = yield from concat_art_string()
+
         # Split the args at the commas.
         art_list = args.split(", ")
         # Confirm correct number of commas via checking list length. 3 without effects, 4 with effects
