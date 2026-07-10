@@ -74,15 +74,9 @@ class CmdSetArt(default_cmds.MuxCommand):
                               " value, base stat, and effects (if any).")
 
         # Now that int type is confirmed, pass relevant information to utility function create_or_edit_art().
-        art, error_msg, art_modified = create_or_edit_art(caller=caller, name=name, damage=damage_int, base_stat=base_stat, effects=effects)
+        art, error_msg = create_or_edit_art(caller=caller, name=name, damage=damage_int, base_stat=base_stat, effects=effects)
         if error_msg:
             return caller.msg(error_msg)
-
-        # Message player on success, content depending on if the Art was added or edited.
-        if not art_modified:
-            caller.msg("{0} has been added to your list of Arts.".format(name))
-        else:
-            caller.msg("{0} has been modified on your list of Arts.".format(name))
 
 
 class CmdChargen(default_cmds.MuxCommand):
@@ -237,16 +231,10 @@ class CmdGetAspect(default_cmds.MuxCommand):
             # TODO: change art_modified logic, as what matters here is that the *Aspect custom name* is the same.
             # Now that int type is confirmed, pass relevant information to utility function create_or_edit_art().
             # bypass_cap is set True because this is a Linked Art.
-            art, error_msg, art_modified = create_or_edit_art(caller=caller, name=name, damage=damage_int,
+            art, error_msg = create_or_edit_art(caller=caller, name=name, damage=damage_int,
                                                               base_stat=base_stat, effects=effects, bypass_cap=True)
             if error_msg:
                 return caller.msg(error_msg)
-
-            # Message player on success, content depending on if the Art was added or edited.
-            if not art_modified:
-                caller.msg("{0} has been added to your list of Arts.".format(name))
-            else:
-                caller.msg("{0} has been modified on your list of Arts.".format(name))
 
             # TODO: How to know if SetArt succeeded or failed? Tracking len(arts)?
             # On success, create Linked Aspect.
