@@ -34,6 +34,9 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
     error_msg = ""
     art_already_exists = False
 
+    # Damage is currently passed as a string from CmdSetArt and concat_art_string().
+    damage = int(damage)
+
     # Base accuracy for Arts will be 12 - damage_int, increased by 2 for EX moves after effects are checked.
     accuracy = 12 - damage
     # Checking that the base stat is either Power or Knowledge.

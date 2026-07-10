@@ -67,14 +67,9 @@ class CmdSetArt(default_cmds.MuxCommand):
         effects = []
         if len(art_list) == 4:
             effects = art_list[3]
-        try:
-            damage_int = int(damage)
-        except ValueError:
-            return caller.msg("Error: your damage value must be an integer. Make sure that your format is: name, damage"
-                              " value, base stat, and effects (if any).")
 
         # Now that int type is confirmed, pass relevant information to utility function create_or_edit_art().
-        art, error_msg = create_or_edit_art(caller=caller, name=name, damage=damage_int, base_stat=base_stat, effects=effects)
+        art, error_msg = create_or_edit_art(caller=caller, name=name, damage=damage, base_stat=base_stat, effects=effects)
         if error_msg:
             return caller.msg(error_msg)
 
@@ -184,9 +179,7 @@ class CmdGetAspect(default_cmds.MuxCommand):
                     aspect_cost = 5
                 aspect_obj = Aspect(name=aspect_name, cost=aspect_cost, custom_name=aspect_custom_name)
 
-        # Extra Art chargen must: 1) specify CP cost and corresponding stat value, 2) call CmdSetArt with Evennia's
-        # command handler, and 3) allow CmdSetArt to bypass the Arts cap for Linked Arts specifically, and 4) handle
-        # exceptions where CmdSetArt legitimately fails due to syntax issues.
+        # Handle case in which CmdGetAspects, in getting Extra Art, must generate a new Art.
         elif aspect_to_find == "extra art":
             # There must be a custom name because there can be multiple Extra Arts.
             if not aspect_custom_name:
@@ -215,30 +208,18 @@ class CmdGetAspect(default_cmds.MuxCommand):
             if len(art_list) < 3 or len(art_list) > 4:
                 return caller.msg("Please comma-separate Art's name, damage value, base stat, and effects (if any).")
 
-            name = art_list[0]
+            art_name = art_list[0]
             damage = art_list[1]
             base_stat = art_list[2].lower()
             effects = []
             if len(art_list) == 4:
                 effects = art_list[3]
-            try:
-                damage_int = int(damage)
-            except ValueError:
-                return caller.msg(
-                    "Error: your damage value must be an integer. Make sure that your format is: name, damage"
-                    " value, base stat, and effects (if any).")
 
-            # TODO: change art_modified logic, as what matters here is that the *Aspect custom name* is the same.
-            # Now that int type is confirmed, pass relevant information to utility function create_or_edit_art().
-            # bypass_cap is set True because this is a Linked Art.
-            art, error_msg = create_or_edit_art(caller=caller, name=name, damage=damage_int,
+            art, error_msg = create_or_edit_art(caller=caller, name=art_name, damage=damage,
                                                               base_stat=base_stat, effects=effects, bypass_cap=True)
             if error_msg:
                 return caller.msg(error_msg)
 
-            # TODO: How to know if SetArt succeeded or failed? Tracking len(arts)?
-            # On success, create Linked Aspect.
-            # TODO: Currently LinkedAspect expects an ID. But I shouldn't manually input that!
             aspect_obj = LinkedAspect(name=aspect_name, cost=aspect_cost, custom_name=aspect_custom_name)
 
         else:
