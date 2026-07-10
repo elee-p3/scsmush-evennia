@@ -125,11 +125,4 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
             effects=""
         )
 
-    caller.art.add(Art.objects.latest("pk"))
-
-    if not art_already_exists:
-        caller.msg("{0} has been added to your list of Arts.".format(name))
-    else:
-        caller.msg("{0} has been modified on your list of Arts.".format(name))
-
-    return art, error_msg
+    return art, error_msg, art_already_exists
