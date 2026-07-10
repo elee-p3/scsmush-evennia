@@ -102,7 +102,7 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         if error_msg:
             return None, error_msg
 
-        Art.objects.create(
+        art = Art.objects.create(
             name=name,
             ap=true_ap_change,
             dmg=damage,
@@ -116,7 +116,7 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         if error_msg:
             return None, error_msg
 
-        Art.objects.create(
+        art = Art.objects.create(
             name=name,
             ap=true_ap_change,
             dmg=damage,

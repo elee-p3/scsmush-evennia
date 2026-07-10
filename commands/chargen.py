@@ -3,6 +3,7 @@ from world.arts.models import Art
 from world.arts.utilities import create_or_edit_art, concat_art_string
 from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS, DEBUFFS_HEXES
 from world.combat.aspects import Aspect, ASPECTS, LinkedAspect
+from world.aspects.models import LinkedAspect as LinkedAspectModel
 
 
 class CmdSetArt(default_cmds.MuxCommand):
@@ -227,7 +228,13 @@ class CmdGetAspect(default_cmds.MuxCommand):
             if error_msg:
                 return caller.msg(error_msg)
 
-            aspect_obj = LinkedAspect(name=aspect_name, cost=aspect_cost, custom_name=aspect_custom_name)
+            # Create a new LinkedAspectModel entry (name is custom_name, not "Extra Art") and add to database.
+            new_aspect_entry = LinkedAspectModel.objects.create(name=aspect_custom_name, cost=aspect_cost, linked_art=art)
+            aspect_id = new_aspect_entry.id
+            # Then link to character in the database...
+            caller.LinkedAspect.add(LinkedAspectModel.objects.latest("pk"))
+            # ...and derive LinkedAspect from new entry, to add to character.db.aspects at the end of the function.
+            aspect_obj = LinkedAspect(aspect_id, name=aspect_name, cost=aspect_cost, custom_name=aspect_custom_name)
 
         else:
             for aspect in ASPECTS:

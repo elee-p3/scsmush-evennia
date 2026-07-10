@@ -22,7 +22,7 @@ def stat_value_from_cost(cost):
 
 # Class for interfacing with the LinkedAspect model
 class LinkedAspect(Aspect):
-    def __init__(self, linked_aspect_id, name, cost, custom_name=""):
+    def __init__(self, linked_aspect_id, name, cost, custom_name):
         super().__init__(name, cost, custom_name=custom_name)
         self.linked_aspect_id = linked_aspect_id
         self.stat_value = stat_value_from_cost(cost)
