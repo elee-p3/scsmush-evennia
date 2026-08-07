@@ -1,4 +1,5 @@
 from world.arts.models import Art
+from world.combat.aspects import LinkedAspect
 from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS, DEBUFFS_HEXES
 
 
@@ -31,6 +32,8 @@ def concat_art_string():
 def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=False):
     """Returns either Art, '', art_modified bool on success or None, error_msg, False on failure."""
     arts = Art.objects.filter(characters=caller)
+    linked_arts = [aspect.linked_art() for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
+    all_arts = list(arts) + linked_arts
     error_msg = ""
     art_already_exists = False
 
@@ -51,7 +54,7 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
     # Check if an Art with that name already exists and, if so, remove the existing Art before proceeding.
     art_to_edit = None
 
-    for art in arts:
+    for art in all_arts:
         if name.lower() == art.name.lower():
             art_to_edit = art
     if art_to_edit:

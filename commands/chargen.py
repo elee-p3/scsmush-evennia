@@ -197,7 +197,7 @@ class CmdGetAspect(default_cmds.MuxCommand):
             aspect_name = aspect_to_find.title()
             # Prompt the user to specify CP cost and stat value.
             linked_aspect_cost = yield("Please specify the desired CP cost of your 'Extra Art' Aspect. This determines"
-                                       "the stat value associated with your Extra Art when the Aspect is equipped. "
+                                       " the stat value associated with your Extra Art when the Aspect is equipped. "
                                        "Valid inputs are: 10, 20, 30, or 40.")
             valid_linked_aspect_costs = ["10", "20", "30", "40"]
             if linked_aspect_cost in valid_linked_aspect_costs:

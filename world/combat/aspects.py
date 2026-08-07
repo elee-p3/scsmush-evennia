@@ -6,7 +6,7 @@ class Aspect:
     def __init__(self, name: str, cost: int, custom_name=""):
         self.name = name
         self.cost = cost
-        self.custom_name = custom_name if custom_name else name
+        self.custom_name = custom_name
 
     def __eq__(self, other):
         if isinstance(other, Aspect):
