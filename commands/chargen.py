@@ -163,6 +163,41 @@ class CmdGetAspect(default_cmds.MuxCommand):
         aspect_cost = 0
         aspect_custom_name = ""
 
+        if "del" in self.switches:
+            # .remove() won't work in the case of multiple Extra Arts. .pop() by index number.
+            aspect_i_to_rem = None
+            for i in range(len(caller.db.aspects)):
+                # For an Extra Art, compare the args to the custom name.
+                aspect = caller.db.aspects[i]
+                if aspect == "Extra Art":
+                    if args.lower() == aspect.custom_name.lower():
+                        aspect_i_to_rem = i
+                        aspect_obj = caller.db.aspects[aspect_i_to_rem]
+                elif args.lower() == aspect.name.lower():
+                    aspect_i_to_rem = i
+                    aspect_obj = caller.db.aspects[aspect_i_to_rem]
+            if not aspect_i_to_rem:
+                return caller.msg("Aspect not found. No Aspect has been deleted.")
+            else:
+                # Ensure that nothing removed from the aspects list can remain in the equipped_aspects list.
+                if aspect_obj in caller.db.equipped_aspects:
+                    # Aspects and equipped_aspects are discrete lists, because I'm bad at coding, so find new index.
+                    if aspect_obj.name == "Extra Art":
+                        for i in range(len(caller.db.equipped_aspects)):
+                            equipped_aspect = caller.db.equipped_aspects[i]
+                            if args.lower() == equipped_aspect.custom_name.lower():
+                                caller.db.cp += aspect_obj.cost
+                                caller.db.equipped_aspects.pop(i)
+                    else:
+                        caller.db.cp += aspect_obj.cost
+                        caller.db.equipped_aspects.remove(aspect_obj)
+                caller.db.aspects.pop(aspect_i_to_rem)
+                # TODO: figure out why this check isn't working and it's always showing custom_name and name
+                if aspect_obj.custom_name:
+                    return caller.msg(f"{aspect_obj.custom_name} ({aspect_obj.name}) has been removed from your Aspects.")
+                else:
+                    return caller.msg(f"{aspect_obj.name} has been removed from your Aspects.")
+
         # Confirm that the Aspect being sought exists in aspects.ASPECTS or as valid Expertise/Resistance.
         if "=" in args:
             aspect_to_find, aspect_custom_name = args.split("=")[0].lower(), args.split("=")[1]
