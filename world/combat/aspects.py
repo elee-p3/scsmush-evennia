@@ -31,6 +31,12 @@ class LinkedAspect(Aspect):
         linked_aspect: LinkedAspectModel = LinkedAspectModel.objects.filter(id=self.linked_aspect_id).first()
         return Attack.attack_from_art(linked_aspect.linked_art)
 
+    def __eq__(self, other):
+        if isinstance(other, Aspect):
+            return self.custom_name.lower() == other.custom_name.lower()
+
+        elif isinstance(other, str):
+            return self.custom_name.lower() == other.lower()
 
 # VERY LOW COST ASPECTS: 1 Capacity. Expertise and Resistance for specific Hexes, and
 # LOW COST ASPECTS: 5 Capacity. Expertise and Resistance for standard Debuffs,

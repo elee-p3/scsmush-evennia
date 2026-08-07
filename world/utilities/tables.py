@@ -87,10 +87,10 @@ def populate_arts_table(table, actions, base_arts, interrupted_action=None, call
 
 
 # in-place modification of the evtable that populates it with aspects
-def populate_aspects_table(table: evtable.EvTable, aspects: list[Aspect], equipped_aspects=None):
+def populate_aspects_table(table: evtable.EvTable, aspects: list[Aspect], equipped_aspects: list[Aspect]=None):
     if equipped_aspects is None:
         equipped_aspects = []
-        
+
     for aspect in aspects:
         aspect_str = aspect.name
         if aspect.custom_name:
@@ -102,10 +102,10 @@ def populate_aspects_table(table: evtable.EvTable, aspects: list[Aspect], equipp
                 aspect_str = "{0} ({1})".format(aspect.custom_name, aspect.name)
         if aspect in equipped_aspects:
             table.add_row(aspect_str + " |r(e)|n",
-                          aspect.cost)
+                          str(aspect.cost))
         else:
             table.add_row(aspect_str,
-                          aspect.cost)
+                          str(aspect.cost))
     return table
 
 
