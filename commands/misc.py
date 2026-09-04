@@ -326,3 +326,12 @@ class CmdConvertNumbers(default_cmds.MuxCommand):
                 art.acc = round(art.acc/10)
             self.caller.msg("Edited " + art.name)
             art.save()
+
+        allCharacters = Character.objects.all()
+        for character in allCharacters:
+            character.db.cp = 100
+            character.db.maxcp = 100
+            character.db.aspects = []
+            character.db.equipped_aspects = []
+            self.caller.msg("Edited " + character.name + "'s stuff")
+            character.save()
