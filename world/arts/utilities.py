@@ -30,7 +30,7 @@ def concat_art_string():
 
 
 def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=False):
-    """Returns either Art, '', art_modified bool on success or None, error_msg, False on failure."""
+    """Returns either Art, '', art_already_exists bool on success or None, error_msg, False on failure."""
     arts = Art.objects.filter(characters=caller)
     linked_arts = [aspect.linked_art() for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
     all_arts = list(arts) + linked_arts
@@ -49,7 +49,7 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         base_stat = "Knowledge"
     else:
         return None, "Error: your Art's base stat must be either Power or Knowledge. Make sure that your format is: " \
-                     "name, damage value, base stat, and effects (if any)."
+                     "name, damage value, base stat, and effects (if any).", art_already_exists
 
     # Check if an Art with that name already exists and, if so, remove the existing Art before proceeding.
     art_to_edit = None
@@ -60,10 +60,12 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
     if art_to_edit:
         caller.delete_art(art_to_edit)
         art_already_exists = True
+        # Recalculate contents of Arts list for determining length.
+        arts = Art.objects.filter(characters=caller)
 
     # Now check that the character does not already have the maximum number of Arts: 10.
     if not bypass_cap and len(arts) == 10:
-        return None, "Your character already has the maximum of 10 Arts. Art not added."
+        return None, "Your character already has the maximum of 10 Arts. Art not added.", art_already_exists
 
     # Set the baseline AP cost for an art at 5.
     true_ap_change = -5
@@ -91,19 +93,19 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
                     if real_effect.name == "EX":
                         ex_move = True
             if not effect_ok:
-                return None, "Error: at least one of your Effects is not a valid Effect."
+                return None, "Error: at least one of your Effects is not a valid Effect.", art_already_exists
 
         # Confirm that any Support effect is coupled with the Heal effect
         for effect in title_split_effects:
             if effect in SUPPORT and "Heal" not in title_split_effects:
-                return None, f"Error: {effect} is a Support effect. All Support Arts must have the Heal Effect."
+                return None, f"Error: {effect} is a Support effect. All Support Arts must have the Heal Effect.", art_already_exists
             if effect in DEBUFFS and "Heal" in title_split_effects:
-                return None, f"Error: {effect} is a Debuff effect and is not compatible with the Heal Effect."
+                return None, f"Error: {effect} is a Debuff effect and is not compatible with the Heal Effect.", art_already_exists
 
         # Confirm that accuracy is above minimum before adding Art object.
         accuracy, error_msg = accuracy_check(accuracy, ex_move)
         if error_msg:
-            return None, error_msg
+            return None, error_msg, art_already_exists
 
         art = Art.objects.create(
             name=name,
@@ -117,7 +119,7 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
     else:
         accuracy, error_msg = accuracy_check(accuracy)
         if error_msg:
-            return None, error_msg
+            return None, error_msg, art_already_exists
 
         art = Art.objects.create(
             name=name,
