@@ -97,7 +97,7 @@ def populate_aspects_table(table: evtable.EvTable, aspects: list[Aspect], equipp
             if aspect.name.lower() == "extra art":
                 # if this is the case, assume this is a LinkedArt
                 aspect: LinkedAspect
-                aspect_str = "{0} ({1}: {2})".format(aspect.custom_name, aspect.name, aspect.linked_art().name)
+                aspect_str = "{0} ({1}: {2})".format(aspect.custom_name, aspect.name, aspect.linked_art_attack().name)
             else:
                 aspect_str = "{0} ({1})".format(aspect.custom_name, aspect.name)
         if aspect in equipped_aspects:

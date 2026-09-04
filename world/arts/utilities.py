@@ -32,7 +32,7 @@ def concat_art_string():
 def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=False):
     """Returns either Art, '', art_already_exists bool on success or None, error_msg, False on failure."""
     arts = Art.objects.filter(characters=caller)
-    linked_arts = [aspect.linked_art() for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
+    linked_arts = [aspect.linked_art_attack() for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
     all_arts = list(arts) + linked_arts
     error_msg = ""
     art_already_exists = False

@@ -1,3 +1,4 @@
+from world.arts.models import Art
 from world.combat.attacks import Attack
 from world.aspects.models import LinkedAspect as LinkedAspectModel
 
@@ -27,9 +28,13 @@ class LinkedAspect(Aspect):
         self.linked_aspect_id = linked_aspect_id
         self.stat_value = stat_value_from_cost(cost)
 
-    def linked_art(self) -> Attack:
+    def linked_art_attack(self) -> Attack:
         linked_aspect: LinkedAspectModel = LinkedAspectModel.objects.filter(id=self.linked_aspect_id).first()
         return Attack.attack_from_art(linked_aspect.linked_art)
+
+    def linked_art(self) -> Art:
+        linked_aspect: LinkedAspectModel = LinkedAspectModel.objects.filter(id=self.linked_aspect_id).first()
+        return linked_aspect.linked_art
 
     def __eq__(self, other):
         if isinstance(other, Aspect):

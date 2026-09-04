@@ -23,7 +23,7 @@ def filter_and_modify_arts(caller: Character):
     # This function will be used in CmdAttack, CmdInterrupt, CmdArts, CmdListAttacks, CmdCheck, and CmdSheet.
     # TODO: https://github.com/elee-p3/scsmush-evennia/issues/38
     character_arts = [Attack.attack_from_art(art) for art in list(Art.objects.filter(characters=caller))]
-    aspect_arts = [aspect.linked_art() for aspect in caller.db.equipped_aspects if isinstance(aspect, LinkedAspect)]
+    aspect_arts = [aspect.linked_art_attack() for aspect in caller.db.equipped_aspects if isinstance(aspect, LinkedAspect)]
     all_arts = character_arts + aspect_arts
     modified_arts = []
     modified_normals = []
