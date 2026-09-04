@@ -90,6 +90,11 @@ class CharacterCmdSet(default_cmds.CharacterCmdSet):
         self.add(CmdTeach)
         self.add(CmdConvertNumbers)
         self.add(CmdCharSelect)
+        self.add(CmdGetAspect)
+        self.add(CmdEquipAspect)
+        self.add(CmdUnequipAspect)
+        self.add(CmdListAspects)
+        self.add(CmdSurge)
 
 
 class AccountCmdSet(default_cmds.AccountCmdSet):

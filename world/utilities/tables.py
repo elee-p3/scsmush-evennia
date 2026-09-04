@@ -1,10 +1,19 @@
 from evennia.utils import evtable
+from math import floor, ceil
+
+from world.combat.aspects import Aspect, LinkedAspect
 from world.combat.effects import EFFECTS
 from world.combat.combat_functions import interrupt_chance_calc
 
 
+def generate_header(client_width, header_title):
+    left_arts_spacing = floor(client_width / 2.0 - len(header_title) / 2.0) - 1  # -1 for the border
+    right_arts_spacing = ceil(client_width / 2.0 - len(header_title) / 2.0) - 1
+    header = "|" + "=" * left_arts_spacing + header_title + "=" * right_arts_spacing + "|"
+    return header
+
 # creates the approriate evtable object given the contextual bools
-def setup_table(client_width, is_sheet=False, is_check=False):
+def setup_arts_table(client_width, is_sheet=False, is_check=False):
     if is_sheet:
         table = evtable.EvTable("Name", "AP", "Dmg", "Acc", "Stat", "Effects",
                                      border_left_char="|", border_right_char="|", border_top_char="",
@@ -23,6 +32,18 @@ def setup_table(client_width, is_sheet=False, is_check=False):
         table.reformat_column(6, width=7)
     return table
 
+def setup_aspects_table(client_width, is_sheet=False):
+    if is_sheet:
+        table = evtable.EvTable("Name", "Cost",
+                                     border_left_char="|", border_right_char="|", border_top_char="",
+                                     border_bottom_char="-", width=client_width)
+    else:
+        table = evtable.EvTable("Name", "Cost",
+                                border_left_char="|", border_right_char="|", border_top_char="-",
+                                border_bottom_char="-", width=client_width)
+    table.reformat_column(1, width=12)
+    return table
+
 
 def get_abbreviations(action):
     effects_list = action.effects.split()
@@ -35,7 +56,7 @@ def get_abbreviations(action):
 
 # in-place modification of the evtable that populates it with attacks or arts. Note that CmdCheck duplicates this code
 # because there wasn't an overdesigned way to have this function take care of that edge case too
-def populate_table(table, actions, base_arts, interrupted_action=None, caller=None):
+def populate_arts_table(table, actions, base_arts, interrupted_action=None, caller=None):
     for action in actions:
         stat_string = action.stat
         if stat_string == "Power":
@@ -47,7 +68,7 @@ def populate_table(table, actions, base_arts, interrupted_action=None, caller=No
 
         ap_string = modify_ap_string(action, base_arts)
         if caller:
-            modified_acc = interrupt_chance_calc(caller, interrupted_action, action)
+            modified_acc = interrupt_chance_calc(caller, interrupted_action, action, for_check_display=True)
             table.add_row(action.name,
                           ap_string,
                           action.dmg,
@@ -62,6 +83,29 @@ def populate_table(table, actions, base_arts, interrupted_action=None, caller=No
                           action.acc,
                           stat_string,
                           effects_abbrev)
+    return table
+
+
+# in-place modification of the evtable that populates it with aspects
+def populate_aspects_table(table: evtable.EvTable, aspects: list[Aspect], equipped_aspects: list[Aspect]=None):
+    if equipped_aspects is None:
+        equipped_aspects = []
+
+    for aspect in aspects:
+        aspect_str = aspect.name
+        if aspect.custom_name:
+            if aspect.name.lower() == "extra art":
+                # if this is the case, assume this is a LinkedArt
+                aspect: LinkedAspect
+                aspect_str = "{0} ({1}: {2})".format(aspect.custom_name, aspect.name, aspect.linked_art_attack().name)
+            else:
+                aspect_str = "{0} ({1})".format(aspect.custom_name, aspect.name)
+        if aspect in equipped_aspects:
+            table.add_row(aspect_str + " |r(e)|n",
+                          str(aspect.cost))
+        else:
+            table.add_row(aspect_str,
+                          str(aspect.cost))
     return table
 
 

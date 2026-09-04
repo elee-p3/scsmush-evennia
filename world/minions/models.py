@@ -1,5 +1,5 @@
 from django.db import models
-from world.arts.models import Arts
+from world.arts.models import Art
 
 
 class Minion(models.Model):
@@ -55,7 +55,7 @@ class Minion(models.Model):
     )
     # arts attributed to minions
     arts = models.ManyToManyField(
-        Arts,
+        Art,
         blank=True,
         null=False,
         related_name="arts")

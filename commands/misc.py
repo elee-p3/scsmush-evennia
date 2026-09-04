@@ -13,7 +13,7 @@ from evennia.commands import command
 from typeclasses.rooms import Room
 from typeclasses.characters import Character
 from world.supplemental import *
-from world.arts.models import Arts
+from world.arts.models import Art
 from world.combat.normals import NORMALS
 from world.utilities.utilities import logger
 import math
@@ -316,7 +316,7 @@ class CmdConvertNumbers(default_cmds.MuxCommand):
     locks = "cmd:perm(Admin)"
 
     def func(self):
-        allArts = Arts.objects.all()
+        allArts = Art.objects.all()
         for art in allArts:
             if art.dmg%5 == 0:
                 art.dmg = math.ceil(art.dmg/10)
@@ -326,3 +326,12 @@ class CmdConvertNumbers(default_cmds.MuxCommand):
                 art.acc = round(art.acc/10)
             self.caller.msg("Edited " + art.name)
             art.save()
+
+        allCharacters = Character.objects.all()
+        for character in allCharacters:
+            character.db.cp = 100
+            character.db.maxcp = 100
+            character.db.aspects = []
+            character.db.equipped_aspects = []
+            self.caller.msg("Edited " + character.name + "'s stuff")
+            character.save()

@@ -1,4 +1,5 @@
-from world.combat.effects import AimOrFeint
+from world.combat.effects import AimOrFeint, DEBUFFS
+from world.arts.models import Art
 from world.utilities.utilities import find_attacker_from_key
 from enum import Enum
 
@@ -22,6 +23,10 @@ class Attack:
         elif isinstance(other, Attack):
             return self.name.lower() == other.name.lower()
 
+    @classmethod
+    def attack_from_art(cls, art: Art):
+        return Attack(art.name, art.ap, art.dmg, art.acc, art.stat, art.effects)
+
 
 class AttackDuringAction:
     # This is the parent class for attacks with metadata. Attackers may use either CmdAttack or CmdInterrupt to
@@ -32,6 +37,9 @@ class AttackDuringAction:
         self.attack = attack
         self.attacker_key = attacker_key
         attacker = find_attacker_from_key(attacker_key)
+        self.attacker_stats = {"Power": attacker.db.power, "Knowledge": attacker.db.knowledge, "LF": attacker.db.lf,
+                               "MAXLF": attacker.db.maxlf}
+        self.attacker_aspects = attacker.db.equipped_aspects
         self.modifier = ""
         self.switches_string = "".join(switches)
         self.has_acuity = False
@@ -44,11 +52,26 @@ class AttackDuringAction:
         self.has_berserk = False
         self.has_muddle = False
         self.has_strain = False
+        self.has_spirited = False
+        self.has_savage = False
+        self.has_perfect_dodge = False
+        self.has_perfect_grit = False
+        self.moment_of_truth_value = 0
         self.is_wild = False
         if attacker.db.buffs["Acuity"] > 0:
             self.has_acuity = True
         if attacker.db.buffs["Vigor"] > 0:
             self.has_vigor = True
+        if attacker.db.buffs["Spirited"] > 0:
+            self.has_spirited = True
+        if attacker.db.buffs["Savage"] > 0:
+            self.has_savage = True
+        if attacker.db.buffs["Perfect Dodge"] > 0:
+            self.has_perfect_dodge = True
+        if attacker.db.buffs["Perfect Grit"] > 0:
+            self.has_perfect_grit = True
+        if attacker.db.buffs["Moment of Truth"] > 0:
+            self.moment_of_truth_value = attacker.db.buffs["Moment of Truth"]
         if attacker.db.debuffs_transform["Bird"] > 0:
             self.has_bird = True
         if attacker.db.debuffs_transform["Frog"] > 0:
@@ -137,3 +160,10 @@ class ActionResult(Enum):
     INTERRUPT_FAIL = 8
     INTERRUPT_SUCCESS = 9
     INTERRUPT_CRIT_SUCCESS = 10
+    WAS_INTERRUPTED = 11
+    WAS_CRIT_INTERRUPTED = 12
+    DODGE_CRIT_SUCCESS = 13
+    BLOCK_CRIT_SUCCESS = 14
+    ENDURE_CRIT_SUCCESS = 15
+    INTERRUPT_REACT_CRIT_SUCCESS = 16
+    INTERRUPT_CRIT_HIT_AND_REACT_CRIT = 17

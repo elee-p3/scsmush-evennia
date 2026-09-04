@@ -1,27 +1,179 @@
+from world.arts.models import Art
+from world.combat.attacks import Attack
+from world.aspects.models import LinkedAspect as LinkedAspectModel
+
+
 class Aspect:
-    def __init__(self, name: str, cost: int, linked_art=None, custom_name=None):
+    def __init__(self, name: str, cost: int, custom_name=""):
         self.name = name
         self.cost = cost
-        self.linked_art = linked_art
         self.custom_name = custom_name
 
     def __eq__(self, other):
-        return self.name.lower() == other.lower()
+        if isinstance(other, Aspect):
+            return self.name.lower() == other.name.lower()
 
-# TODO: Character db capacity and max capacity and aspects list. Aspect/Get chargen with Extra Art check code.
-# TODO: Aspect/Set equip and unequip. Aspect/list display equipped; aspect/all display equipped and unequipped details.
-# TODO: Implement aspect combat functionality. Might be best to do the combat rebalance first before fine-tuning.
-# TODO: Modify sheet to display capacity count with colors and fun stuff.
-# TODO: Just make all the aspects and test them out one by one!
+        elif isinstance(other, str):
+            return self.name.lower() == other.lower()
 
-# VERY LOW COST ASPECTS: 5 Capacity. Expertise and Resistance for Hexes; ~70 stat Extra Arts.
 
-# LOW COST ASPECTS: 10 Capacity. Style Aspects like Deflect, etc. ~90 stat Extra Arts.
+def stat_value_from_cost(cost):
+    return 25 + (cost * 5)
 
-# MEDIUM COST ASPECTS: 15 Capacity. Expertise and Resistance for standard Debuffs; ~110 stat Extra Arts.
 
-# HIGH COST ASPECTS: 20 Capacity. Self-buffs and crit reacts. ~130 stat Extra Arts.
+# Class for interfacing with the LinkedAspect model
+class LinkedAspect(Aspect):
+    def __init__(self, linked_aspect_id, name, cost, custom_name):
+        super().__init__(name, cost, custom_name=custom_name)
+        self.linked_aspect_id = linked_aspect_id
+        self.stat_value = stat_value_from_cost(cost)
 
-# VERY HIGH COST ASPECTS: 30 Capacity. Aim/Feint buffs. ~170 stat Extra Arts.
+    def linked_art_attack(self) -> Attack:
+        linked_aspect: LinkedAspectModel = LinkedAspectModel.objects.filter(id=self.linked_aspect_id).first()
+        return Attack.attack_from_art(linked_aspect.linked_art)
 
-# EXTREME COST ASPECTS: 40 Capacity. ~210 stat Extra Arts. Admin approval only.
+    def linked_art(self) -> Art:
+        linked_aspect: LinkedAspectModel = LinkedAspectModel.objects.filter(id=self.linked_aspect_id).first()
+        return linked_aspect.linked_art
+
+    def __eq__(self, other):
+        if isinstance(other, Aspect):
+            return self.custom_name.lower() == other.custom_name.lower()
+
+        elif isinstance(other, str):
+            return self.custom_name.lower() == other.lower()
+
+# VERY LOW COST ASPECTS: 1 Capacity. Expertise and Resistance for specific Hexes, and
+# LOW COST ASPECTS: 5 Capacity. Expertise and Resistance for standard Debuffs,
+# are not stored in the ASPECTS list but instead string-matched to DEBUFFS in +getaspect and apply_debuff().
+
+# MEDIUM COST ASPECTS: 10 Capacity. Style Aspects like Deflect, etc. ~75 stat Extra Arts. (like a healing potion)
+# Deflect: Blocking mitigation improves based on Speed. The more evasive you are, the less damage you take when
+# successfully blocking.
+deflect = Aspect(name="Deflect", cost=10)
+# Iron Skin: Glancing Blow dodge chance improves based on defense (Parry/Barrier). The sturdier you are, the more
+# likely you are to partially negate an attack when you dodge.
+iron_skin = Aspect(name="Iron Skin", cost=10)
+# Tumble: Endure accuracy bonus improves based on Speed. The more evasive you are, the more you benefit from choosing
+# to endure an attack.
+tumble = Aspect(name="Tumble", cost=10)
+# Breakthrough: Higher-damage attacks are somewhat harder to interrupt than they would otherwise be. This effect is not
+# hidden to the interrupter.
+breakthrough = Aspect(name="Breakthrough", cost=10)
+# Saboteur: All standard debuff (i.e., neither transformations nor hexes) chances improve and debuff AP costs slightly
+# decrease, but all targets gain more EX when hit with attempted debuffs.
+saboteur = Aspect(name="Saboteur", cost=10)
+# Synergist: Buff AP costs decrease, but all attackers gain more EX when they hit you.
+synergist = Aspect(name="Synergist", cost=10)
+# Tactician: Reaction Modifier Effect AP costs decrease (to 0 in many cases), but Arts with Reaction Modifier Effects
+# generate significantly less EX from attacking.
+tactician = Aspect(name="Tactician", cost=10)
+# Marauder: Attack Enhancer Effect AP costs decrease, but Arts with Attack Enhancer Effects are slightly less accurate.
+marauder = Aspect(name="Marauder", cost=10)
+# Bewitching: Hexes and Transformation debuffs specifically are harder to resist and the latter cost less AP.
+bewitching = Aspect(name="Bewitching", cost=10)
+# Vengeful: Your base critical hit chance is lower, but increases as your health decreases.
+vengeful = Aspect(name="Vengeful", cost=10)
+# Reckless: Your base critical hit chance is higher, but you are also more likely to suffer critical hits.
+reckless = Aspect(name="Reckless", cost=10)
+# Savage: When you inflict a critical hit, gain a temporary boost to accuracy and speed.
+savage = Aspect(name="Savage", cost=10)
+# Spirited: When you suffer a critical hit, gain a temporary boost to accuracy and speed.
+spirited = Aspect(name="Spirited", cost=10)
+
+# HIGH COST ASPECTS: 20 Capacity. Self-buffs and crit reacts. ~125 stat Extra Arts. (like a magic wand)
+# Counterstrike (Protect)
+counterstrike = Aspect(name="Counterstrike", cost=20)
+# Counterspell (Reflect)
+counterspell = Aspect(name="Counterspell", cost=20)
+# Ferocity (Acuity)
+ferocity = Aspect(name="Ferocity", cost=20)
+# Eagle Eye (Haste)
+eagle_eye = Aspect(name="Eagle Eye", cost=20)
+# Sleight of Hand (Blink)
+sleight_of_hand = Aspect(name="Sleight of Hand", cost=20)
+# Self-Mastery (Purity)
+self_mastery = Aspect(name="Self-Mastery", cost=20)
+# Resilience (Bless)
+resilience = Aspect(name="Resilience", cost=20)
+# Battle Rage (Berserk+): permanent Berserk state with reduced AP penalty; immune to Berserk
+battle_rage = Aspect(name="Battle Rage", cost=20)
+# Rock Solid (Petrify+): permanent Petrify state with mitigated dodge penalty; immune to Petrify
+rock_solid = Aspect(name="Rock Solid", cost=20)
+# Slippery (Slime+): permanent Slime state with mitigated block penalty; immune to Slime
+slippery = Aspect(name="Slippery", cost=20)
+# Perfect Dodge: similar to MotM's Parry, slightly improve Dodge chances and make crit dodges possible that make
+# your next Art more accurate and have no AP cost
+perfect_dodge = Aspect(name="Perfect Dodge", cost=20)
+# Perfect Guard: similar to MotM's JD, slightly improve Block chances and make crit blocks possible that negate all
+# damage and give an immediate flat AP boost
+perfect_guard = Aspect(name="Perfect Guard", cost=20)
+# Perfect Grit: similar to MotM's Toughness, slightly improve Endure chances and make crit endures possible that negate
+# most damage, improve your endure bonus for your next Art, and make your next Art more damaging
+perfect_grit = Aspect(name="Perfect Grit", cost=20)
+# Perfect Break: when it procs, greatly improve damage mitigation on successful interrupt
+perfect_break = Aspect(name="Perfect Break", cost=20)
+
+# VERY HIGH COST ASPECTS: 30 Capacity. Aim/Feint/Surge buffs. ~175 stat Extra Arts. (powerful relic)
+# Sniper: Aimed attacks inflict more damage.
+sniper = Aspect(name="Sniper", cost=30)
+# Duelist: Feinted attacks inflict more damage.
+duelist = Aspect(name="Duelist", cost=30)
+# Moment of Truth: Using Surge greatly improves your Acc for your next Attack or Interrupt
+# Improvement I can add by making it a status effect: sticks around but worse for 2nd turn, used up when succeeds
+moment_of_truth = Aspect(name="Moment of Truth", cost=30)
+# Nerves of Steel: Using Surge greatly improves your Speed for your next Reaction (same as above?)
+nerves_of_steel = Aspect(name="Nerves of Steel", cost=30)
+
+# EXTREME COST ASPECTS: 40 Capacity. ~225 stat Extra Arts. Admin approval only. (unique artifact)
+
+# List of all Aspects
+ASPECTS = [
+    deflect,
+    iron_skin,
+    tumble,
+    breakthrough,
+    saboteur,
+    synergist,
+    tactician,
+    marauder,
+    bewitching,
+    vengeful,
+    reckless,
+    savage,
+    spirited,
+    counterstrike,
+    counterspell,
+    ferocity,
+    eagle_eye,
+    sleight_of_hand,
+    self_mastery,
+    resilience,
+    battle_rage,
+    rock_solid,
+    slippery,
+    perfect_dodge,
+    perfect_guard,
+    perfect_grit,
+    perfect_break,
+    sniper,
+    duelist,
+    moment_of_truth,
+    nerves_of_steel
+]
+
+# BUFF_EQ dict stores equivalencies between always-on (when-equipped) self-buffing Aspects and the associated buff.
+# Buff name string is key and Aspect object is value. This will help to avoid effectively stacking the same buff.
+# Includes debuffs with upsides: Berserk, Petrify, and Slime.
+BUFF_EQ = {
+    "Protect": counterstrike,
+    "Reflect": counterspell,
+    "Acuity": ferocity,
+    "Haste": eagle_eye,
+    "Blink": sleight_of_hand,
+    "Purity": self_mastery,
+    "Bless": resilience,
+    "Berserk": battle_rage,
+    "Petrify": rock_solid,
+    "Slime": slippery
+}

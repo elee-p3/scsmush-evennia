@@ -1,52 +1,41 @@
 import copy
 
+from typeclasses.characters import Character
+from world.combat.aspects import LinkedAspect
 from world.scenes.models import Scene, LogEntry
 from django.utils.html import escape
 import random
 import math
 from world.utilities.utilities import logger
 from world.combat.attacks import Attack, ActionResult, AttackToQueue, AttackDuringAction
-from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint
+from world.combat.effects import BUFFS, DEBUFFS, DEBUFFS_STANDARD, DEBUFFS_HEXES, DEBUFFS_TRANSFORMATION, AimOrFeint, \
+    REACTION_MODIFIERS, ATTACK_ENHANCERS
 from world.combat.normals import NORMALS
-from world.arts.models import Arts
+from world.arts.models import Art
 from world.utilities.utilities import find_attacker_from_key
+from world.combat.aspects import BUFF_EQ
 
 
-class ArtBaseline:
-    # A data container to keep a copy of an art prior to it being modified by, e.g., a character's status effects.
-    # The purpose is for comparison with base values, e.g., did AP cost go up or down overall.
-    def __init__(self, name, base_dmg, base_acc, base_stat, base_ap, base_effects):
-        self.name = name
-        self.dmg = base_dmg
-        self.acc = base_acc
-        self.stat = base_stat
-        self.ap = base_ap
-        self.effects = base_effects
-
-
-def filter_and_modify_arts(caller):
+def filter_and_modify_arts(caller: Character):
     # Centralizes the function of sorting through the Arts table, finding those linked to a character, and then
     # modifying them based on the character's status effect. This way, e.g., if a Berserk character's AP costs for
-    # attacks of damage less than 50 are increased by 10, this is reflected in both CmdAttack and CmdSheet.
+    # attacks of damage less than 5 are increased by 10, this is reflected in both CmdAttack and CmdSheet.
     # This function will be used in CmdAttack, CmdInterrupt, CmdArts, CmdListAttacks, CmdCheck, and CmdSheet.
-    arts = Arts.objects.filter(characters=caller)
-    base_arts = []
+    # TODO: https://github.com/elee-p3/scsmush-evennia/issues/38
+    character_arts = [Attack.attack_from_art(art) for art in list(Art.objects.filter(characters=caller))]
+    aspect_arts = [aspect.linked_art_attack() for aspect in caller.db.equipped_aspects if isinstance(aspect, LinkedAspect)]
+    all_arts = character_arts + aspect_arts
     modified_arts = []
     modified_normals = []
-    for art in arts:
-        # Copy.copy is used to ensure we do not modify the attack in the character's list, just this instance of it.
-        modified_art = copy.copy(art)
-        base_art = ArtBaseline(art.name, art.dmg, art.acc, art.stat, art.ap, art.effects)
-        base_arts.append(base_art)
-        # Modify the copy of the art
-        modified_art = berserk_check(caller, modified_art)
+    for art in all_arts:
+        modified_art = ap_mod_check(caller, art)
         modified_arts.append(modified_art)
     # Now search through the generic normals list and apply the same checks. No need to create a baseline
     for normal in NORMALS:
         modified_normal = copy.copy(normal)
-        modified_normal = berserk_check(caller, modified_normal)
+        modified_normal = ap_mod_check(caller, modified_normal)
         modified_normals.append(modified_normal)
-    return modified_arts, base_arts, modified_normals
+    return modified_arts, all_arts, modified_normals
 
 
 def assign_attack_instance_id(target):
@@ -63,13 +52,29 @@ def damage_calc(queued_attack, defender):
     incoming_attack = queued_attack.attack
     attack_dmg = incoming_attack.dmg
     base_stat = incoming_attack.stat
-    attacker = find_attacker_from_key(queued_attack.attacker_key)
-    attacker_stat = find_attacker_stat(attacker, base_stat)
+    attacker_stat = find_attacker_stat(queued_attack, base_stat)
     default_dmg = 160
 
     # Check for the Strain effect on the attack to modify attack_dmg before determining multiplier.
     if queued_attack.has_strain:
-        attack_dmg = strain_check(attack_dmg, attacker)
+        attack_dmg += 1
+
+    # Crit success endures also boost damage.
+    if queued_attack.has_perfect_grit:
+        attack_dmg += 1
+
+    # Check for Aspects relevant to inflicting damage.
+    if "Sniper" in queued_attack.attacker_aspects:
+        if queued_attack.aim_or_feint == AimOrFeint.AIM or queued_attack.aim_or_feint == AimOrFeint.HASTED_AIM:
+            attack_dmg += 1
+
+    if "Duelist" in queued_attack.attacker_aspects:
+        if queued_attack.aim_or_feint == AimOrFeint.FEINT or queued_attack.aim_or_feint == AimOrFeint.BLINKED_FEINT:
+            attack_dmg += 1
+
+    if queued_attack.has_berserk or "Battle Rage" in queued_attack.attacker_aspects:
+        if incoming_attack.dmg >= 5: # checking original value
+            attack_dmg += 1
 
     # base damage will be scaled by the attack's dmg property, with 6 being the baseline 1.0x
     multiplier = 1.0 - ((6 - attack_dmg) * 0.1)
@@ -124,7 +129,7 @@ def damage_calc(queued_attack, defender):
     return final_damage
 
 
-def attack_switch_check(attacker, switches):
+def attack_switch_check(switches):
     # Checking for switches on CmdAttack other than heal/cure switches, which go to heal_check.
     # Right now, there is just attack/wild, which lowers accuracy here and increases crit threshold in critical_hits.
     valid_switches = ["wild"]
@@ -143,12 +148,16 @@ def modify_speed(speed, defender):
         speed += 5
     if defender.db.buffs["Blink"] > 0:
         speed += 5
+    if defender.db.buffs["Spirited"] > 0:
+        speed += 5
+    if defender.db.buffs["Savage"] > 0:
+        speed += 5
+    if defender.db.debuffs_standard["Berserk"] > 0 or "Battle Rage" in defender.db.equipped_aspects:
+        speed += 5
     if defender.db.debuffs_standard["Injure"] > 0:
         speed -= 5
     if defender.db.debuffs_standard["Muddle"] > 0:
         speed -= 5
-    if defender.db.debuffs_standard["Berserk"] > 0:
-        speed += 5
     if defender.db.debuffs_standard["Petrify"] > 0:
         speed -= 10
     if defender.db.debuffs_standard["Slime"] > 0:
@@ -210,9 +219,16 @@ def dodge_calc(defender, attack_instance: AttackToQueue):
     # Checking to see if the defender is Petrified and improving accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
         chance_to_hit += 12
+    # Equippable debuffs will be half as effective/deleterious.
+    if "Rock Solid" in defender.db.equipped_aspects:
+        chance_to_hit += 6
     # Checking to see if the defender is Slimy and reducing accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
         chance_to_hit -= 12
+    if "Slippery" in defender.db.equipped_aspects:
+        chance_to_hit -= 6
+    if "Perfect Dodge" in defender.db.equipped_aspects:
+        chance_to_hit -= 5
     if attack_instance.is_final_action:
         chance_to_hit -= 30
     if attack_instance.has_rush:
@@ -220,6 +236,7 @@ def dodge_calc(defender, attack_instance: AttackToQueue):
     if attack_instance.has_ranged:
         chance_to_hit -= 5
     chance_to_hit += attack_instance.endure_bonus
+    chance_to_hit += apply_flat_acc_modifiers(attack_instance, defender)
     # cap accuracy at 99%
     if chance_to_hit > 99:
         chance_to_hit = 99
@@ -278,12 +295,19 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
     # Checking to see if the defender is Petrified and reducing accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
         chance_to_hit -= 12
+    if "Rock Solid" in defender.db.equipped_aspects:
+        chance_to_hit -= 6
+    if "Perfect Guard" in defender.db.equipped_aspects:
+        chance_to_hit -= 5
     # Checking to see if the defender is Slimy and improving accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
         chance_to_hit += 12
+    if "Slippery" in defender.db.equipped_aspects:
+        chance_to_hit += 6
     # Incorporating defender's block penalty and attacker's endure bonus.
     chance_to_hit += defender.db.block_penalty
     chance_to_hit += attack_instance.endure_bonus
+    chance_to_hit += apply_flat_acc_modifiers(attack_instance, defender)
     # cap block percentage at 99%
     if chance_to_hit > 99:
         chance_to_hit = 99
@@ -338,11 +362,18 @@ def endure_chance_calc(defender, attack_instance):
     # Checking to see if the defender is Petrified and reducing accuracy if so.
     if defender.db.debuffs_standard["Petrify"] > 0:
         chance_to_hit -= 12
+    if "Rock Solid" in defender.db.equipped_aspects:
+        chance_to_hit -= 6
     # Checking to see if the defender is Slimy and reducing accuracy if so.
     if defender.db.debuffs_standard["Slime"] > 0:
         chance_to_hit -= 12
+    if "Slippery" in defender.db.equipped_aspects:
+        chance_to_hit -= 6
+    if "Perfect Grit" in defender.db.equipped_aspects:
+        chance_to_hit -= 5
     # Incorporating attacker's endure bonus. Block penalty does not apply to defender's endure chance.
     chance_to_hit += attack_instance.endure_bonus
+    chance_to_hit += apply_flat_acc_modifiers(attack_instance, defender)
     # cap endure percentage at 99%
     if chance_to_hit > 99:
         chance_to_hit = 99
@@ -351,9 +382,13 @@ def endure_chance_calc(defender, attack_instance):
     return chance_to_hit
 
 
-def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interrupt):
-    accuracy_diff = outgoing_interrupt.acc - incoming_attack_instance.attack.acc
-    interrupt_chance = 40 + (accuracy_diff * 5)
+def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interrupt, for_check_display=False):
+    if for_check_display:
+        # To incorporate status effects, etc., into CmdCheck, add action metadata to raw attack object.
+        outgoing_interrupt = AttackDuringAction(outgoing_interrupt, interrupter.key, "")
+
+    accuracy_diff = outgoing_interrupt.attack.acc - incoming_attack_instance.attack.acc
+    interrupt_chance = 30 + (accuracy_diff * 5)
     # If the interrupter is baiting, interrupt chance increases.
     if interrupter.db.is_baiting:
         interrupt_chance += 10
@@ -367,14 +402,26 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
     if incoming_attack_instance.has_priority:
         interrupt_chance -= 15
     # If the outgoing interrupt has the Priority effect, interrupt chance greatly increases.
-    if "Priority" in outgoing_interrupt.effects:
+    if "Priority" in outgoing_interrupt.attack.effects:
         interrupt_chance += 15
     # If the incoming attack is Ranged and the outgoing interrupt is *not* Ranged, interrupt chance greatly decreases.
     if incoming_attack_instance.has_ranged:
-        if "Long-Range" not in outgoing_interrupt.effects:
+        if "Long-Range" not in outgoing_interrupt.attack.effects:
             interrupt_chance -= 15
+    # Perfect Break improves interrupt chances by 5%, consistent with reaction bonuses from all similar Asepcts.
+    if "Perfect Break" in interrupter.db.equipped_aspects:
+        interrupt_chance += 5
+    # Breakthrough improves interrupt chances by 5% for "higher-Damage attacks," starting at 6.
+    if "Breakthrough" in interrupter.db.equipped_aspects:
+        if outgoing_interrupt.attack.dmg >= 6:
+            interrupt_chance += 5
     # Incorporating incoming attacks's endure bonus, reducing interrupt chance.
     interrupt_chance -= incoming_attack_instance.endure_bonus
+    # Incorporating the flat acc buffs on the incoming attack, potentially benefiting the target of the interrupt.
+    interrupt_chance -= apply_flat_acc_modifiers(incoming_attack_instance, interrupter, is_interrupt=True)
+    # Incorporating the flat acc buffs on the outgoing interrupt, potentially benefiting the interrupter.
+    attacker = find_attacker_from_key(incoming_attack_instance.attacker_key)
+    interrupt_chance += apply_flat_acc_modifiers(outgoing_interrupt, attacker, is_interrupt=True)
     # cap interrupt percentage at 99%
     if interrupt_chance > 99:
         interrupt_chance = 99
@@ -383,64 +430,107 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
     return interrupt_chance
 
 
-def interrupt_mitigation_calc(unmitigated_incoming_damage, outgoing_damage):
-    # This function mitigates the damage taken by the interrupter on a successful interrupt relative to the Damage
-    # of the interrupting attack. This discourages super-high-Accuracy super-low-Damage interrupts.
-    mitigated_damage = unmitigated_incoming_damage / 2
-    if unmitigated_incoming_damage > outgoing_damage:
-        mitigated_damage *= (unmitigated_incoming_damage / outgoing_damage)
-    # Check to make sure nothing wacky has happened and the incoming attack isn't doing MORE damage.
-    if mitigated_damage > unmitigated_incoming_damage:
-        mitigated_damage = unmitigated_incoming_damage
-    return mitigated_damage
-
-
-def endure_bonus_calc(damage_taken):
+def endure_bonus_calc(target, damage_taken):
     # Calculate the accuracy bonus to your next attack from enduring. Should be capped at around 10 to 15.
     accuracy_bonus = int(damage_taken) / 15
-    if accuracy_bonus > 12:
-        accuracy_bonus = 12
+    endure_bonus_cap = 15
+    if accuracy_bonus > endure_bonus_cap:
+        accuracy_bonus = endure_bonus_cap
+    # Apply accuracy bonus from Tumble aspect here, potentially exceeding cap (by at most a few points, but still).
+    if "Tumble" in target.db.equipped_aspects:
+        if (target.db.speed - 125) > 0:
+            def_bonus = math.ceil((target.db.speed - 125) / 25)
+            accuracy_bonus += def_bonus
     return accuracy_bonus
 
 
-def block_damage_calc(base_damage, block_penalty):
-    mitigated_damage = base_damage / 2
-    # Modify the base mitigated damage by the block penalty.
-    # Currently, a doubled percentage increase: e.g., if someone successfully blocks with a 20 block penalty,
-    # first halve the damage, then multiply that by x1.4.
-    if block_penalty > 0:
-        mitigated_damage *= ((block_penalty * 2) / 100 + 1)
-    # Make sure that this can't somehow do more damage than a failed block.
+def block_damage_calc(base_damage, defender, action_result):
+    mitigated_damage = None
+
+    if action_result == ActionResult.BLOCK_CRIT_SUCCESS:
+        mitigated_damage = base_damage / 4
+
+    elif action_result == ActionResult.BLOCK_SUCCESS:
+        mitigated_damage = base_damage / 2
+
+        # Modify the base mitigated damage by the block penalty (for successes, not crit successes).
+        # Currently, a doubled percentage increase: e.g., if someone successfully blocks with a 20 block penalty,
+        # first halve the damage, then multiply that by x1.4.
+        block_penalty = defender.db.block_penalty
+        if block_penalty > 0:
+            mitigated_damage *= ((block_penalty * 2) / 100 + 1)
+
+    if mitigated_damage is None:
+        raise Exception("Error: action_result not recognized in block_damage_calc.")
+
+    if "Deflect" in defender.db.equipped_aspects:
+        # Deflect further reduces incoming damage by Speed minus 125 (the baseline) divided by 4.
+        deflect_mitigation = math.ceil((defender.db.speed - 125) / 4)
+        if deflect_mitigation < 0:
+            deflect_mitigation = 0
+        mitigated_damage -= deflect_mitigation
+
+    # Make sure that this can't somehow do more damage than a failed block, or do less than 0 damage.
     if mitigated_damage > base_damage:
         mitigated_damage = base_damage
+    if mitigated_damage < 0:
+        mitigated_damage = 0
+
     return mitigated_damage
 
 
-def ex_gain_on_attack(damage_inflicted, current_ex, max_ex):
-    ex_gain = int(damage_inflicted) / 15
-    new_ex = current_ex + ex_gain
+def ex_gain_on_attack(damage_inflicted, attacker, defender, action):
+    ex_gain_denominator = 15
+    # If the defender has Synergist equipped, hitting them gives more EX, reducing denominator.
+    if "Synergist" in defender.db.equipped_aspects:
+        ex_gain_denominator -= 1.5
+    # If the attacker has Tactician equipped, attacks with Reaction Modifier effects give less EX.
+    if "Tactician" in attacker.db.equipped_aspects and any(e in REACTION_MODIFIERS for e in action.attack.effects.split()):
+        ex_gain_denominator += 1.5
+    ex_gain = int(damage_inflicted) / ex_gain_denominator
+    # EX gain for attacker
+    current_ex = attacker.db.ex
+    max_ex = attacker.db.maxex
+    new_ex = math.ceil(current_ex + ex_gain)
     if new_ex > max_ex:
         new_ex = max_ex
     return new_ex
 
 
-def ex_gain_on_defense(damage_taken, current_ex, max_ex):
-    ex_gain = int(damage_taken) / 5
-    new_ex = current_ex + ex_gain
+def ex_gain_on_defense(damage_taken, attacker, defender, action):
+    ex_gain_denominator = 5
+    # If the attacker has Saboteur is using a debuffing attack, gain more EX, decreasing denominator.
+    if "Saboteur" in attacker.db.equipped_aspects and any(e in DEBUFFS for e in action.attack.effects.split()):
+        ex_gain_denominator -= 0.5
+    ex_gain = int(damage_taken) / ex_gain_denominator
+    # EX gain for defender
+    current_ex = defender.db.ex
+    max_ex = defender.db.maxex
+    new_ex = math.ceil(current_ex + ex_gain)
     if new_ex > max_ex:
         new_ex = max_ex
     return new_ex
 
 
-def glancing_blow_calc(dice_roll, accuracy, sweep_boolean=False):
+def glancing_blow_calc(dice_roll, accuracy, target, action):
     # If a dodge attempt fails, check if the result was a "glancing blow" instead.
     # For now, a flat value only modified by having "sweep" on an attack. Returns a Boolean.
     diff_between_roll_and_acc = accuracy - dice_roll
     # 10% of glancing blow.
     chance_of_glance = 10
-    if sweep_boolean:
+    if action.has_sweep:
         # The Sweep effect increases the chance of a glancing blow to 20%.
         chance_of_glance += 10
+    if "Iron Skin" in target.db.equipped_aspects:
+        # The greater the relevant defense stat, the greater the chance of a glancing blow.
+        attack_stat_str = action.attack.stat
+        if attack_stat_str.lower() == "power":
+            def_stat = target.db.parry
+        elif attack_stat_str.lower() == "knowledge":
+            def_stat = target.db.barrier
+        if (def_stat - 125) > 0:
+            def_bonus = math.ceil((def_stat - 125) / 25)
+            chance_of_glance += (def_bonus * 5)
     if chance_of_glance >= diff_between_roll_and_acc:
         return True
     return False
@@ -457,7 +547,8 @@ def apply_attack_effects_to_attacker(attacker, attack):
     attacker.db.used_ranged = False
     # Now, apply the new attack effects.
     if attack.effects:
-        for effect in attack.effects:
+        split_effects = attack.effects.split()
+        for effect in split_effects:
             if effect == "Rush":
                 attacker.db.is_rushing = True
             if effect == "Weave":
@@ -468,18 +559,23 @@ def apply_attack_effects_to_attacker(attacker, attack):
                 attacker.db.is_baiting = True
             if effect == "Long-Range":
                 attacker.db.used_ranged = True
+            if effect == "Strain":
+                strain_check(attacker, attack)
     return attacker
 
 
-def accrue_block_penalty(defender, pre_block_damage, block_bool, attack_instance):
+def accrue_block_penalty(defender, pre_block_damage, action_result, attack_instance):
     # If the block succeeds, accrue full block penalty. If the block fails, accrue a minor block penalty.
     # Crush makes the block penalty a lot worse if you block and a little worse if you fail to block.
-    if block_bool:
+    if action_result == ActionResult.BLOCK_SUCCESS: # distinguish between crit success, success, fail or crit fail
         if attack_instance.has_crush:
             defender.db.block_penalty += (pre_block_damage / 5)
         else:
             defender.db.block_penalty += (pre_block_damage / 10)
-    else:
+    elif action_result == ActionResult.BLOCK_CRIT_SUCCESS:
+        # Crit block not only negates all block penalty from damage, but reduces existing penalty in half!
+        defender.db.block_penalty = math.ceil(defender.db.block_penalty / 2)
+    else: # Crit failure does not make block penalty any worse than failure (damage is already greater anyway)
         if attack_instance.has_crush:
             defender.db.block_penalty += (pre_block_damage / 15)
         else:
@@ -526,12 +622,12 @@ def combat_log_entry(caller, logstring):
         scene.addLogEntry(LogEntry.EntryType.COMBAT, escape(logstring), caller)
 
 
-def find_attacker_stat(attacker, base_stat):
-    # Use the base stat of the attack to pull the attacker's corresponding stat value.
+def find_attacker_stat(action, base_stat):
+    # Use the base stat of the attack to pull the attacker's corresponding stat value, stored in AttackDuringAction.
     if base_stat == "Power":
-        return attacker.db.power
+        return action.attacker_stats["Power"]
     elif base_stat == "Knowledge":
-        return attacker.db.knowledge
+        return action.attacker_stats["Knowledge"]
     else:
         return 0
 
@@ -548,7 +644,7 @@ def heal_check(action, healer, target, switches, regen=False, drain_dmg=None):
     heal_instance = action.attack
 
     if not regen:
-        base_stat = find_attacker_stat(healer, heal_instance.stat)
+        base_stat = find_attacker_stat(action, heal_instance.stat)
         # Check for Vigor buff on healer.
         base_stat = vigor_check(action, base_stat)
     else:
@@ -722,25 +818,82 @@ def dispel_check(target):
         return modified_buffs
 
 
-def critical_hits(damage, action):
+def critical_hits(damage, action, target, dice_roll):
     # Default 5% chance to inflict 1.25x damage. There will be ways to modify that, so put them all here.
     # Take the current damage as an input and return a bool and possibly modified damage.
     is_critical = False
-    critical_check = random.randint(1, 100)
+    critical_check = dice_roll # Lower is better, i.e., it was more likely to hit the target
     critical_threshold = 5
     # Checking for Acuity buff on the attack. (Not the attacker, since their buff might have expired.)
-    if action.has_acuity:
+    if action.has_acuity or "Ferocity" in action.attacker_aspects:
         critical_threshold *= 3
     # Attack/wild makes attacks less accurate but adds a flat crit chance bonus, for fun.
     if action.is_wild:
         critical_threshold += 10
+    # The Vengeful Aspect reduces base Crit chance but increases it as health decreases. Ranges from -5 to +15.
+    if "Vengeful" in action.attacker_aspects:
+        divisor = action.attacker_stats["MAXLF"] / 20 # Defaults to 50
+        critical_threshold += ((action.attacker_stats["MAXLF"] - action.attacker_stats["LF"]) / divisor) - 5
+    # The Reckless Aspect increases the chance to inflict and to suffer critical hits.
+    if "Reckless" in action.attacker_aspects:
+        critical_threshold += 5
+    if "Reckless" in target.db.equipped_aspects:
+        critical_threshold += 5
     if critical_check <= critical_threshold:
         is_critical = True
         damage *= 1.25
+    # On successful critical hit, apply Spirited to target/sufferer or Savage to inflicter (attacker for CmdAttack,
+    # interrupter for CmdInterrupt).
+    if is_critical:
+        if "Spirited" in target.db.equipped_aspects:
+            target.db.buffs["Spirited"] = 2
+        if "Savage" in action.attacker_aspects:
+            # Give the attacker (actual character object, found from key on action init) Savage buff on proc.
+            action.attacker["Savage"] = 2
     return is_critical, damage
 
 
-def damage_message_strings(action_result, caller, attack, damage, interrupt=None, mitigated_damage=None,
+def crit_react_check(reaction, reactor, dice_roll):
+    # Default 10% chance for crit react success. Threshold improves with Nerves of Steel, or Moment of Truth for ints.
+    # Damage defaults to zero because on successful dodges, there's no need to pass damage, as it's 0, crit or not.
+    crit_react_check = 100 - dice_roll # The higher the dice roll was, the better the check to compare to threshold
+    is_crit_react = False
+    crit_react_threshold = 10
+    not_interrupts = ["dodge", "block", "endure"]
+    if reaction == "interrupt" and reactor.db.buffs["Moment of Truth"] > 0:
+        crit_react_threshold += (reactor.db.buffs["Moment of Truth"] * 10)
+    if reaction in not_interrupts and reactor.db.buffs["Nerves of Steel"] > 0:
+        crit_react_threshold += (reactor.db.buffs["Nerves of Steel"] * 10)
+    if crit_react_check <= crit_react_threshold:
+        if reaction == "dodge" and "Perfect Dodge" in reactor.db.equipped_aspects:
+            is_crit_react = True
+        elif reaction == "block" and "Perfect Guard" in reactor.db.equipped_aspects:
+            is_crit_react = True
+        elif reaction == "endure" and "Perfect Grit" in reactor.db.equipped_aspects:
+            is_crit_react = True
+        elif reaction == "interrupt" and "Perfect Break" in reactor.db.equipped_aspects:
+            is_crit_react = True
+    return is_crit_react
+
+
+def apply_crit_react_buff(caller, action_result):
+    # Apply benefits for Perfect Dodge, Perfect Guard, or Perfect Grit. Perfect Break is checked with Protect/Reflect.
+    # Buffs will be applied on reaction and apply only to the next action, so duration is set to 1.
+    if action_result == ActionResult.DODGE_CRIT_SUCCESS:
+        caller.db.buffs["Perfect Dodge"] = 1
+        caller.msg("Your keen evasion yields an opportunity. Your next attack is more accurate and costs no AP.")
+    elif action_result == ActionResult.BLOCK_CRIT_SUCCESS:
+        new_ap = caller.db.ap + 30
+        if new_ap > caller.db.maxap:
+            new_ap = caller.db.maxap
+        caller.db.ap = new_ap
+        caller.msg(f"Your skillful defense marshals your reserves, increasing your AP to {caller.db.ap}.")
+    elif action_result == ActionResult.ENDURE_CRIT_SUCCESS:
+        caller.db.buffs["Perfect Grit"] = 1
+        caller.msg(f"Your implacable grit empowers you. Your next attack will be more damaging.")
+
+
+def damage_message_strings(action_result, caller, attack, damage, interrupt=None, interrupt_damage=None,
                            interrupted_char=None):
     # Consolidated all message strings related to damage here, to reduce repetition in the commands themselves.
     msg_to_room = ""
@@ -790,53 +943,97 @@ def damage_message_strings(action_result, caller, attack, damage, interrupt=None
     elif action_result == ActionResult.INTERRUPT_SUCCESS:
         caller.msg("You interrupt {attack} with {interrupt}.".format(attack=attack.name,
                                                                      interrupt=interrupt.name))
-        caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
         msg_to_room = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}."
-        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(interrupt_damage)))
     # 10: Critically succeed at interrupt
     elif action_result == ActionResult.INTERRUPT_CRIT_SUCCESS:
         caller.msg("You critically interrupt {attack} with {interrupt}!".format(attack=attack.name,
                                                                                 interrupt=interrupt.name))
-        caller.msg("You took {dmg} damage.".format(dmg=round(mitigated_damage)))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
         msg_to_room = "|y<COMBAT>|n {target} interrupts {attacker}'s {modifier}{attack} with {interrupt}.\n" \
                       "|-|r** CRITICAL HIT! **|n"
-        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(interrupt_damage)))
+    # WAS_INTERRUPTED = 11
+    # WAS_CRIT_INTERRUPTED = 12
+    # DODGE_CRIT_SUCCESS = 13
+    elif action_result == ActionResult.DODGE_CRIT_SUCCESS:
+        caller.msg("You have perfectly dodged {attack}.".format(attack=attack.name))
+        msg_to_room = "|y<COMBAT>|n {target} has |gperfectly|n dodged {attacker}'s {modifier}{attack}!"
+    # BLOCK_CRIT_SUCESSS = 14
+    elif action_result == ActionResult.BLOCK_CRIT_SUCCESS:
+        caller.msg("You have perfectly blocked {attack}.".format(attack=attack.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} has |gperfectly|n blocked {attacker}'s {modifier}{attack}!"
+    # ENDURE_CRIT_SUCCESS = 15
+    elif action_result == ActionResult.ENDURE_CRIT_SUCCESS:
+        caller.msg("You perfectly endure {attack}.".format(attack=attack.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} |gunflinchingly|n endures {attacker}'s {modifier}{attack}!"
+    # INTERRUPT_REACT_CRIT_SUCCESS = 16
+    elif action_result == ActionResult.INTERRUPT_REACT_CRIT_SUCCESS:
+        caller.msg("You break through {attack} with {interrupt}.".format(attack=attack.name,
+                                                                     interrupt=interrupt.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} |gbreaks through|n {attacker}'s {modifier}{attack} with {interrupt}!"
+        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(interrupt_damage)))
+    # INTERRUPT_CRIT_HIT_AND_REACT_CRIT = 17
+    elif action_result == ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT:
+        caller.msg("You critically break through {attack} with {interrupt}!".format(attack=attack.name,
+                                                                     interrupt=interrupt.name))
+        caller.msg("You took {dmg} damage.".format(dmg=round(damage)))
+        msg_to_room = "|y<COMBAT>|n {target} |gbreaks through|n {attacker}'s {modifier}{attack} with {interrupt}!\n" \
+                      "|-|r** CRITICAL HIT! **|n"
+        interrupted_char.msg("You took {dmg} damage.".format(dmg=round(interrupt_damage)))
     return msg_to_room
 
 
-def protect_and_reflect_check(incoming_damage, defender, attack, interrupt_success):
-    # Protect and Reflect mitigate damage specifically for an interrupter when interrupting.
-    if (defender.db.buffs["Protect"] > 0 and attack.stat.lower() == "power") or (defender.db.buffs["Reflect"] > 0 and attack.stat.lower() == "knowledge"):
-        if interrupt_success:
-            incoming_damage = incoming_damage * 0.75
-        else:
-            incoming_damage = incoming_damage * 0.85
+def interrupt_mitigation_calc(incoming_damage, defender, attack, action_result):
+    # Protect and Reflect mitigate damage specifically for an interrupter when interrupting (even on failure).
+    mitigation = False
+    successful_interrupt_result_list = [ActionResult.INTERRUPT_SUCCESS, ActionResult.INTERRUPT_CRIT_SUCCESS]
+    crit_react_result_list = [ActionResult.INTERRUPT_REACT_CRIT_SUCCESS, ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT]
+    if attack.stat.lower() == "power":
+        if defender.db.buffs["Protect"] > 0 or "Counterstrike" in defender.db.equipped_aspects:
+            mitigation = True
+    if attack.stat.lower() == "knowledge":
+        if defender.db.buffs["Reflect"] > 0 or "Counterspell" in defender.db.equipped_aspects:
+            mitigation = True
+    if action_result in crit_react_result_list and mitigation:
+        incoming_damage = 0 # Perfect Break plus Protect/Reflect 15% bonus equals total damage mitigation!
+    elif action_result in crit_react_result_list:
+        incoming_damage = incoming_damage * 0.15 # Perfect Break mitigates 85% damage
+    elif action_result in successful_interrupt_result_list and mitigation:
+        incoming_damage = incoming_damage * 0.35 # 50% mitigation + 15% Protect/Reflect bonus
+    elif action_result in successful_interrupt_result_list:
+        incoming_damage = incoming_damage * 0.5 # Successfully interrupting halves damage
+    elif mitigation:
+        incoming_damage = incoming_damage * 0.85 # Protect/Reflect on failed interrupt mitigates 15%
     return incoming_damage
 
-#TODO: rename all the accuracy vars to "percentage" or something
-def modify_aim_and_feint(accuracy, reaction, aim_or_feint):
+def modify_aim_and_feint(chance_to_hit, reaction, aim_or_feint):
     # Centralizing any modifications to Aim and Feint from buffs, etc. Call this in each reaction. Return mod acc.
     if reaction == "dodge" or "block":
         # Aiming is more accurate and feinting is less accurate against dodging and blocking.
         if aim_or_feint == AimOrFeint.AIM:
-            accuracy += 15
+            chance_to_hit += 15
         elif aim_or_feint == AimOrFeint.HASTED_AIM:
-            accuracy += 25
+            chance_to_hit += 25
         elif aim_or_feint == AimOrFeint.FEINT:
-            accuracy -= 15
+            chance_to_hit -= 15
     elif reaction == "endure" or "interrupt":
         # Aiming is less accurate and feinting is more accurate against enduring and interrupting.
         if aim_or_feint == AimOrFeint.AIM:
-            accuracy -= 15
+            chance_to_hit -= 15
         elif aim_or_feint == AimOrFeint.FEINT:
-            accuracy += 15
+            chance_to_hit += 15
         elif aim_or_feint == AimOrFeint.BLINKED_FEINT:
-            accuracy += 25
-    if accuracy > 99:
-        accuracy = 99
-    elif accuracy < 1:
-        accuracy = 1
-    return accuracy
+            chance_to_hit += 25
+    if chance_to_hit > 99:
+        chance_to_hit = 99
+    elif chance_to_hit < 1:
+        chance_to_hit = 1
+    return chance_to_hit
 
 
 def poison_check(target):
@@ -898,11 +1095,30 @@ def wound_check(character, action):
         character.msg("You are no longer wounded.")
 
 
-def berserk_check(caller, action):
+def ap_mod_check(caller, action):
+    # If a character has the buff from a Perfect dodge, all Arts that would cost AP cost 0 AP. Return immediately.
+    if caller.db.buffs["Perfect Dodge"] > 0:
+        if action.ap < 0:
+            action.ap = 0
+            return action
     # If a character is Berserk, Arts of lower than 5 Damage value cost 10 more AP.
     if caller.db.debuffs_standard["Berserk"] > 0:
         if action.dmg < 5:
             action.ap -= 10
+    # Battle Rage will make the equipper immune to Berserk, so both conditions cannot be true.
+    elif "Battle Rage" in caller.db.equipped_aspects:
+        if action.dmg < 5:
+            action.ap -= 5
+    if "Marauder" in caller.db.equipped_aspects and any(e in ATTACK_ENHANCERS for e in action.effects.split()):
+        action.ap += 5
+    if "Saboteur" in caller.db.equipped_aspects and any(e in DEBUFFS for e in action.effects.split()):
+        action.ap += 5
+    if "Synergist" in caller.db.equipped_aspects and any(e in BUFFS for e in action.effects.split()):
+        action.ap += 5
+    if "Tactician" in caller.db.equipped_aspects and any(e in REACTION_MODIFIERS for e in action.effects.split()):
+        action.ap += 5
+    if "Bewitching" in caller.db.equipped_aspects and any(e in DEBUFFS_TRANSFORMATION for e in action.effects.split()):
+        action.ap += 10
     return action
 
 
@@ -923,45 +1139,43 @@ def clear_hexes(caller):
             caller.msg(f"You are no longer afflicted by {status_effect}.")
 
 
-def strain_check(attack_damage, attacker):
-    # Currently, Strain effectively increases the Damage value of an Art by 1.
-    attack_damage = attack_damage + 1
+def strain_check(attacker, attack):
+    """Calculates self-damage of Strain Effect. Note that ongoing damage increase is now calculated in damage_calc()."""
     # Strain's self-damage calculation is a random integer, multiplied by the same damage scale as in damage_calc.
     strain_damage = random.randint(20, 40)
-    multiplier = 1.0 - ((6 - attack_damage) * 0.1)
+    multiplier = 1.0 - ((6 - attack.dmg) * 0.1)
     strain_damage = int(strain_damage * multiplier)
     attacker.db.lf -= strain_damage
     attacker.msg("You have taken {damage} damage from strain.".format(damage=strain_damage))
+    # NOTE: This sequence is now replicated in Poison, Wound, and Strain, so could be worth refactoring into helper.
     initial_state = attacker.db.final_action
     final_action_check(attacker)
     # Check if it's now your final_action BECAUSE of the strain damage specifically.
     if attacker.db.final_action and not initial_state:
         attacker.db.negative_lf_from_dot = True
-    # Now that attacker self-damage has been resolved, return the increased Damage value of the Art.
-    return attack_damage
 
 
-def modify_ex_on_hit(damage, defender, attacker):
+def modify_ex_on_hit(damage, defender, attacker, action):
     # Called when 1) a defender fails a reaction and is damaged or 2) fails an interrupt action and is damaged.
     # The damaged character gains a fair amount of EX and the damaging character gains some EX, proportional to damage.
     # Modify EX based on damage taken.
     # Modify the character's EX based on the damage inflicted.
-    new_defender_ex = ex_gain_on_defense(damage, defender.db.ex, defender.db.maxex)
+    new_defender_ex = ex_gain_on_defense(damage, attacker, defender, action)
     # Modify the attacker's EX based on the damage inflicted.
-    new_attacker_ex = ex_gain_on_attack(damage, attacker.db.ex, attacker.db.maxex)
+    new_attacker_ex = ex_gain_on_attack(damage, attacker, defender, action)
     return new_defender_ex, new_attacker_ex
 
 
-def modify_ex_on_interrupt_success(mitigated_damage, interrupt_damage, interrupting_char, interrupted_char):
+def modify_ex_on_interrupt_success(mitigated_damage, interrupt_damage, interrupting_char, interrupted_char, interrupt):
     # Called specifically when a target successfully interrupts. In this case, both characters are damaged by each
     # other's attacks, so EX is gained BY both FOR both damaging and being damaged, proportional to damage.
     # Modify the interrupting character's EX based on the damage dealt AND inflicted.
-    interrupting_char_ex = ex_gain_on_defense(mitigated_damage, interrupting_char.db.ex, interrupting_char.db.maxex)
-    interrupting_char_ex = ex_gain_on_attack(interrupt_damage, interrupting_char_ex, interrupting_char.db.maxex)
+    interrupting_char_ex = ex_gain_on_defense(mitigated_damage, interrupting_char.db.ex, interrupting_char.db.maxex, interrupt)
+    interrupting_char_ex = ex_gain_on_attack(interrupt_damage, interrupting_char_ex, interrupting_char.db.maxex, interrupt)
 
     # Modify the interrupted character's EX based on the damage dealt AND inflicted.
-    interrupted_char_ex = ex_gain_on_attack(mitigated_damage, interrupted_char.db.ex, interrupted_char.db.maxex)
-    interrupted_char_ex = ex_gain_on_defense(interrupt_damage, interrupted_char_ex, interrupted_char.db.maxex)
+    interrupted_char_ex = ex_gain_on_attack(mitigated_damage, interrupted_char.db.ex, interrupted_char.db.maxex, interrupt)
+    interrupted_char_ex = ex_gain_on_defense(interrupt_damage, interrupted_char_ex, interrupted_char.db.maxex, interrupt)
     return interrupting_char_ex, interrupted_char_ex
 
 
@@ -1034,8 +1248,11 @@ def normalize_status(character):
     character.db.is_baiting = False
     character.db.used_ranged = False
     character.db.ranged_knockback = [False, []]
+    character.db.just_perfect_dodged = False
+    character.db.just_perfect_guarded = False
     character.db.buffs = {"Regen": 0, "Vigor": 0, "Protect": 0, "Reflect": 0, "Acuity": 0, "Haste": 0, "Blink": 0,
-                          "Bless": 0, "Purity": 0}
+                          "Bless": 0, "Purity": 0, "Spirited": 0, "Savage": 0, "Moment of Truth": 0,
+                          "Nerves of Steel": 0, "Perfect Dodge": 0, "Perfect Grit": 0}
     character.db.debuffs_standard = {"Poison": 0, "Wound": 0, "Curse": 0, "Injure": 0, "Muddle": 0, "Miasma": 0,
                                      "Berserk": 0, "Petrify": 0, "Slime": 0}
     character.db.debuffs_transform = {"Bird": 0, "Frog": 0, "Pig": 0, "Pumpkin": 0}
@@ -1053,8 +1270,10 @@ def normalize_status(character):
     character.db.revived_during_final_action = False
     character.db.endure_bonus = 0
     character.db.has_been_healed = 0
+    character.db.has_surge = True
 
 
+# TODO: check strings for Aspect self-buffs, interactions between Aspects and buffs
 def display_status_effects(caller):
     # Called by the check command to display status effects.
     duration_string = ""
@@ -1116,6 +1335,20 @@ def display_status_effects(caller):
             elif status_effect == "Purity":
                 duration_string = "You are purified, rendering you immune to transformation and hexes for {duration} rounds."
                 single_string = "You are purified, rendering you immune to transformation and hexes for 1 more round."
+            elif status_effect == "Spirited":
+                duration_string = "You are high-spirited, improving your Speed and accuracy for {duration} rounds."
+                single_string = "You are high-spirited, improving your Speed and accuracy for 1 more round."
+            elif status_effect == "Savage":
+                duration_string = "You are in a savage fury, improving your Speed and accuracy for {duration} rounds."
+                single_string = "You are in a savage fury, improving your Speed and accuracy for 1 more round."
+            elif status_effect == "Moment of Truth":
+                duration_string = "Your moment of truth is upon you, greatly improving your accuracy for {duration} " \
+                                  "rounds or until your next attack or interrupt succeeds."
+                single_string = "Your moment of truth is upon you, moderately improving your accuracy for 1 more round."
+            elif status_effect == "Nerves of Steel":
+                duration_string = "Your nerves are steeled, greatly improving your reaction chances for {duration}" \
+                                  "rounds or until your next Dodge, Block, or Endure succeeds."
+                single_string = "Your nerves are steeled, moderately improving your reaction chances for 1 more round."
         if caller.db.buffs[status_effect] > 1:
             caller.msg(duration_string.format(duration=duration))
         elif caller.db.buffs[status_effect] == 1:
@@ -1140,10 +1373,10 @@ def display_status_effects(caller):
             duration_string = "You are afflicted by a miasma that halves the effects of healing upon you for {duration} rounds."
             single_string = "You are afflicted by a miasma that halves the effects of healing upon you for 1 more round."
         elif status_effect == "Berserk" and duration > 0:
-            duration_string = "You are berserk, increasing your effective Power, Knowledge, and Speed, but also the AP " \
-                              "cost of Arts and Normals with a DMG of less than 50, for {duration} rounds."
-            single_string = "You are berserk, increasing your effective Power, Knowledge, and Speed, but also the AP " \
-                            "cost of Arts and Normals with a DMG of less than 50, for 1 round."
+            duration_string = "You are berserk, increasing your effective Speed and Power or Knowledge for attacks with " \
+                              "a DMG of more than 5, but also the AP cost of attacks with a DMG of less than 5, for {duration} rounds."
+            single_string = "You are berserk, increasing your effective Speed and Power or Knowledge for attacks with " \
+                              "a DMG of more than 5, but also the AP cost of attacks with a DMG of less than 5, for 1 round."
         elif status_effect == "Petrify" and duration > 0:
             duration_string = "You are petrified, reducing your Speed and especially your Dodge chances but somewhat " \
                               "increasing your Block and Endure chances for {duration} rounds."
@@ -1239,6 +1472,12 @@ def display_status_effects(caller):
             # Hex_count is exactly 1
             caller.msg("Your hex slightly reduces your effective Speed. 'Pass' or Cure clears hexes.")
 
+    # Not a status effect, but check if the caller still has surge available
+    if caller.db.has_surge:
+        caller.msg("Surge is available. You are brimming with a hidden energy.")
+    else:
+        caller.msg("Surge is unavailable. You have exhausted your energy reserves.")
+
 
 
 def apply_buff(action, healer, target):
@@ -1298,6 +1537,9 @@ def apply_buff(action, healer, target):
             target.msg(application_string)
         else:
             target.msg(extension_string)
+        healer.msg(f"You have applied {buff} to {target}.")
+        if buff in BUFF_EQ and BUFF_EQ[buff].name in target.db.equipped_aspects:
+            healer.msg(f"Note that the effect of {buff} is reduced due to {target} equipping {BUFF_EQ[buff].name}.")
         if healer == target:
             # A combat tick is going to happen after this, so the duration will be 3 regardless.
             target.db.buffs[buff] = 4
@@ -1305,21 +1547,63 @@ def apply_buff(action, healer, target):
             target.db.buffs[buff] = 3
 
 
-def apply_debuff(action, debuffer, target):
+def apply_flat_acc_modifiers(action, target, is_interrupt=False):
+    # A limited subset of buffs/Aspects can, like endure bonus, directly affect chance_to_hit. Called in reactions.
+    chance_to_hit_adjustment = 0
+    if "Marauder" in action.attacker_aspects and any(e in ATTACK_ENHANCERS for e in action.attack.effects.split()):
+        chance_to_hit_adjustment -= 3
+    if action.has_spirited:
+        chance_to_hit_adjustment += 5
+    if action.has_savage:
+        chance_to_hit_adjustment += 5
+    if action.has_perfect_dodge:
+        chance_to_hit_adjustment += 10
+    if action.moment_of_truth_value:
+        # +20 if it was attacker's first action (2 turns remaining), +10 if second action (last turn remaining)
+        chance_to_hit_adjustment += (action.moment_of_truth_value * 10)
+    if target.db.buffs["Nerves of Steel"] > 0 and not is_interrupt:
+        # Same as above, inversely. Interrupts are contests between accuracy, so Nerves of Steel should not apply
+        chance_to_hit_adjustment -= (target.db.buffs["Nerves of Steel"] * 10)
+    return chance_to_hit_adjustment
+
+
+def surge_buff_reset_check(action_result, action, target):
+    # Check if Surge Aspect buff should abruptly end. Messages here, since Moment of Truth may end on defender turn.
+    # TODO: when AoEs are added, will need to consider how to handle a Moment of Truth AoE attack. just end? split?
+    # On a successful hit (failed reaction) or interrupt, if attacker/interrupter has Moment of Truth, set to 0.
+    # Note that this means that if someone uses Moment of Truth and is then interrupted, they don't insta-lose it.
+    reset_mot_lst = [ActionResult.REACT_FAIL, ActionResult.REACT_CRIT_FAIL, ActionResult.INTERRUPT_SUCCESS,
+                     ActionResult.INTERRUPT_CRIT_SUCCESS, ActionResult.INTERRUPT_REACT_CRIT_SUCCESS,
+                     ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT]
+    if action_result in reset_mot_lst and action.moment_of_truth_value > 0:
+        # NOTE: reaching in to affect the attacker character obj directly in this special case.
+        attacker = find_attacker_from_key(action.attacker_key)
+        attacker.db.buffs["Moment of Truth"] = 0
+        attacker.msg("The accuracy boost from your moment of truth has faded.")
+    # On a successful reaction, if defender has Nerves of Steel, set to 0. Glancing blow doesn't count.
+    reset_nos_lst = [ActionResult.DODGE_SUCCESS, ActionResult.BLOCK_SUCCESS, ActionResult.ENDURE_SUCCESS,
+                     ActionResult.DODGE_CRIT_SUCCESS, ActionResult.BLOCK_CRIT_SUCCESS, ActionResult.ENDURE_CRIT_SUCCESS]
+    if action_result in reset_nos_lst and target.db.buffs["Nerves of Steel"] > 0:
+        target.db.buffs["Nerves of Steel"] = 0
+        target.msg("The reaction boost from your nerves of steel has faded.")
+
+
+def apply_debuff(action, target):
     # Debuffs have a chance to be resisted. This can be increased by buffs, and some debuffs increase the afflicted's
     # resistance to being afflicted again in the same fight (to disincentivize spamming them).
-    base_debuff_resist = 30
-    if target.db.buffs["Bless"] > 0:
-        base_debuff_resist += 20
+    attack = action.attack
+    base_debuff_resist = 35
+    if target.db.buffs["Bless"] > 0 or "Resilience" in target.db.equipped_aspects:
+        base_debuff_resist += 30
     if target.db.debuffs_standard["Curse"] > 0:
-        base_debuff_resist -= 20
+        base_debuff_resist -= 30
     application_string = ""
     extension_string = ""
     debuff_effects = []
     morph = False
     random_hexes_to_apply = 0
-    # Find all the effects on the action that are debuffs.
-    split_effect_list = action.effects.split()
+    # Find all the effects on the action.attack that are debuffs.
+    split_effect_list = attack.effects.split()
     for effect in split_effect_list:
         for debuff in DEBUFFS:
             if effect == "Hex1":
@@ -1351,8 +1635,21 @@ def apply_debuff(action, debuffer, target):
         debuff_effects.append(random.choice(morph_options))
     # Now prepare debuff strings and roll the check against the appropriate resistance.
     for debuff in debuff_effects:
+        if "Saboteur" in action.attacker_aspects:
+            base_debuff_resist -= 10
+        if "Bewitching" in action.attacker_aspects and debuff in DEBUFFS_HEXES + DEBUFFS_TRANSFORMATION:
+            base_debuff_resist -= 10
+        # Check for relevant attacker Expertise Aspect on the action
+        if f"{debuff.title()} Expertise" in action.attacker_aspects:
+            base_debuff_resist -= 30
+        # Check for relevant defender Resistance Aspect
+        if f"{debuff.title()} Resistance" in target.db.equipped_aspects:
+            base_debuff_resist += 30
         # Find resistance in target.db.resistances
         debuff_resist = base_debuff_resist + target.db.resistances[debuff]
+        # Make minimum resistance 1, since it can now potentially go negative
+        if debuff_resist < 1:
+            debuff_resist = 1
         if debuff == "Poison":
             application_string = "You are poisoned, gradually losing health."
             extension_string = "The duration of your poisoning has been extended."
@@ -1372,8 +1669,8 @@ def apply_debuff(action, debuffer, target):
             application_string = "You are afflicted by a miasma, halving the effectiveness of healing upon you."
             extension_string = "The duration of the miasma afflicting you has been extended."
         elif debuff == "Berserk":
-            application_string = "You have gone berserk, increasing your effective Power, Knowledge, and Speed but " \
-                                 "increasing the cost of using less damaging, more accurate attacks."
+            application_string = "You have gone berserk, increasing your effective Speed and Power or Knowledge for " \
+                                 "higher DMG attacks but increasing the AP cost of lower DMG attacks."
             extension_string = "The duration of your berserk fury has been extended."
         elif debuff == "Petrify":
             application_string = "You are petrified, reducing your Speed and especially your Dodge chances but " \
@@ -1440,10 +1737,14 @@ def apply_debuff(action, debuffer, target):
         # Roll the debuff check
         debuff_check_roll = random.randint(1, 100)
         # I hope I'm not being too cute here: if Purity is active and debuff is transform/hex, set roll to -1 to fail.
-        if target.db.buffs["Purity"] > 0:
+        if target.db.buffs["Purity"] > 0 or "Self-Mastery" in target.db.equipped_aspects:
             if debuff not in target.db.debuffs_standard.keys():
                 debuff_check_roll = -1
                 # If the debuff isn't in debuffs_standard, it must be in debuffs_transform or debuffs_hexes.
+        # Similarly check for paired self-debuff/debuff equivalencies
+        if debuff in BUFF_EQ and BUFF_EQ[debuff] in target.db.equipped_aspects:
+            target.msg(f"equivalent to {debuff} found: {BUFF_EQ[debuff].name}")
+            debuff_check_roll = -1
         if debuff_check_roll > debuff_resist:
             # If debuff succeeds, apply using consistent logic. Check what dict the debuff is stored in
             if debuff in target.db.debuffs_standard.keys():
@@ -1551,3 +1852,11 @@ def status_effect_end_message(character, status_effect):
         character.msg("You are no longer itchy.")
     elif status_effect == "Old":
         character.msg("You are no longer aged.")
+    elif status_effect == "Spirited":
+        character.msg("You are no longer buoyed by high spirits.")
+    elif status_effect == "Savage":
+        character.msg("You are no longer emboldened by savagery.")
+    elif status_effect == "Moment of Truth":
+        character.msg("The accuracy boost from your moment of truth has faded.")
+    elif status_effect == "Nerves of Steel":
+        character.msg("The reaction boost from your nerves of steel has faded.")

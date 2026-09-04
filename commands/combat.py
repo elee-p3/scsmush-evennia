@@ -1,18 +1,12 @@
-import copy
 import csv
-import random
-from math import floor, ceil
 
 from evennia import default_cmds
-from evennia.utils import evtable
-from world.arts.models import Arts
-from world.combat.attacks import AttackToQueue, AttackDuringAction, ActionResult
+
 from world.combat.combat_functions import *
 from world.combat.effects import AimOrFeint
 from world.combat.normals import NORMALS
+from world.utilities.tables import *
 from world.utilities.utilities import *
-from world.utilities.tables import setup_table, populate_table
-
 
 
 def record_combat(defender, attack_instance, reaction_name, is_success, dmg):
@@ -111,61 +105,67 @@ class CmdSheet(default_cmds.MuxCommand):
 
         left_spacing = " " * ((floor(client_width / 2.0) - floor(len(header) / 2.0)) - 2)  # -2 for the \/
         right_spacing = " " * ((floor(client_width / 2.0) - ceil(len(header) / 2.0)) - 2)  # -2 for the \/
-        nameBorder = "\\/" + left_spacing + header + right_spacing + "\\/"
-        sheetMsg += nameBorder + "\n"
+        name_border = "\\/" + left_spacing + header + right_spacing + "\\/"
+        sheetMsg += name_border + "\n"
 
-        charInfoTable = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
+        char_info_table = evtable.EvTable(border_left_char="|", border_right_char="|", border_top_char="-",
                                         border_bottom_char=" ", width=client_width, border="table")
-        charInfoTable.add_column()
-        charInfoTable.add_column()
-        charInfoTable.add_column()
-        charInfoTable.add_column()
-        charInfoTable.reformat_column(0, align='l')  # resource label
-        charInfoTable.reformat_column(1, align='r')  # resource value
-        charInfoTable.reformat_column(2, align='l')  # stat label
-        charInfoTable.reformat_column(3, align='l')  # stat value
-        charInfoTable.add_row("LF",
+        char_info_table.add_column()
+        char_info_table.add_column()
+        char_info_table.add_column()
+        char_info_table.add_column()
+        char_info_table.reformat_column(0, align='l')  # resource label
+        char_info_table.reformat_column(1, align='r')  # resource value
+        char_info_table.reformat_column(2, align='l')  # stat label
+        char_info_table.reformat_column(3, align='l')  # stat value
+        char_info_table.add_row("LF",
                               "{0}/{1}  ".format(int(char["lf"]), int(char["maxlf"])),
                               "  Power",
                               "  {0}".format(char["power"]))
-        charInfoTable.add_row(self.get_colored_meter(caller.db.lf, caller.db.maxlf, client_width),
+        char_info_table.add_row(self.get_colored_meter(caller.db.lf, caller.db.maxlf, client_width),
                               "",
                               "  Knowledge",
                               "  {0}".format(char["knowledge"]))
-        charInfoTable.add_row("AP",
+        char_info_table.add_row("AP",
                               "{0}/{1}  ".format(int(char["ap"]), int(char["maxap"])),
                               "  Parry",
                               "  {0}".format(char["parry"]))
-        charInfoTable.add_row(self.get_colored_meter(caller.db.ap, caller.db.maxap, client_width),
+        char_info_table.add_row(self.get_colored_meter(caller.db.ap, caller.db.maxap, client_width),
                               "",
                               "  Barrier",
                               "  {0}".format(char["barrier"]))
-        charInfoTable.add_row("EX",
+        char_info_table.add_row("EX",
                               "{0}%/{1}%  ".format(int(char["ex"]), int(char["maxex"])),
                               "  Speed",
                               "  {0}".format(char["speed"]))
-        charInfoTable.add_row(self.get_colored_meter(caller.db.ex, caller.db.maxex, client_width),
+        char_info_table.add_row(self.get_colored_meter(caller.db.ex, caller.db.maxex, client_width),
                               "",
-                              "",
-                              "")
+                              "  Capacity",
+                              "  {0}/{1}".format(caller.db.cp, caller.db.maxcp))
 
-        charInfoString = charInfoTable.__str__()
-        sheetMsg += charInfoString[:charInfoString.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
+        char_info_string = char_info_table.__str__()
+        sheetMsg += char_info_string[:char_info_string.rfind('\n')] + "\n"  # delete last newline (i.e. bottom border)
 
         # print Arts table, attached to the bottom of the character sheet
-        left_spacing = floor(client_width / 2.0) - 3  # -2 for the borders
-        right_spacing = ceil(client_width / 2.0) - 3  # -2 for the borders
-        sheetMsg += "|" + "=" * left_spacing + "ARTS" + "=" * right_spacing + "|"
+        sheetMsg += generate_header(client_width, "ARTS")
 
-        arts_table = setup_table(client_width, is_sheet=True)
-        populate_table(arts_table, arts, base_arts)
+        arts_table = setup_arts_table(client_width, is_sheet=True)
+        populate_arts_table(arts_table, arts, base_arts)
         arts_string = arts_table.__str__()
         sheetMsg += arts_string[arts_string.find('\n'):arts_string.rfind('\n')] + "\n"
+
+        # print Aspects table, attached below the Arts table
+        sheetMsg += generate_header(client_width, "ASPECTS")
+        aspects_table = setup_aspects_table(client_width, True)
+        populate_aspects_table(aspects_table, caller.db.equipped_aspects)
+        aspects_string = aspects_table.__str__()
+        sheetMsg += aspects_string[aspects_string.find('\n'):aspects_string.rfind('\n')] + "\n"
 
         sheetMsg += "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
         sheetMsg += "\\/" + (client_width - 4) * " " + "\\/" + "\n"
 
         self.caller.msg(sheetMsg)
+
 
     # return a colored bar for various meters (e.g. LF, AP, EX)
     def get_colored_meter(self, current_val, max_val, client_width):
@@ -216,7 +216,7 @@ class CmdAttack(default_cmds.MuxCommand):
         caller = self.caller
         location = caller.location
         args = self.args
-        arts, base_arts, modified_normals = filter_and_modify_arts(caller)
+        arts, _, modified_normals = filter_and_modify_arts(caller)
         switches = self.switches
         # For attack/wild and heal/[debuff] (for Cure). Switches is a list of strings split by /. Send to heal_check.
 
@@ -233,12 +233,12 @@ class CmdAttack(default_cmds.MuxCommand):
 
         aim_or_feint = AimOrFeint.NEUTRAL
         if caller.db.is_aiming:
-            if caller.db.buffs["Haste"] > 0:
+            if caller.db.buffs["Haste"] > 0 or "Eagle Eye" in caller.db.equipped_aspects:
                 aim_or_feint = AimOrFeint.HASTED_AIM
             else:
                 aim_or_feint = AimOrFeint.AIM
         if caller.db.is_feinting:
-            if caller.db.buffs["Blink"] > 0:
+            if caller.db.buffs["Blink"] > 0 or "Sleight of Hand" in caller.db.equipped_aspects:
                 aim_or_feint = AimOrFeint.BLINKED_FEINT
             else:
                 aim_or_feint = AimOrFeint.FEINT
@@ -290,7 +290,6 @@ class CmdAttack(default_cmds.MuxCommand):
         if caller.db.is_aiming or caller.db.is_feinting:
             if "Heal" in action_clean.effects:
                 return caller.msg("You cannot Aim or Feint a healing Art.")
-            total_ap_change -= 10
         if caller.db.ap + total_ap_change < 0:
             return caller.msg("You do not have enough AP to do that.")
         if "EX" in action_clean.effects:
@@ -316,7 +315,7 @@ class CmdAttack(default_cmds.MuxCommand):
 
             # Confirm here before passing along the attack that the switch is a valid one.
             if switches:
-                error_found = attack_switch_check(caller, switches)
+                error_found = attack_switch_check(switches)
                 if error_found:
                     return caller.msg("Error: a switch on your attack was not recognized. See 'help attack'.")
 
@@ -401,40 +400,49 @@ class CmdDodge(default_cmds.MuxCommand):
 
         msg = ""
         is_glancing_blow = False
+        action_result = None
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
-            final_damage = damage_calc(action, caller)
-            is_critical_hit, final_damage = critical_hits(final_damage, action)
+            damage = damage_calc(action, caller)
+            is_critical_hit, damage = critical_hits(damage, action, caller, random100)
             # If the attack is not a critical hit, check for glancing blow (so there are no glancing crits).
-            is_glancing_blow = glancing_blow_calc(random100, chance_to_be_hit, action.has_sweep)
+            is_glancing_blow = glancing_blow_calc(random100, chance_to_be_hit, caller, action)
             if is_critical_hit:
-                msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, final_damage)
+                action_result = ActionResult.REACT_CRIT_FAIL
             elif is_glancing_blow:
                 # For now, halving the damage of glancing blows.
-                final_damage = final_damage / 2
-                msg = damage_message_strings(ActionResult.GLANCING_BLOW, caller, attack, final_damage)
+                damage = damage / 2
+                action_result = ActionResult.GLANCING_BLOW
             else:
-                msg = damage_message_strings(ActionResult.REACT_FAIL, caller, attack, final_damage)
+                action_result = ActionResult.REACT_FAIL
 
-            caller.db.lf -= final_damage
+            caller.db.lf -= damage
 
             # Modify EX based on damage taken.
-            caller.db.ex, attacker.db.ex = modify_ex_on_hit(final_damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker, action)
 
             # Effect check
-            apply_debuff(attack, attacker, caller)
+            apply_debuff(action, caller)
             if "Drain" in attack.effects:
-                drain_check(action, attacker, caller, final_damage)
+                drain_check(action, attacker, caller, damage)
             if "Dispel" in attack.effects:
                 dispel_check(caller)
             if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
                 ranged_knockback(caller, attacker)
-            record_combat(caller, action, "dodge", False, final_damage)
+            record_combat(caller, action, "dodge", False, damage)
         else:
-            caller.msg("You have successfully dodged {attack}.".format(attack=attack.name))
-            msg = "|y<COMBAT>|n {target} has dodged {attacker}'s {modifier}{attack}."
-            record_combat(caller, action, "dodge", True, 0)
+            damage = 0
+            is_crit_react = crit_react_check("dodge", caller, random100)
+            if is_crit_react:
+                action_result = ActionResult.DODGE_CRIT_SUCCESS
+            else:
+                action_result = ActionResult.DODGE_SUCCESS
+            record_combat(caller, action, "dodge", True, damage)
 
+        msg = damage_message_strings(action_result, caller, attack, damage)
+        apply_crit_react_buff(caller, action_result)
+
+        surge_buff_reset_check(action_result, action, caller)
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
@@ -479,56 +487,65 @@ class CmdBlock(default_cmds.MuxCommand):
 
         chance_to_be_hit = block_chance_calc(caller, action)
 
-        # Calculate initial damage. Successfully blocking
+        # Calculate initial damage.
         damage = damage_calc(action, caller)
 
         # do the aiming/feinting modification here since we don't want to show the modified value in the queue
         chance_to_be_hit = modify_aim_and_feint(chance_to_be_hit, "block", aim_or_feint)
 
         msg = ""
+        action_result = None
 
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
-            is_critical_hit, damage = critical_hits(damage, action)
+            is_critical_hit, damage = critical_hits(damage, action, caller, random100)
             if is_critical_hit:
-                msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, damage)
+                action_result = ActionResult.REACT_CRIT_FAIL
             else:
-                msg = damage_message_strings(ActionResult.REACT_FAIL, caller, attack, damage)
+                action_result = ActionResult.REACT_FAIL
             caller.db.lf -= damage
 
             # Modify EX based on the damage.
-            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker, action)
 
             # Modify the defender's block penalty (a little, since the block failed).
-            block_bool = False
-            new_block_penalty = accrue_block_penalty(caller, damage, block_bool, action)
+            new_block_penalty = accrue_block_penalty(caller, damage, action_result, action)
             caller.db.block_penalty = new_block_penalty
             # Apply debuffs only on failed blocks
-            apply_debuff(attack, attacker, caller)
+            apply_debuff(action, caller)
             if "Drain" in attack.effects:
                 drain_check(action, attacker, caller, damage)
             if "Dispel" in attack.effects:
                 dispel_check(caller)
             record_combat(caller, action, "block", False, damage)
         else:
-            damage = block_damage_calc(damage, caller.db.block_penalty)
-            msg = damage_message_strings(ActionResult.BLOCK_SUCCESS, caller, attack, damage)
+            is_crit_react = crit_react_check("block", caller, random100)
+            if is_crit_react:
+                action_result = ActionResult.BLOCK_CRIT_SUCCESS
+            else:
+                action_result = ActionResult.BLOCK_SUCCESS
+            damage = block_damage_calc(damage, caller, action_result)
             caller.db.lf -= damage
 
-            # Modify EX (based on modified, not final, dmg).
-            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker)
+            # Modify EX.
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker, action)
 
-            # Modify the defender's block penalty (a lot, since the block succeeded). Based on modified, not final, dmg.
-            block_bool = True
-            new_block_penalty = accrue_block_penalty(caller, damage, block_bool, action)
+            # Modify the defender's block penalty (a lot, since the block succeeded).
+            new_block_penalty = accrue_block_penalty(caller, damage, action_result, action)
             caller.db.block_penalty = new_block_penalty
+
             if "Drain" in attack.effects:
                 drain_check(action, attacker, caller, damage)
             record_combat(caller, action, "block", True, damage)
 
+        msg = damage_message_strings(action_result, caller, attack, damage)
+        apply_crit_react_buff(caller, action_result)
+
         # Applying ranged_knockback here since it applies whether or not you successfully block
         if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
             ranged_knockback(caller, attacker)
+        surge_buff_reset_check(action_result, action, caller)
+
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
         combat_log_entry(caller, combat_string)
@@ -579,38 +596,53 @@ class CmdEndure(default_cmds.MuxCommand):
         chance_to_be_hit = modify_aim_and_feint(chance_to_be_hit, "endure", aim_or_feint)
 
         msg = ""
-        damage = damage_calc(action, caller)
+        action_result = None
+        unmitigated_damage = damage_calc(action, caller)
+        # Because an Endure Crit Success can mitigate damage in a special case, but the endure bonus should be
+        # calculated based on unmitigated damage (and not thereby reduced), distinguishing "initial" and "final" damage.
+        damage = unmitigated_damage
+
         if chance_to_be_hit > random100:
             # Since the attack has hit, check for critical hit.
-            is_critical_hit, damage = critical_hits(damage, action)
+            is_critical_hit, damage = critical_hits(damage, action, caller, random100)
             if is_critical_hit:
-                msg = damage_message_strings(ActionResult.REACT_CRIT_FAIL, caller, attack, damage)
+                action_result = ActionResult.REACT_CRIT_FAIL
             else:
-                msg = damage_message_strings(ActionResult.REACT_FAIL, caller, attack, damage)
+                action_result = ActionResult.REACT_FAIL
             record_combat(caller, action, "endure", False, damage)
         else:
-            msg = damage_message_strings(ActionResult.ENDURE_SUCCESS, caller, attack, damage)
+            is_crit_react = crit_react_check("endure", caller, random100)
+            if is_crit_react:
+                action_result = ActionResult.ENDURE_CRIT_SUCCESS
+                # On Crit Success, damage is reduced to 30%.
+                damage *= .3
+            else:
+                action_result = ActionResult.ENDURE_SUCCESS
 
             # Now calculate endure bonus. Currently, let's set it so if you endure multiple attacks in a round,
             # you get to keep whatever endure bonus is higher. But endure bonus is not cumulative. (That's OP.)
-            if endure_bonus_calc(damage) > caller.db.endure_bonus:
-                caller.db.endure_bonus = endure_bonus_calc(damage)
+            if endure_bonus_calc(caller, unmitigated_damage) > caller.db.endure_bonus:
+                caller.db.endure_bonus = endure_bonus_calc(caller, unmitigated_damage)
             record_combat(caller, action, "endure", True, damage)
 
         # An enduring defender takes full damage regardless of success or failure.
         caller.db.lf -= damage
 
-        # Modify EX.
-        caller.db.ex, attacker.db.ex = modify_ex_on_hit(damage, caller, attacker)
+        # Modify EX. (Like endure_bonus, not reduced by Crit Endure mitigation.)
+        caller.db.ex, attacker.db.ex = modify_ex_on_hit(unmitigated_damage, caller, attacker, action)
 
         # Apply debuffs regardless of if endure succeeds or fails
-        apply_debuff(attack, attacker, caller)
+        apply_debuff(action, caller)
         if "Drain" in attack.effects:
-            drain_check(action, attacker, caller, damage)
+            drain_check(action, attacker, caller, damage) # Mitigated by Crit Endure success
         if "Dispel" in attack.effects:
             dispel_check(caller)
         if "Long-Range" in attack.effects and attacker.key not in caller.db.ranged_knockback[1]:
             ranged_knockback(caller, attacker)
+
+        surge_buff_reset_check(action_result, action, caller)
+        msg = damage_message_strings(action_result, caller, attack, damage)
+        apply_crit_react_buff(caller, action_result)
 
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier, attack=attack.name)
         caller.location.msg_contents(combat_string)
@@ -644,7 +676,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
         caller = self.caller
         args = self.args
         switches = self.switches
-        arts, base_arts, normals = filter_and_modify_arts(caller)
+        arts, _, normals = filter_and_modify_arts(caller)
         id_list = [attack.id for attack in caller.db.queue]
         # Like +attack, +interrupt requires two arguments: a incoming attack and an outgoing interrupt.
         if "=" not in args:
@@ -695,89 +727,112 @@ class CmdInterrupt(default_cmds.MuxCommand):
         # Spawn an InterruptInstance here to begin modifying its accuracy, etc. Will need this for critical_hits
         interrupt = AttackDuringAction(outgoing_interrupt, caller.key, switches)
 
-        interrupt.attack.acc = interrupt_chance_calc(caller, incoming_atk_in_queue, outgoing_interrupt)
+        # The higher the interrupt accuracy, the less likely to fail, thus, chance to be hit inverts interrupt chance
+        interrupt_chance = interrupt_chance_calc(caller, incoming_atk_in_queue, interrupt)
+        chance_to_be_hit = 100 - interrupt_chance
 
         # effects of aim and feint on incoming attack checked here
-        interrupt.attack.acc = modify_aim_and_feint(interrupt.attack.acc, "interrupt", aim_or_feint)
+        chance_to_be_hit = modify_aim_and_feint(chance_to_be_hit, "interrupt", aim_or_feint)
 
         msg = ""
+        action_result_for_interrupter = None
+        action_result_for_target = None
+        outgoing_damage = 0
         # In case of interrupt failure
-        if interrupt.attack.acc < random100:
-            final_damage = damage_calc(incoming_atk_in_queue, caller)
-
-            # Check for Protect/Reflect moderate damage mitigation.
-            final_damage = protect_and_reflect_check(final_damage, caller, incoming_atk, False)
+        if chance_to_be_hit > random100:
+            incoming_damage = damage_calc(incoming_atk_in_queue, caller)
 
             # Since the incoming attack has hit, check for critical hit.
-            is_critical_hit, final_damage = critical_hits(final_damage, incoming_atk_in_queue)
+            # "Invert" roll for attacker crit check: a high (bad) roll for defender becomes a low (good) roll for attacker.
+            # Otherwise, attackers would never crit, since high rolls (int fails) are surely above the crit threshold.
+            attacker_crit_check = 100 - random100
+            is_critical_hit, incoming_damage = critical_hits(incoming_damage, incoming_atk_in_queue, caller, attacker_crit_check)
             if is_critical_hit:
-                msg = damage_message_strings(ActionResult.INTERRUPT_CRIT_FAIL, caller, incoming_atk, final_damage)
+                action_result_for_interrupter = ActionResult.INTERRUPT_CRIT_FAIL
+                action_result_for_target = ActionResult.REACT_CRIT_FAIL
             else:
-                msg = damage_message_strings(ActionResult.INTERRUPT_FAIL, caller, incoming_atk, final_damage)
+                action_result_for_interrupter = ActionResult.INTERRUPT_FAIL
+                action_result_for_target = ActionResult.REACT_FAIL
+
+            # Check for Protect/Reflect/Perfect Break damage mitigation.
+            incoming_damage = interrupt_mitigation_calc(incoming_damage, caller, incoming_atk, action_result_for_interrupter)
 
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
-            caller.db.lf -= final_damage
+            caller.db.lf -= incoming_damage
 
             # Modify EX based on damage.
-            caller.db.ex, attacker.db.ex = modify_ex_on_hit(final_damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_hit(incoming_damage, caller, attacker, interrupt)
 
             # Apply debuffs only if interrupt fails
-            apply_debuff(incoming_atk, attacker, caller)
+            apply_debuff(incoming_atk_in_queue, caller)
             if "Drain" in incoming_atk.effects:
-                drain_check(incoming_atk_in_queue, attacker, caller, final_damage)
+                drain_check(incoming_atk_in_queue, attacker, caller, incoming_damage)
             if "Dispel" in incoming_atk.effects:
                 dispel_check(caller)
             if "Long-Range" in incoming_atk.effects and attacker.key not in caller.db.ranged_knockback[1]:
                 ranged_knockback(caller, attacker)
-            record_combat(caller, incoming_atk_in_queue, "interrupt", False, final_damage)
+            record_combat(caller, incoming_atk_in_queue, "interrupt", False, incoming_damage)
 
         # In case of interrupt success
         else:
             # Modify damage of outgoing interrupt based on relevant attack stat.
-            final_outgoing_damage = damage_calc(interrupt, attacker)
+            outgoing_damage = damage_calc(interrupt, attacker)
 
             # Check if the interrupt is a critical hit!
-            is_critical_hit, final_outgoing_damage = critical_hits(final_outgoing_damage, interrupt)
+            is_critical_hit, outgoing_damage = critical_hits(outgoing_damage, interrupt, attacker, random100)
 
             # Determine how much damage the incoming attack would do if unmitigated.
-            unmitigated_incoming_damage = damage_calc(incoming_atk_in_queue, caller)
+            incoming_damage = damage_calc(incoming_atk_in_queue, caller)
 
-            # Determine how the Damage of the outgoing interrupt mitigates incoming Damage.
-            mitigated_damage = interrupt_mitigation_calc(unmitigated_incoming_damage, final_outgoing_damage)
+            # Check for Perfect Break.
+            is_crit_react = crit_react_check("interrupt", caller, random100)
 
-            # Check for Protect/Reflect moderate damage mitigation.
-            mitigated_damage = protect_and_reflect_check(mitigated_damage, caller, incoming_atk, True)
-
-            if is_critical_hit:
-                msg = damage_message_strings(ActionResult.INTERRUPT_CRIT_SUCCESS, caller, incoming_atk,
-                                             final_outgoing_damage, outgoing_interrupt, mitigated_damage, attacker)
+            if is_critical_hit and is_crit_react:
+                action_result_for_interrupter = ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT
+                action_result_for_target = ActionResult.WAS_CRIT_INTERRUPTED
+            elif is_critical_hit:
+                action_result_for_interrupter = ActionResult.INTERRUPT_CRIT_SUCCESS
+                action_result_for_target = ActionResult.WAS_CRIT_INTERRUPTED
+            elif is_crit_react:
+                action_result_for_interrupter = ActionResult.INTERRUPT_REACT_CRIT_SUCCESS
+                action_result_for_target = ActionResult.WAS_INTERRUPTED
             else:
-                msg = damage_message_strings(ActionResult.INTERRUPT_SUCCESS, caller, incoming_atk,
-                                             final_outgoing_damage, outgoing_interrupt, mitigated_damage, attacker)
+                action_result_for_interrupter = ActionResult.INTERRUPT_SUCCESS
+                action_result_for_target = ActionResult.WAS_INTERRUPTED
+
+            # Check for interrupt/Protect/Reflect/Perfect Break damage mitigation.
+            incoming_damage = interrupt_mitigation_calc(incoming_damage, caller, incoming_atk, action_result_for_interrupter)
+
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
-            caller.db.lf -= mitigated_damage
-            attacker.db.lf -= final_outgoing_damage
+            caller.db.lf -= incoming_damage
+            attacker.db.lf -= outgoing_damage
 
             # Check if your successful interrupt was your final action.
             final_action_check(attacker)
 
             # Modify EX.
-            caller.db.ex, attacker.db.ex = modify_ex_on_interrupt_success(mitigated_damage, final_outgoing_damage, caller, attacker)
+            caller.db.ex, attacker.db.ex = modify_ex_on_interrupt_success(incoming_damage, outgoing_damage, caller, attacker, interrupt)
 
             # Interrupting a Drain attack partially drains you, but if you interrupt Long-Range, you're not knocked back
             if "Drain" in incoming_atk.effects:
-                drain_check(incoming_atk_in_queue, attacker, caller, mitigated_damage)
+                drain_check(incoming_atk_in_queue, attacker, caller, incoming_damage)
 
             # Apply debuffs to interrupted attacker
-            apply_debuff(outgoing_interrupt, caller, attacker)
+            apply_debuff(interrupt, attacker)
             if "Drain" in outgoing_interrupt.effects:
-                drain_check(interrupt, caller, attacker, final_outgoing_damage)
+                drain_check(interrupt, caller, attacker, outgoing_damage)
             if "Dispel" in outgoing_interrupt.effects:
                 dispel_check(attacker)
             if "Long-Range" in outgoing_interrupt.effects and caller.key not in attacker.db.ranged_knockback[1]:
                 ranged_knockback(attacker, caller)
-            record_combat(caller, incoming_atk_in_queue, "interrupt", True, mitigated_damage)
+            record_combat(caller, incoming_atk_in_queue, "interrupt", True, incoming_damage)
 
+        # Check if anyone who successfully hit (interrupter on int success, attacker on int fail) had Moment of Truth.
+        surge_buff_reset_check(action_result_for_interrupter, interrupt, caller)
+        surge_buff_reset_check(action_result_for_target, incoming_atk_in_queue, attacker)
+
+        msg = damage_message_strings(action_result_for_interrupter, caller, incoming_atk, incoming_damage, outgoing_interrupt,
+                                     outgoing_damage, attacker)
         combat_string = msg.format(target=caller.key, attacker=attacker.key, modifier=modifier,
                                    attack=incoming_atk.name, interrupt=outgoing_interrupt.name)
         caller.location.msg_contents(combat_string)
@@ -819,8 +874,8 @@ class CmdArts(default_cmds.MuxCommand):
             return caller.msg("Your character has no Arts. Use +setart to create some.")
 
         client_width = self.client_width()
-        arts_table = setup_table(client_width)
-        populate_table(arts_table, arts, base_arts)
+        arts_table = setup_arts_table(client_width)
+        populate_arts_table(arts_table, arts, base_arts)
 
         arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
         arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/
@@ -851,10 +906,10 @@ class CmdListAttacks(default_cmds.MuxCommand):
             return caller.msg("The command +attacks should be input without arguments.")
 
         client_width = self.client_width()
-        arts_table = setup_table(client_width)
-        normals_table = setup_table(client_width)
-        populate_table(arts_table, arts, base_arts)
-        populate_table(normals_table, modified_normals, NORMALS)
+        arts_table = setup_arts_table(client_width)
+        normals_table = setup_arts_table(client_width)
+        populate_arts_table(arts_table, arts, base_arts)
+        populate_arts_table(normals_table, modified_normals, NORMALS)
 
         arts_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Arts") / 2.0)) - 2)  # -2 for the \/
         arts_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Arts") / 2.0)) - 2)  # -2 for the \/
@@ -918,15 +973,15 @@ class CmdCheck(default_cmds.MuxCommand):
             normals_header = header_top + "\\/" + normals_left_spacing + "Normals" + normals_right_spacing + "\\/" + "\n"
             arts_header = header_top + "\\/" + arts_left_spacing + "Arts" + arts_right_spacing + "\\/" + "\n"
 
-            normals_table = setup_table(client_width, is_check=True)
-            arts_table = setup_table(client_width, is_check=True)
+            normals_table = setup_arts_table(client_width, is_check=True)
+            arts_table = setup_arts_table(client_width, is_check=True)
 
-            populate_table(normals_table, modified_normals, NORMALS, interrupted_action, caller)
+            populate_arts_table(normals_table, modified_normals, NORMALS, interrupted_action, caller)
             caller.msg(normals_header + normals_table.__str__())
 
             # If the character has arts, list them.
             if arts:
-                populate_table(arts_table, arts, base_arts, interrupted_action, caller)
+                populate_arts_table(arts_table, arts, base_arts, interrupted_action, caller)
                 caller.msg(arts_header + arts_table.__str__())
 
 
@@ -1051,3 +1106,127 @@ class CmdPass(default_cmds.MuxCommand):
         if caller.db.final_action:
             final_action_taken(caller)
 
+
+class CmdEquipAspect(default_cmds.MuxCommand):
+    """
+    Equip an Aspect in your Aspects list, if you have sufficient CP for its Cost.
+    To acquire an Aspect, use +getaspect.
+
+    Syntax:
+    +equip <aspect name>
+    """
+    key = "+equip"
+    aliases = ["equip", "equipaspect", "+equipaspect", "setaspect", "+setaspect"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        aspect_str = self.args.lower()
+        aspect_obj = None
+
+        # Confirm that Aspect is present in list of aspects.
+        for aspect in caller.db.aspects:
+            if aspect_str == aspect or aspect_str == aspect.custom_name.lower():
+                aspect_obj = aspect
+
+        if not aspect_obj:
+            return caller.msg("Aspect not found among those available to you. Use +getaspect to get new Aspects.")
+
+        # Confirm that Aspect is not already equipped.
+        if aspect_obj in caller.db.equipped_aspects:
+            return caller.msg("This Aspect is already equipped. Use +unequip to unequip it.")
+
+        # Confirm that sufficient CP is available.
+        if caller.db.cp < aspect_obj.cost:
+            return caller.msg("Not enough CP available to equip this Aspect.")
+
+        # Add Aspect to equipped_aspects and reduce available CP.
+        caller.db.equipped_aspects.append(aspect_obj)
+        caller.db.cp -= aspect_obj.cost
+        caller.msg(f"{aspect_obj.name} equipped.")
+
+
+class CmdUnequipAspect(default_cmds.MuxCommand):
+    """
+    Unequip an Aspect that you already have equipped, regaining CP expended on it.
+    To see what Aspects you have equipped, use +sheet or +aspects.
+
+    Syntax:
+    +unequip <aspect name>
+    """
+    key = "+unequip"
+    aliases = ["unequip", "unequipaspect", "+unequipaspect"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        aspect_str = self.args.lower()
+        aspect_obj = None
+        index_to_remove = None
+
+        # Confirm that Aspect is present in list of equipped_aspects.
+        for i, aspect in enumerate(caller.db.equipped_aspects):
+            if aspect_str == aspect or aspect_str == aspect.custom_name.lower():
+                aspect_obj = aspect
+                index_to_remove = i
+                aspect_str = aspect.name  # for success msg
+        if not aspect_obj:
+            return caller.msg("Aspect not found among those equipped.")
+
+        # Remove Aspect from equipped_aspect and restore CP. Corner case for exceeding max CP, no index (bugs).
+        if (caller.db.cp + aspect_obj.cost) > caller.db.maxcp:
+            return caller.msg("Error: unequipping this Aspect would raise CP above max. Contact admin to resolve.")
+        elif index_to_remove is None:
+            return caller.msg("Error: no index to remove. Contact admin to resolve.")
+
+        caller.db.cp += aspect_obj.cost
+        caller.db.equipped_aspects.pop(index_to_remove)
+        caller.msg(f"{aspect_str} unequipped.")
+
+
+class CmdListAspects(default_cmds.MuxCommand):
+    key = "+aspects"
+    aliases = ["aspects", "listaspects", "+listaspects"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        args = self.args
+        aspects = caller.db.aspects
+        equipped_aspects = caller.db.equipped_aspects
+        if args:
+            return caller.msg("The command +aspects should be input without arguments.")
+
+        client_width = self.client_width()
+        aspects_table = setup_aspects_table(client_width)
+        populate_aspects_table(aspects_table, aspects, equipped_aspects)
+
+        aspects_left_spacing = " " * ((floor(client_width / 2.0) - floor(len("Aspects") / 2.0)) - 2)  # -2 for the \/
+        aspects_right_spacing = " " * ((floor(client_width / 2.0) - ceil(len("Aspects") / 2.0)) - 2)  # -2 for the \/
+        header_top = "/\\" + (client_width - 4) * "_" + "/\\" + "\n"
+        aspects_header = header_top + "\\/" + aspects_left_spacing + "ASPECTS" + aspects_right_spacing + "\\/" + "\n"
+
+        caller.msg(aspects_header + aspects_table.__str__())
+
+
+class CmdSurge(default_cmds.MuxCommand):
+    key = "+surge"
+    aliases = ["surge"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+        if not caller.db.has_surge:
+            caller.msg("You have already spent your energy reserves and can no longer surge.")
+            return
+        caller.db.ap = min(caller.db.ap + 30, caller.db.maxap)
+        caller.db.ex = min(caller.db.ex + 30, caller.db.maxex)
+        caller.location.msg_contents("|y<COMBAT>|n {0} surges with power!".format(caller.name))
+        caller.db.has_surge = False
+        # Check for Surge-relevant Aspects on caller.
+        if "Moment of Truth" in caller.db.equipped_aspects:
+            caller.db.buffs["Moment of Truth"] = 2
+            caller.msg("You feel that the moment of truth has arrived for you!")
+        if "Nerves of Steel" in caller.db.equipped_aspects:
+            caller.db.buffs["Nerves of Steel"] = 2
+            caller.msg("You steel your nerves against all adversity.")

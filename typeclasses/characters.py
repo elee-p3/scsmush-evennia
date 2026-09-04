@@ -10,7 +10,7 @@ creation commands.
 from evennia import DefaultCharacter
 from evennia.utils import logger
 from django.utils.translation import gettext as _
-from world.arts.models import Arts
+from world.arts.models import Art
 
 class Character(DefaultCharacter):
     """
@@ -34,7 +34,7 @@ class Character(DefaultCharacter):
     """
 
     def at_object_creation(self):
-        "This is called when object is first created, only."
+        """This is called when object is first created, only."""
         self.db.sex = "Unknown"
         self.db.race = "Unknown"
         self.db.occupation = "Unknown"
@@ -57,6 +57,11 @@ class Character(DefaultCharacter):
         self.db.speed = 100
         self.db.pose_time = 0.0
         self.db.obs_mode = False
+        self.db.cp = 100
+        self.db.maxcp = 100
+        self.db.aspects = []
+        self.db.equipped_aspects = []
+        self.db.has_surge = True
 
     def at_post_puppet(self, **kwargs):
         """
@@ -295,13 +300,13 @@ class Character(DefaultCharacter):
         return True
 
     def delete_art(self, art_to_delete):
-        char_arts = self.arts.all()
+        char_arts = self.art.all()
         try:
             # TODO: Why isn't this error getting caught? Instead we're throwing the default message: "Art not found. No Art has been deleted."
             char_arts.get(pk=art_to_delete.pk)
             self.msg("{0} removed from your Arts.".format(art_to_delete.name))
-            self.arts.remove(art_to_delete)
-        except Arts.DoesNotExist:
+            self.art.remove(art_to_delete)
+        except Art.DoesNotExist:
             self.msg("{0} not found in your Arts list.".format(art_to_delete.name))
 
     pass
