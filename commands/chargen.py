@@ -144,7 +144,9 @@ class CmdGetAspect(default_cmds.MuxCommand):
         If you are generating an Extra Art, specify "Extra Art" as the aspect and you will be
         prompted separately to define the Art. The Aspect and the Art may have different names:
         for example, the custom name of an "Extra Art" aspect might be "Wand of Fireballs" while
-        the Art itself could be called "Fireball".
+        the Art itself could be called "Fireball". The strength of an Extra Art will correlate
+        to its CP cost, which you will also be prompted to specify. You may overwrite an existing
+        Extra Art's associated CP cost by calling +getaspect Extra Art=<same custom name> again.
 
         Syntax:
             +getaspect <aspect>
@@ -192,7 +194,6 @@ class CmdGetAspect(default_cmds.MuxCommand):
                         caller.db.cp += aspect_obj.cost
                         caller.db.equipped_aspects.remove(aspect_obj)
                 caller.db.aspects.pop(aspect_i_to_rem)
-                # TODO: figure out why this check isn't working and it's always showing custom_name and name
                 if aspect_obj.custom_name:
                     return caller.msg(f"{aspect_obj.custom_name} ({aspect_obj.name}) has been removed from your Aspects.")
                 else:
@@ -226,7 +227,7 @@ class CmdGetAspect(default_cmds.MuxCommand):
         elif aspect_to_find == "extra art":
             # There must be a custom name because there can be multiple Extra Arts.
             if not aspect_custom_name:
-                caller.msg("Extra Arts, unlike other Aspects, must have a custom name. Please specify with +getaspect "
+                return caller.msg("Extra Arts, unlike other Aspects, must have a custom name. Please specify with +getaspect "
                            "Extra Art=<custom name>.")
             # Aspect name will always be "Extra Art"
             aspect_name = aspect_to_find.title()
@@ -240,6 +241,15 @@ class CmdGetAspect(default_cmds.MuxCommand):
             else:
                 return caller.msg("The specified CP cost for your Linked Aspect was invalid. Please try again and "
                                   "choose 10, 20, 30, or 40.")
+            # If the custom name exists and CP cost is confirmed valid, handle the editing of the Linked Aspect.
+            for acquired_aspect in caller.db.aspects:
+                if acquired_aspect.name.lower() == "extra art" and acquired_aspect.custom_name == aspect_custom_name:
+                    # Change CP cost if it differs from what the user has specified.
+                    if acquired_aspect.cost == aspect_cost:
+                        return caller.msg(f"{acquired_aspect.custom_name} already costs {linked_aspect_cost} CP. No change was made.")
+                    else:
+                        acquired_aspect.cost = aspect_cost
+                        return caller.msg(f"{acquired_aspect.custom_name} now costs {linked_aspect_cost} CP.")
 
             # Now create the Linked Art.
             caller.msg("Please now define your Extra Art.")
