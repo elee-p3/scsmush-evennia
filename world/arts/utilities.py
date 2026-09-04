@@ -58,7 +58,7 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         if name.lower() == art.name.lower():
             art_to_edit = art
     if art_to_edit:
-        caller.delete_art(art_to_edit)
+        caller.art.remove(art_to_edit)
         art_already_exists = True
         # Recalculate contents of Arts list for determining length.
         arts = Art.objects.filter(characters=caller)
