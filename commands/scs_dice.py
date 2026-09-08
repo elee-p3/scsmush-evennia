@@ -1,5 +1,6 @@
 from evennia import default_cmds
 from evennia.commands import command
+from evennia.commands.cmdhandler import cmdhandler
 from evennia.contrib.rpg.dice import CmdDice, roll_dice
 import re
 from world.scenes.models import Scene, LogEntry
@@ -352,3 +353,134 @@ class CmdSCSDice(CmdDice):
         if comment:
             new_rollstring += "#" + comment
         return new_rollstring
+
+
+class CmdEZRoll(default_cmds.MuxCommand):
+    # Compiles and sends a rollstring to the cmdhandler and calls CmdSCSDice on said rollstring.
+    # Uses yield() to let the player input the string components step by step.
+    # Once it works, make sure it can parse for roll/call as well. This'll set up nicely for the next stage,
+    # when roll/call is compatible with the combat system and can, e.g., inflict debuffs. (roll/stake, roll/gm for both)
+    """
+    EZRoll allows for the step-by-step assembly of a dice string to assist with
+    complex rolls. For example, using roll, a 1d20 with a +2 modifier trying to
+    beat a target number of 10 or higher with a comment of "Dodging goblin"
+    would be:
+
+    > roll 1d20+2>=10#Dodging goblin
+
+    Typing "ezroll" or "ez" instead prompts you to input each element one by one.
+    You may go back a step with "u" or quit at any time with "q". It is also
+    compatible with roll/call, which sends roll requests to other players.
+
+    Examples:
+        ez
+        ez/call reize, ivo
+    """
+    key = "ezroll"
+    aliases = ["ez"]
+    locks = "cmd:all()"
+
+    def func(self):
+        # Embeds the yield calls in a while loop and sets the condition for the while loop such that it depends on how
+        # many steps will be in the roll string. As I add more options, like "staking" buffs/debuffs on the roll result,
+        # I can modify max_steps based on self.switches so the player can specify how complex the roll will be.
+        caller = self.caller
+        switches = self.switches
+        args = self.args
+        dice_string = "roll "
+        # Currently, the options are standard roll or roll/call, where you request a roll from someone else
+        if switches:
+            if "call" in switches:
+                if not args:
+                    return caller.msg("Roll/call requires a target specified by name or alias.")
+                else:
+                    # CmdSCSDice should do the rest of the corner casing for us
+                    dice_string = f"roll/call {args}="
+            else:
+                return caller.msg("Switch not recognized. Use either 'ezroll' or 'ezroll/call'.")
+        step_counter = 0
+        max_steps = 3
+        dice_string_list = []
+        while step_counter <= max_steps:
+            if step_counter == -1:
+                # Response_parser will set step_counter to -1 if the user specifies to quit.
+                return caller.msg("Cancelling EZRoll.")
+            elif step_counter == 0:
+                caller.msg("EZRoll is preparing to roll dice step-by-step. ('u' to undo a step, 'q' to quit)")
+                response = yield("How many dice of how many sides would you like to roll? (e.g., 1d20)")
+            elif step_counter == 1:
+                response = yield("What modifier would you like to add? (e.g., +2, -1. 'enter' for none)")
+            elif step_counter == 2:
+                response = yield("What target number do you aim to exceed? (e.g., 10. 'enter' for none)")
+            elif step_counter == 3:
+                response = yield("Add an optional comment to describe the roll. ('enter' for none)")
+            step_counter, dice_string_list = self.response_parser(response, step_counter, dice_string_list)
+        # Once the while loop concludes, send the joined dice_string to CmdHandler and run SCSDice on it.
+        joined_dice_list = "".join(dice_string_list)
+        final_dice_string = dice_string + joined_dice_list
+        # Calling cmdhandler directly feels sketchy, but the roll code is a contrib, so this seems like the simplest
+        # approach to integrating a new command, EZRoll, that is dependent on said roll code.
+        cmdhandler(caller, final_dice_string)
+
+    def response_parser(self, response, step_counter, dice_string_list):
+        # Parse and corner case depending on the step in assembling the dice roll
+
+        def success(resp, step_count, dice_string_l):
+            # Writing a sub-function to call when the response is well-formed to help with efficient corner-casing
+            step_count += 1
+            dice_string_l.append(resp)
+            return step_count, dice_string_l
+
+        caller = self.caller
+        # Check for undo or quit input
+        if response == "u":
+            # Go back a step and remove the most recent append to dice_string_list
+            step_counter -= 1
+            dice_string_list.pop()
+            caller.msg("Undoing previous step.")
+            return step_counter, dice_string_list
+        elif response == "q":
+            # Shortcut to break the while loop in the main function
+            step_counter = -1
+            return step_counter, dice_string_list
+        elif step_counter == 0:
+            if "d" not in response:
+                # There should be a "d" in the first dice roll specification
+                caller.msg("Invalid response. Please specify a valid dice roll, e.g., 1d20 or 3d6.")
+                return step_counter, dice_string_list
+            else:
+                return success(response, step_counter, dice_string_list)
+        elif step_counter == 1:
+            if response:
+                if "+" not in response and "-" not in response:
+                    # The modifier should have a + or a - or be ""
+                    caller.msg("Invalid response. Please specify a modifier with + or - or leave blank.")
+                    return step_counter, dice_string_list
+                else:
+                    return success(response, step_counter, dice_string_list)
+            else:
+                # If no modifier, just move on
+                return success(response, step_counter, dice_string_list)
+        elif step_counter == 2:
+            # Either there's no target number or the target number should be an integer
+            if response:
+                try:
+                    int(response)
+                except ValueError:
+                    caller.msg("Invalid response. Please specify an integer, e.g., 10, or leave blank.")
+                    return step_counter, dice_string_list
+                else:
+                    # Prepend a ">=" to the dice string to signify a target number
+                    response = ">=" + response
+                    return success(response, step_counter, dice_string_list)
+            else:
+                # Do not prepend anything and just move on if no target number is specified
+                return success(response, step_counter, dice_string_list)
+        elif step_counter == 3:
+            if response:
+                # Prepend a "#" to the dice string to signify a comment
+                response = "#" + response
+                return success(response, step_counter, dice_string_list)
+            else:
+                return success(response, step_counter, dice_string_list)
+        # As I add more options to rolling, like staking buffs/debuffs, I will add more corner casing/success() calls.
