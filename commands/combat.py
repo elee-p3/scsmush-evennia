@@ -755,7 +755,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
                 action_result_for_target = ActionResult.REACT_FAIL
 
             # Check for Protect/Reflect/Perfect Break damage mitigation.
-            incoming_damage = interrupt_mitigation_calc(incoming_damage, caller, incoming_atk, action_result_for_interrupter)
+            incoming_damage = interrupt_mitigation_calc(incoming_damage, caller, incoming_atk, outgoing_interrupt, action_result_for_interrupter)
 
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= incoming_damage
@@ -801,7 +801,7 @@ class CmdInterrupt(default_cmds.MuxCommand):
                 action_result_for_target = ActionResult.WAS_INTERRUPTED
 
             # Check for interrupt/Protect/Reflect/Perfect Break damage mitigation.
-            incoming_damage = interrupt_mitigation_calc(incoming_damage, caller, incoming_atk, action_result_for_interrupter)
+            incoming_damage = interrupt_mitigation_calc(incoming_damage, caller, incoming_atk, outgoing_interrupt, action_result_for_interrupter)
 
             caller.msg("Note that an interrupt is both a reaction and an action. Do not attack after you pose.")
             caller.db.lf -= incoming_damage
