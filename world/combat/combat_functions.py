@@ -998,17 +998,24 @@ def damage_message_strings(action_result, caller, attack, damage, interrupt=None
     return msg_to_room
 
 
-def interrupt_mitigation_calc(incoming_damage, defender, incoming_attack, outgoing_interrupt, action_result):
-    # Protect and Reflect mitigate damage specifically for an interrupter when interrupting (even on failure).
-    mitigation_buff = False
-    successful_interrupt_result_list = [ActionResult.INTERRUPT_SUCCESS, ActionResult.INTERRUPT_CRIT_SUCCESS]
-    crit_react_result_list = [ActionResult.INTERRUPT_REACT_CRIT_SUCCESS, ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT]
+def interrupt_mitigated_dmg_calc(incoming_damage, defender, incoming_attack, outgoing_interrupt, action_result):
+    mitigation_rate = interrupt_mitigation_calc(defender, incoming_attack, outgoing_interrupt, action_result)
+    incoming_damage = incoming_damage * (1 - mitigation_rate)
+    return incoming_damage
 
+
+def interrupt_mitigation_calc(defender, incoming_attack, outgoing_interrupt, action_result):
+    """Helper function for interrupt_mitigated_dmg_calc also called by populate_arts_table()."""
     # Scale mitigation by the Damage value of the outgoing interrupt, if mitigation occurs.
     # Based on Damage alone, the lowest possible mitigation is 25% and the highest possible mitigation is 75%.
     # This of course only applies if the interrupt is successful.
     dmg_gap = incoming_attack.dmg - outgoing_interrupt.dmg
     int_mitigation_rate = min(0.75, max(0.25, 0.5 + 0.05 * dmg_gap))
+
+    # Protect and Reflect mitigate damage specifically for an interrupter when interrupting (even on failure).
+    mitigation_buff = False
+    successful_interrupt_result_list = [ActionResult.INTERRUPT_SUCCESS, ActionResult.INTERRUPT_CRIT_SUCCESS]
+    crit_react_result_list = [ActionResult.INTERRUPT_REACT_CRIT_SUCCESS, ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT]
 
     mitigation_rate = 0
     if incoming_attack.stat.lower() == "power":
@@ -1018,17 +1025,17 @@ def interrupt_mitigation_calc(incoming_damage, defender, incoming_attack, outgoi
         if defender.db.buffs["Reflect"] > 0 or "Counterspell" in defender.db.equipped_aspects:
             mitigation_buff = True
     if action_result in crit_react_result_list and mitigation_buff:
-        mitigation_rate = int_mitigation_rate + 0.25 # Can potentially reduce incoming damage to 0!
+        mitigation_rate = int_mitigation_rate + 0.25  # Can potentially reduce incoming damage to 0!
     elif action_result in crit_react_result_list:
-        mitigation_rate = int_mitigation_rate + 0.10 # Perfect Break mitigates 10% more
+        mitigation_rate = int_mitigation_rate + 0.10  # Perfect Break mitigates 10% more
     elif action_result in successful_interrupt_result_list and mitigation_buff:
-        mitigation_rate = int_mitigation_rate + 0.15 # Protect/Reflect mitigate 15% more
+        mitigation_rate = int_mitigation_rate + 0.15  # Protect/Reflect mitigate 15% more
     elif action_result in successful_interrupt_result_list:
-        mitigation_rate = int_mitigation_rate # Just a standard interrupt
+        mitigation_rate = int_mitigation_rate  # Just a standard interrupt
     elif mitigation_buff:
-        mitigation_rate = 0.15 # When the interrupt fails, Protect/Reflect still mitigate 15% of incoming damage
-    incoming_damage = incoming_damage * (1 - mitigation_rate)
-    return incoming_damage
+        mitigation_rate = 0.15  # When the interrupt fails, Protect/Reflect still mitigate 15% of incoming damage
+    return mitigation_rate
+
 
 def modify_aim_and_feint(chance_to_hit, reaction, aim_or_feint):
     # Centralizing any modifications to Aim and Feint from buffs, etc. Call this in each reaction. Return mod acc.
