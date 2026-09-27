@@ -130,7 +130,7 @@ def modify_ap_string(action, base_arts):
 def modify_acc_string(modified_acc, caller, interrupted_action, action):
     """Modify the appearance of an Art's Accuracy in CmdCheck if an interrupt will minimally mitigate."""
     # Estimate how much an interrupt would mitigate if it succeeded.
-    estimated_mitigation_rate = interrupt_mitigation_calc(caller, interrupted_action, action, ActionResult.INTERRUPT_SUCCESS)
+    estimated_mitigation_rate = interrupt_mitigation_calc(caller, interrupted_action.attack, action, ActionResult.INTERRUPT_SUCCESS)
     # If the estimated mitigation rate is a third or less, warn that this might be a dangerous interrupt.
     if estimated_mitigation_rate <= 0.33:
         acc_string = "|r" + str(modified_acc) + "|n"
