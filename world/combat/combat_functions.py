@@ -15,6 +15,10 @@ from world.arts.models import Art
 from world.utilities.utilities import find_attacker_from_key
 from world.combat.aspects import BUFF_EQ
 
+# The less advantageous a reaction, the easier it should be to succeed and the harder it should be to hit.
+# Dodge negates all damage;glance mitigates without penalty. Block mitigates with penalty. Endure does not mitigate.
+REACTION_DIFFICULTY = {"dodge": 0, "block": -12, "endure": -22}
+
 
 def filter_and_modify_arts(caller: Character):
     # Centralizes the function of sorting through the Arts table, finding those linked to a character, and then
@@ -182,7 +186,7 @@ def dodge_calc(defender, attack_instance: AttackToQueue):
     attack_acc = attack_instance.attack.acc
 
     # base chance to hit %
-    base_chance_to_hit = 40 + attack_acc*5
+    base_chance_to_hit = 40 + attack_acc*5 + REACTION_DIFFICULTY["dodge"]
 
     # modify base % with speed scaling with respect to a base of 125 via a piecewise function
     speed_diff = 125 - defender_speed
@@ -256,9 +260,9 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
     if attack_instance.attack.stat == "Knowledge":
         def_stat = defender.db.barrier
 
-    # block stat is an average between the effect-modified speed and the defensive stat
-    block_stat = (defender_speed + def_stat)/2
-    base_chance_to_hit = 40 + attack_acc*5
+    # Block stat weights defensive stat (Parry/Barrier) over speed, but less heavily than Endure
+    block_stat = defender_speed * 0.35 + def_stat * 0.65
+    base_chance_to_hit = 40 + attack_acc*5 + REACTION_DIFFICULTY["block"]
 
     # modify base % with scaling with respect to a base of 125 via a piecewise function
     stat_diff = 125 - block_stat
@@ -326,9 +330,9 @@ def endure_chance_calc(defender, attack_instance):
     if attack_instance.attack.stat == "Knowledge":
         def_stat = defender.db.barrier
 
-    # block stat is an average between the effect-modified speed and the defensive stat
-    endure_stat = (defender_speed + def_stat) / 2
-    base_chance_to_hit = 40 + attack_acc * 5
+    # Endure weights defensive stat (Parry/Barrier) over Speed more heavily than Block
+    endure_stat = defender_speed * 0.25 + def_stat * 0.75
+    base_chance_to_hit = 40 + attack_acc * 5 + REACTION_DIFFICULTY["endure"]
 
     # modify base % with scaling with respect to a base of 125 via a piecewise function
     stat_diff = 125 - endure_stat
@@ -387,8 +391,14 @@ def interrupt_chance_calc(interrupter, incoming_attack_instance, outgoing_interr
         # To incorporate status effects, etc., into CmdCheck, add action metadata to raw attack object.
         outgoing_interrupt = AttackDuringAction(outgoing_interrupt, interrupter.key, "")
 
+    # Interrupt chances originally only used on accuracy: now, to mitigate poke-interrupts, Damage is weighted somewhat.
+    INTERRUPT_ACC_WEIGHT = 5
+    INTERRUPT_DMG_WEIGHT = 3
+    INTERRUPT_DMG_REF = 5  # The "middle ground": anything higher is advantaged, anything lower is disadvantaged.
+
     accuracy_diff = outgoing_interrupt.attack.acc - incoming_attack_instance.attack.acc
-    interrupt_chance = 30 + (accuracy_diff * 5)
+    damage_mod = (outgoing_interrupt.attack.dmg - INTERRUPT_DMG_REF) * INTERRUPT_DMG_WEIGHT
+    interrupt_chance = 30 + (accuracy_diff * INTERRUPT_ACC_WEIGHT) + damage_mod
     # If the interrupter is baiting, interrupt chance increases.
     if interrupter.db.is_baiting:
         interrupt_chance += 10
@@ -569,9 +579,9 @@ def accrue_block_penalty(defender, pre_block_damage, action_result, attack_insta
     # Crush makes the block penalty a lot worse if you block and a little worse if you fail to block.
     if action_result == ActionResult.BLOCK_SUCCESS: # distinguish between crit success, success, fail or crit fail
         if attack_instance.has_crush:
-            defender.db.block_penalty += (pre_block_damage / 5)
+            defender.db.block_penalty += (pre_block_damage / 15)
         else:
-            defender.db.block_penalty += (pre_block_damage / 10)
+            defender.db.block_penalty += (pre_block_damage / 20)
     elif action_result == ActionResult.BLOCK_CRIT_SUCCESS:
         # Crit block not only negates all block penalty from damage, but reduces existing penalty in half!
         defender.db.block_penalty = math.ceil(defender.db.block_penalty / 2)
@@ -988,28 +998,45 @@ def damage_message_strings(action_result, caller, attack, damage, interrupt=None
     return msg_to_room
 
 
-def interrupt_mitigation_calc(incoming_damage, defender, attack, action_result):
+def interrupt_mitigated_dmg_calc(incoming_damage, defender, incoming_attack, outgoing_interrupt, action_result):
+    mitigation_rate = interrupt_mitigation_calc(defender, incoming_attack, outgoing_interrupt, action_result)
+    incoming_damage = incoming_damage * (1 - mitigation_rate)
+    return incoming_damage
+
+
+def interrupt_mitigation_calc(defender, incoming_attack, outgoing_interrupt, action_result):
+    """Helper function for interrupt_mitigated_dmg_calc also called by populate_arts_table()."""
+    # Scale mitigation by the Damage value of the outgoing interrupt, if mitigation occurs.
+    # Based on Damage alone, the lowest possible mitigation is 25% and the highest possible mitigation is 75%.
+    # This of course only applies if the interrupt is successful.
+    # incoming_attack = incoming_action.attack
+    dmg_gap = incoming_attack.dmg - outgoing_interrupt.dmg
+    int_mitigation_rate = min(0.75, max(0.25, 0.5 - 0.05 * dmg_gap))
+
     # Protect and Reflect mitigate damage specifically for an interrupter when interrupting (even on failure).
-    mitigation = False
+    mitigation_buff = False
     successful_interrupt_result_list = [ActionResult.INTERRUPT_SUCCESS, ActionResult.INTERRUPT_CRIT_SUCCESS]
     crit_react_result_list = [ActionResult.INTERRUPT_REACT_CRIT_SUCCESS, ActionResult.INTERRUPT_CRIT_HIT_AND_REACT_CRIT]
-    if attack.stat.lower() == "power":
+
+    mitigation_rate = 0
+    if incoming_attack.stat.lower() == "power":
         if defender.db.buffs["Protect"] > 0 or "Counterstrike" in defender.db.equipped_aspects:
-            mitigation = True
-    if attack.stat.lower() == "knowledge":
+            mitigation_buff = True
+    if incoming_attack.stat.lower() == "knowledge":
         if defender.db.buffs["Reflect"] > 0 or "Counterspell" in defender.db.equipped_aspects:
-            mitigation = True
-    if action_result in crit_react_result_list and mitigation:
-        incoming_damage = 0 # Perfect Break plus Protect/Reflect 15% bonus equals total damage mitigation!
+            mitigation_buff = True
+    if action_result in crit_react_result_list and mitigation_buff:
+        mitigation_rate = int_mitigation_rate + 0.25  # Can potentially reduce incoming damage to 0!
     elif action_result in crit_react_result_list:
-        incoming_damage = incoming_damage * 0.15 # Perfect Break mitigates 85% damage
-    elif action_result in successful_interrupt_result_list and mitigation:
-        incoming_damage = incoming_damage * 0.35 # 50% mitigation + 15% Protect/Reflect bonus
+        mitigation_rate = int_mitigation_rate + 0.10  # Perfect Break mitigates 10% more
+    elif action_result in successful_interrupt_result_list and mitigation_buff:
+        mitigation_rate = int_mitigation_rate + 0.15  # Protect/Reflect mitigate 15% more
     elif action_result in successful_interrupt_result_list:
-        incoming_damage = incoming_damage * 0.5 # Successfully interrupting halves damage
-    elif mitigation:
-        incoming_damage = incoming_damage * 0.85 # Protect/Reflect on failed interrupt mitigates 15%
-    return incoming_damage
+        mitigation_rate = int_mitigation_rate  # Just a standard interrupt
+    elif mitigation_buff:
+        mitigation_rate = 0.15  # When the interrupt fails, Protect/Reflect still mitigate 15% of incoming damage
+    return mitigation_rate
+
 
 def modify_aim_and_feint(chance_to_hit, reaction, aim_or_feint):
     # Centralizing any modifications to Aim and Feint from buffs, etc. Call this in each reaction. Return mod acc.

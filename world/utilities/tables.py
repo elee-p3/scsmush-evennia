@@ -3,7 +3,8 @@ from math import floor, ceil
 
 from world.combat.aspects import Aspect, LinkedAspect
 from world.combat.effects import EFFECTS
-from world.combat.combat_functions import interrupt_chance_calc
+from world.combat.combat_functions import interrupt_chance_calc, interrupt_mitigation_calc
+from world.combat.attacks import ActionResult
 
 
 def generate_header(client_width, header_title):
@@ -67,15 +68,17 @@ def populate_arts_table(table, actions, base_arts, interrupted_action=None, call
         effects_abbrev = get_abbreviations(action)
 
         ap_string = modify_ap_string(action, base_arts)
+        # Passing this function a caller implies that it is being called by CmdCheck to return interrupt chances.
         if caller:
             modified_acc = interrupt_chance_calc(caller, interrupted_action, action, for_check_display=True)
+            acc_string = modify_acc_string(modified_acc, caller, interrupted_action, action)
             table.add_row(action.name,
                           ap_string,
                           action.dmg,
                           action.acc,
                           stat_string,
                           effects_abbrev,
-                          int(modified_acc))
+                          acc_string)
         else:
             table.add_row(action.name,
                           ap_string,
@@ -110,7 +113,7 @@ def populate_aspects_table(table: evtable.EvTable, aspects: list[Aspect], equipp
 
 
 def modify_ap_string(action, base_arts):
-    # Modify the appearance of the Art in Sheet, Arts, etc., depending on status effects, etc.
+    """Modify the appearance of the Art in Sheet, Arts, etc., depending on status effects, etc."""
     baseline = next(x for x in base_arts if x.name.lower() == action.name.lower())
     # Use the baseline for comparison to check if, e.g., AP cost has gone up or down.
     # Define default ap_string.
@@ -122,3 +125,16 @@ def modify_ap_string(action, base_arts):
         # If the action is less costly than usual, the value is colored cyan.
         ap_string = "|c" + str(action.ap) + "|n"
     return ap_string
+
+
+def modify_acc_string(modified_acc, caller, interrupted_action, action):
+    """Modify the appearance of an Art's Accuracy in CmdCheck if an interrupt will minimally mitigate."""
+    # Estimate how much an interrupt would mitigate if it succeeded.
+    estimated_mitigation_rate = interrupt_mitigation_calc(caller, interrupted_action.attack, action, ActionResult.INTERRUPT_SUCCESS)
+    # If the estimated mitigation rate is a third or less, warn that this might be a dangerous interrupt.
+    if estimated_mitigation_rate <= 0.33:
+        acc_string = "|r" + str(modified_acc) + "|n"
+    else:
+        acc_string = str(modified_acc)
+    return acc_string
+
