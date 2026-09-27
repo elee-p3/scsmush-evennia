@@ -75,11 +75,9 @@ class CmdSetArt(default_cmds.MuxCommand):
             return caller.msg(error_msg)
 
         # CmdSetArt may be used to modify Linked Arts. These should NOT be added to the character's Arts list directly.
-        if art_modified:
-            aspect_arts = [aspect.linked_art() for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
-            caller.msg(aspect_arts)
-            if art not in aspect_arts:
-                caller.art.add(Art.objects.latest("pk"))
+        aspect_art_names = [aspect.linked_art().name.lower() for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
+        if art.name.lower() not in aspect_art_names:
+            caller.art.add(art)
 
         if not art_modified:
             caller.msg("{0} has been added to your list of Arts.".format(name))
