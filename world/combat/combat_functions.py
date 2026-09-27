@@ -1004,13 +1004,14 @@ def interrupt_mitigated_dmg_calc(incoming_damage, defender, incoming_attack, out
     return incoming_damage
 
 
-def interrupt_mitigation_calc(defender, incoming_attack, outgoing_interrupt, action_result):
+def interrupt_mitigation_calc(defender, incoming_action, outgoing_interrupt, action_result):
     """Helper function for interrupt_mitigated_dmg_calc also called by populate_arts_table()."""
     # Scale mitigation by the Damage value of the outgoing interrupt, if mitigation occurs.
     # Based on Damage alone, the lowest possible mitigation is 25% and the highest possible mitigation is 75%.
     # This of course only applies if the interrupt is successful.
+    incoming_attack = incoming_action.attack
     dmg_gap = incoming_attack.dmg - outgoing_interrupt.dmg
-    int_mitigation_rate = min(0.75, max(0.25, 0.5 + 0.05 * dmg_gap))
+    int_mitigation_rate = min(0.75, max(0.25, 0.5 - 0.05 * dmg_gap))
 
     # Protect and Reflect mitigate damage specifically for an interrupter when interrupting (even on failure).
     mitigation_buff = False
