@@ -15,6 +15,10 @@ from world.arts.models import Art
 from world.utilities.utilities import find_attacker_from_key
 from world.combat.aspects import BUFF_EQ
 
+# The less advantageous a reaction, the easier it should be to succeed and the harder it should be to hit.
+# Dodge negates all damage;glance mitigates without penalty. Block mitigates with penalty. Endure does not mitigate.
+REACTION_DIFFICULTY = {"dodge": 0, "block": -12, "endure": -22}
+
 
 def filter_and_modify_arts(caller: Character):
     # Centralizes the function of sorting through the Arts table, finding those linked to a character, and then
@@ -182,7 +186,7 @@ def dodge_calc(defender, attack_instance: AttackToQueue):
     attack_acc = attack_instance.attack.acc
 
     # base chance to hit %
-    base_chance_to_hit = 40 + attack_acc*5
+    base_chance_to_hit = 40 + attack_acc*5 + REACTION_DIFFICULTY["dodge"]
 
     # modify base % with speed scaling with respect to a base of 125 via a piecewise function
     speed_diff = 125 - defender_speed
@@ -256,9 +260,9 @@ def block_chance_calc(defender, attack_instance: AttackToQueue):
     if attack_instance.attack.stat == "Knowledge":
         def_stat = defender.db.barrier
 
-    # block stat is an average between the effect-modified speed and the defensive stat
-    block_stat = (defender_speed + def_stat)/2
-    base_chance_to_hit = 40 + attack_acc*5
+    # Block stat weights defensive stat (Parry/Barrier) over speed, but less heavily than Endure
+    block_stat = defender_speed * 0.35 + def_stat * 0.65
+    base_chance_to_hit = 40 + attack_acc*5 + REACTION_DIFFICULTY["block"]
 
     # modify base % with scaling with respect to a base of 125 via a piecewise function
     stat_diff = 125 - block_stat
@@ -326,9 +330,9 @@ def endure_chance_calc(defender, attack_instance):
     if attack_instance.attack.stat == "Knowledge":
         def_stat = defender.db.barrier
 
-    # block stat is an average between the effect-modified speed and the defensive stat
-    endure_stat = (defender_speed + def_stat) / 2
-    base_chance_to_hit = 40 + attack_acc * 5
+    # Endure weights defensive stat (Parry/Barrier) over Speed more heavily than Block
+    endure_stat = defender_speed * 0.25 + def_stat * 0.75
+    base_chance_to_hit = 40 + attack_acc * 5 + REACTION_DIFFICULTY["endure"]
 
     # modify base % with scaling with respect to a base of 125 via a piecewise function
     stat_diff = 125 - endure_stat
@@ -569,9 +573,9 @@ def accrue_block_penalty(defender, pre_block_damage, action_result, attack_insta
     # Crush makes the block penalty a lot worse if you block and a little worse if you fail to block.
     if action_result == ActionResult.BLOCK_SUCCESS: # distinguish between crit success, success, fail or crit fail
         if attack_instance.has_crush:
-            defender.db.block_penalty += (pre_block_damage / 5)
+            defender.db.block_penalty += (pre_block_damage / 15)
         else:
-            defender.db.block_penalty += (pre_block_damage / 10)
+            defender.db.block_penalty += (pre_block_damage / 20)
     elif action_result == ActionResult.BLOCK_CRIT_SUCCESS:
         # Crit block not only negates all block penalty from damage, but reduces existing penalty in half!
         defender.db.block_penalty = math.ceil(defender.db.block_penalty / 2)
