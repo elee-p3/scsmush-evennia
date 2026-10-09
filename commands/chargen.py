@@ -171,17 +171,16 @@ class CmdGetAspect(default_cmds.MuxCommand):
         if "del" in self.switches:
             # .remove() won't work in the case of multiple Extra Arts. .pop() by index number.
             aspect_i_to_rem = None
-            for i in range(len(caller.db.aspects)):
+            for i, aspect in enumerate(caller.db.aspects):
                 # For an Extra Art, compare the args to the custom name.
-                aspect = caller.db.aspects[i]
-                if aspect == "Extra Art":
+                if isinstance(aspect, LinkedAspect):
                     if args.lower() == aspect.custom_name.lower():
                         aspect_i_to_rem = i
                         aspect_obj = caller.db.aspects[aspect_i_to_rem]
                 elif args.lower() == aspect.name.lower():
                     aspect_i_to_rem = i
                     aspect_obj = caller.db.aspects[aspect_i_to_rem]
-            if not aspect_i_to_rem:
+            if aspect_i_to_rem is None:
                 return caller.msg("Aspect not found. No Aspect has been deleted.")
             else:
                 # Ensure that nothing removed from the aspects list can remain in the equipped_aspects list.
