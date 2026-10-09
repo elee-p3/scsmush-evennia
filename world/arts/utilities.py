@@ -1,6 +1,7 @@
 from world.arts.models import Art
 from world.combat.aspects import LinkedAspect
 from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS, DEBUFFS_HEXES
+from world.aspects.models import LinkedAspect as LinkedAspectModel
 
 
 def accuracy_check(accuracy, ex_move=False):
@@ -29,10 +30,21 @@ def concat_art_string():
     return art_string
 
 
+def save_art(art_to_edit, **fields):
+    """Updates art_to_edit in place if there is one. Otherwise, creates and returns a new Art."""
+    if art_to_edit is None:
+        return Art.objects.create(**fields)
+    for field, value in fields.items():
+        setattr(art_to_edit, field, value)
+    art_to_edit.save()
+    return art_to_edit
+
+
 def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=False, allow_edit=True):
     """Returns either Art, '', art_already_exists bool on success or None, error_msg, False on failure."""
     arts = Art.objects.filter(characters=caller)
-    linked_arts = [aspect.linked_art() for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
+    linked_aspects = [aspect for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
+    linked_arts = [aspect.linked_art() for aspect in linked_aspects]
     all_arts = list(arts) + linked_arts
     error_msg = ""
     art_already_exists = False
@@ -61,16 +73,10 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         if not allow_edit: # In the event that an Extra Art has the same name as a regular Art, so it doesn't edit.
             return None, f"Error: you already have an Art named {art_to_edit.name}. Please choose another " \
                          f"name.", art_already_exists
-        caller.art.remove(art_to_edit)
         art_already_exists = True
-        # Recalculate contents of Arts list for determining length.
-        arts = Art.objects.filter(characters=caller)
-        # If the art being edited is a Linked Art, ensure that bypass_cap is set to True.
-        if art_to_edit in linked_arts:
-            bypass_cap = True
 
     # Now check that the character does not already have the maximum number of Arts: 10.
-    if not bypass_cap and len(arts) == 10:
+    if not art_already_exists and not bypass_cap and len(arts) >= 10:
         return None, "Your character already has the maximum of 10 Arts. Art not added.", art_already_exists
 
     # Set the baseline AP cost for an art at 5.
@@ -113,7 +119,8 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         if error_msg:
             return None, error_msg, art_already_exists
 
-        art = Art.objects.create(
+        art = save_art(
+            art_to_edit,
             name=name,
             ap=true_ap_change,
             dmg=damage,

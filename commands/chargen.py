@@ -74,12 +74,8 @@ class CmdSetArt(default_cmds.MuxCommand):
         if error_msg:
             return caller.msg(error_msg)
 
-        # CmdSetArt may be used to modify Linked Arts. These should NOT be added to the character's Arts list directly.
-        aspect_art_names = [aspect.linked_art().name.lower() for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
-        if art.name.lower() not in aspect_art_names:
-            caller.art.add(art)
-
         if not art_modified:
+            caller.art.add(art)
             caller.msg("{0} has been added to your list of Arts.".format(name))
         else:
             caller.msg("{0} has been modified on your list of Arts.".format(name))
@@ -279,7 +275,7 @@ class CmdGetAspect(default_cmds.MuxCommand):
             new_aspect_entry = LinkedAspectModel.objects.create(name=aspect_custom_name, cost=aspect_cost, linked_art=art)
             aspect_id = new_aspect_entry.id
             # Then link to character in the database...
-            caller.LinkedAspect.add(LinkedAspectModel.objects.latest("pk"))
+            caller.LinkedAspect.add(new_aspect_entry)
             # ...and derive LinkedAspect from new entry, to add to character.db.aspects at the end of the function.
             aspect_obj = LinkedAspect(aspect_id, name=aspect_name, cost=aspect_cost, custom_name=aspect_custom_name)
 
