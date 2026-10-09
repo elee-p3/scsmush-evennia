@@ -11,7 +11,7 @@ class CmdSetArt(default_cmds.MuxCommand):
         A character generation command that adds an Art to or
         edits an Art on your character's list of Arts. Specify
         its name, Damage, Base Stat (Power or Knowledge), and Effects.
-        Damage must be an integer between 1 and 100.
+        Damage must be an integer between 1 and 11 (13 for EX moves).
 
         If +setart is called by itself, a series of specifying prompts will follow.
         Otherwise, name, Damage, Base Stat, and Effects should be separated by
@@ -69,7 +69,7 @@ class CmdSetArt(default_cmds.MuxCommand):
         if len(art_list) == 4:
             effects = art_list[3]
 
-        # Now that int type is confirmed, pass relevant information to utility function create_or_edit_art().
+        # Pass relevant information to utility function create_or_edit_art().
         art, error_msg, art_modified = create_or_edit_art(caller=caller, name=name, damage=damage, base_stat=base_stat, effects=effects)
         if error_msg:
             return caller.msg(error_msg)
@@ -145,7 +145,8 @@ class CmdGetAspect(default_cmds.MuxCommand):
         for example, the custom name of an "Extra Art" aspect might be "Wand of Fireballs" while
         the Art itself could be called "Fireball". The strength of an Extra Art will correlate
         to its CP cost, which you will also be prompted to specify. You may overwrite an existing
-        Extra Art's associated CP cost by calling +getaspect Extra Art=<same custom name> again.
+        Extra Art's associated CP cost by calling +getaspect Extra Art=<same custom name> again
+        as long as it is unequipped.
 
         Syntax:
             +getaspect <aspect>
@@ -188,6 +189,7 @@ class CmdGetAspect(default_cmds.MuxCommand):
                             if args.lower() == equipped_aspect.custom_name.lower():
                                 caller.db.cp += aspect_obj.cost
                                 caller.db.equipped_aspects.pop(i)
+                                break
                     else:
                         caller.db.cp += aspect_obj.cost
                         caller.db.equipped_aspects.remove(aspect_obj)
@@ -240,14 +242,18 @@ class CmdGetAspect(default_cmds.MuxCommand):
                 return caller.msg("The specified CP cost for your Linked Aspect was invalid. Please try again and "
                                   "choose 10, 20, 30, or 40.")
             # If the custom name exists and CP cost is confirmed valid, handle the editing of the Linked Aspect.
-            for acquired_aspect in caller.db.aspects:
-                if acquired_aspect.name.lower() == "extra art" and acquired_aspect.custom_name == aspect_custom_name:
-                    # Change CP cost if it differs from what the user has specified.
+            for i, acquired_aspect in enumerate(caller.db.aspects):
+                if isinstance(acquired_aspect, LinkedAspect) \
+                        and acquired_aspect.custom_name.lower() == aspect_custom_name.lower():
                     if acquired_aspect.cost == aspect_cost:
-                        return caller.msg(f"{acquired_aspect.custom_name} already costs {linked_aspect_cost} CP. No change was made.")
-                    else:
-                        acquired_aspect.cost = aspect_cost
-                        return caller.msg(f"{acquired_aspect.custom_name} now costs {linked_aspect_cost} CP.")
+                        return caller.msg(
+                            f"{acquired_aspect.custom_name} already costs {linked_aspect_cost} CP. No change was made.")
+                    if acquired_aspect in caller.db.equipped_aspects:
+                        return caller.msg(f"Please +unequip {acquired_aspect.custom_name} before changing its CP cost.")
+                    LinkedAspectModel.objects.filter(id=acquired_aspect.linked_aspect_id).update(cost=aspect_cost)
+                    caller.db.aspects[i] = LinkedAspect(acquired_aspect.linked_aspect_id, name=acquired_aspect.name,
+                                                        cost=aspect_cost, custom_name=acquired_aspect.custom_name)
+                    return caller.msg(f"{acquired_aspect.custom_name} now costs {linked_aspect_cost} CP.")
 
             # Now create the Linked Art.
             caller.msg("Please now define your Extra Art.")
@@ -290,14 +296,24 @@ class CmdGetAspect(default_cmds.MuxCommand):
 
         # Check if the character already has this Aspect. Exception is LinkedAspects, as there can be multiple Extra Arts.
         if not isinstance(aspect_obj, LinkedAspect):
-            for acquired_aspect in caller.db.aspects:
+            for i, acquired_aspect in enumerate(caller.db.aspects):
                 if acquired_aspect.name == aspect_obj.name:
-                    # I don't want to allow multiple instances of the same Aspect, but we can overwrite custom_name
-                    if acquired_aspect.custom_name != aspect_obj.custom_name:
-                        acquired_aspect.custom_name = aspect_obj.custom_name
-                        return caller.msg(f"Overwriting {acquired_aspect.name} custom name to {aspect_obj.custom_name}.")
-                    else:
+                    # I don't want to allow multiple instances of the same Aspect, but we can overwrite custom_name.
+                    if acquired_aspect.custom_name == aspect_obj.custom_name:
                         return caller.msg("Error: you already have this Aspect.")
+                    renamed_aspect = Aspect(name=acquired_aspect.name, cost=acquired_aspect.cost,
+                                            custom_name=aspect_obj.custom_name)
+                    caller.db.aspects[i] = renamed_aspect
+                    # equipped_aspects holds its own copy, so rename that one too if it's equipped.
+                    for j, equipped_aspect in enumerate(caller.db.equipped_aspects):
+                        if not isinstance(equipped_aspect, LinkedAspect) \
+                                and equipped_aspect.name == acquired_aspect.name:
+                            caller.db.equipped_aspects[j] = renamed_aspect
+                            break
+                    if not aspect_obj.custom_name:
+                        return caller.msg(f"Clearing the custom name of {acquired_aspect.name}.")
+                    return caller.msg(f"Overwriting the custom name of {acquired_aspect.name} to be "
+                                      f"{aspect_obj.custom_name}.")
 
         # Add the Aspect object with appropriate name and cost. custom_name will be displayed in CmdSheet/CmdListAspects.
         caller.db.aspects.append(aspect_obj)

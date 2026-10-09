@@ -17,7 +17,7 @@ def concat_art_string():
     """Concatenates art string step by step. Called on setart with no args or when creating a Linked Art.
     Call with 'yield from' within a MuxCommand func(), which is for Evennia a generator."""
     art_name = yield "What is your Art's name?"
-    damage = yield "What is your Art's damage value? Select a value between 1 and 13."
+    damage = yield "What is your Art's damage value? Select a value between 1 and 11 (or 13 for EX moves)."
     base_stat = yield "What is your Art's base stat: Power or Knowledge?"
     effects = yield "What are your Art's effects (separated by spaces, leave blank if none)?"
 
@@ -48,7 +48,13 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
     art_already_exists = False
 
     # Damage is currently passed as a string from CmdSetArt and concat_art_string().
-    damage = int(damage)
+    try:
+        damage = int(damage)
+    except ValueError:
+        return None, "Error: your damage value must be a whole number. Make sure that your format is: name, " \
+                     "damage value, base stat, and effects (if any).", art_already_exists
+    if damage < 1:
+        return None, "Error: your damage value must be at least 1.", art_already_exists
 
     # Base accuracy for Arts will be 12 - damage_int, increased by 2 for EX moves after effects are checked.
     accuracy = 12 - damage
