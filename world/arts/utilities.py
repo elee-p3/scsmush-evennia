@@ -29,7 +29,7 @@ def concat_art_string():
     return art_string
 
 
-def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=False):
+def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=False, allow_edit=True):
     """Returns either Art, '', art_already_exists bool on success or None, error_msg, False on failure."""
     arts = Art.objects.filter(characters=caller)
     linked_arts = [aspect.linked_art() for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
@@ -58,6 +58,9 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         if name.lower() == art.name.lower():
             art_to_edit = art
     if art_to_edit:
+        if not allow_edit: # In the event that an Extra Art has the same name as a regular Art, so it doesn't edit.
+            return None, f"Error: you already have an Art named {art_to_edit.name}. Please choose another " \
+                         f"name.", art_already_exists
         caller.art.remove(art_to_edit)
         art_already_exists = True
         # Recalculate contents of Arts list for determining length.

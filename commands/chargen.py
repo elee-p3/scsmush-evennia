@@ -270,8 +270,8 @@ class CmdGetAspect(default_cmds.MuxCommand):
             if len(art_list) == 4:
                 effects = art_list[3]
 
-            art, error_msg, _ = create_or_edit_art(caller=caller, name=art_name, damage=damage,
-                                                              base_stat=base_stat, effects=effects, bypass_cap=True)
+            art, error_msg, _ = create_or_edit_art(caller=caller, name=art_name, damage=damage, base_stat=base_stat,
+                                                   effects=effects, bypass_cap=True, allow_edit=False)
             if error_msg:
                 return caller.msg(error_msg)
 
