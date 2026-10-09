@@ -1,7 +1,6 @@
 from world.arts.models import Art
 from world.combat.aspects import LinkedAspect
 from world.combat.effects import EFFECTS, SUPPORT, DEBUFFS, DEBUFFS_HEXES
-from world.aspects.models import LinkedAspect as LinkedAspectModel
 
 
 def accuracy_check(accuracy, ex_move=False):
@@ -43,8 +42,7 @@ def save_art(art_to_edit, **fields):
 def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=False, allow_edit=True):
     """Returns either Art, '', art_already_exists bool on success or None, error_msg, False on failure."""
     arts = Art.objects.filter(characters=caller)
-    linked_aspects = [aspect for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
-    linked_arts = [aspect.linked_art() for aspect in linked_aspects]
+    linked_arts = [aspect.linked_art() for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
     all_arts = list(arts) + linked_arts
     error_msg = ""
     art_already_exists = False
@@ -63,7 +61,7 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         return None, "Error: your Art's base stat must be either Power or Knowledge. Make sure that your format is: " \
                      "name, damage value, base stat, and effects (if any).", art_already_exists
 
-    # Check if an Art with that name already exists and, if so, remove the existing Art before proceeding.
+    # Check if an Art with that name already exists and, if so, edit that Art in place.
     art_to_edit = None
 
     for art in all_arts:
@@ -134,7 +132,8 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         if error_msg:
             return None, error_msg, art_already_exists
 
-        art = Art.objects.create(
+        art = save_art(
+            art_to_edit,
             name=name,
             ap=true_ap_change,
             dmg=damage,
