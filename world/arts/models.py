@@ -56,3 +56,7 @@ class Art(models.Model):
             return self.name.lower() == other.lower()
         elif isinstance(other, Art):
             return self.name.lower() == other.name.lower()
+
+    # Defining __eq__ drops the inherited __hash__, and Django's delete collector stores model instances in sets,
+    # so to avoid any unhashability-related TypeErrors, we're defining __hash__ again.
+    __hash__ = models.Model.__hash__

@@ -17,7 +17,7 @@ def concat_art_string():
     """Concatenates art string step by step. Called on setart with no args or when creating a Linked Art.
     Call with 'yield from' within a MuxCommand func(), which is for Evennia a generator."""
     art_name = yield "What is your Art's name?"
-    damage = yield "What is your Art's damage value? Select a value between 1 and 13."
+    damage = yield "What is your Art's damage value? Select a value between 1 and 11 (or 13 for EX moves)."
     base_stat = yield "What is your Art's base stat: Power or Knowledge?"
     effects = yield "What are your Art's effects (separated by spaces, leave blank if none)?"
 
@@ -29,7 +29,17 @@ def concat_art_string():
     return art_string
 
 
-def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=False):
+def save_art(art_to_edit, **fields):
+    """Updates art_to_edit in place if there is one. Otherwise, creates and returns a new Art."""
+    if art_to_edit is None:
+        return Art.objects.create(**fields)
+    for field, value in fields.items():
+        setattr(art_to_edit, field, value)
+    art_to_edit.save()
+    return art_to_edit
+
+
+def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=False, allow_edit=True):
     """Returns either Art, '', art_already_exists bool on success or None, error_msg, False on failure."""
     arts = Art.objects.filter(characters=caller)
     linked_arts = [aspect.linked_art() for aspect in caller.db.aspects if isinstance(aspect, LinkedAspect)]
@@ -38,7 +48,13 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
     art_already_exists = False
 
     # Damage is currently passed as a string from CmdSetArt and concat_art_string().
-    damage = int(damage)
+    try:
+        damage = int(damage)
+    except ValueError:
+        return None, "Error: your damage value must be a whole number. Make sure that your format is: name, " \
+                     "damage value, base stat, and effects (if any).", art_already_exists
+    if damage < 1:
+        return None, "Error: your damage value must be at least 1.", art_already_exists
 
     # Base accuracy for Arts will be 12 - damage_int, increased by 2 for EX moves after effects are checked.
     accuracy = 12 - damage
@@ -51,23 +67,20 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         return None, "Error: your Art's base stat must be either Power or Knowledge. Make sure that your format is: " \
                      "name, damage value, base stat, and effects (if any).", art_already_exists
 
-    # Check if an Art with that name already exists and, if so, remove the existing Art before proceeding.
+    # Check if an Art with that name already exists and, if so, edit that Art in place.
     art_to_edit = None
 
     for art in all_arts:
         if name.lower() == art.name.lower():
             art_to_edit = art
     if art_to_edit:
-        caller.art.remove(art_to_edit)
+        if not allow_edit: # In the event that an Extra Art has the same name as a regular Art, so it doesn't edit.
+            return None, f"Error: you already have an Art named {art_to_edit.name}. Please choose another " \
+                         f"name.", art_already_exists
         art_already_exists = True
-        # Recalculate contents of Arts list for determining length.
-        arts = Art.objects.filter(characters=caller)
-        # If the art being edited is a Linked Art, ensure that bypass_cap is set to True.
-        if art_to_edit in linked_arts:
-            bypass_cap = True
 
     # Now check that the character does not already have the maximum number of Arts: 10.
-    if not bypass_cap and len(arts) == 10:
+    if not art_already_exists and not bypass_cap and len(arts) >= 10:
         return None, "Your character already has the maximum of 10 Arts. Art not added.", art_already_exists
 
     # Set the baseline AP cost for an art at 5.
@@ -110,7 +123,8 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         if error_msg:
             return None, error_msg, art_already_exists
 
-        art = Art.objects.create(
+        art = save_art(
+            art_to_edit,
             name=name,
             ap=true_ap_change,
             dmg=damage,
@@ -124,7 +138,8 @@ def create_or_edit_art(caller, name, damage, base_stat, effects, *, bypass_cap=F
         if error_msg:
             return None, error_msg, art_already_exists
 
-        art = Art.objects.create(
+        art = save_art(
+            art_to_edit,
             name=name,
             ap=true_ap_change,
             dmg=damage,
